@@ -206,6 +206,21 @@ canvas {
 }
 
 
+/* Ajout à gauche, suppression à droite, tous deux en bas à droite. */
+#placeButton {
+    right: 88px;
+    bottom: 20px;
+    left: auto;
+}
+
+
+#clearButton {
+    right: 20px;
+    bottom: 20px;
+    left: auto;
+}
+
+
 /*
    Sur téléphone, les deux boutons sont empilés : la zone DOM Overlay
    est parfois plus étroite que la largeur visible de l'écran XR.
