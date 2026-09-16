@@ -11,7 +11,6 @@ let reticle;
 let controls;
 let placeButton;
 let clearButton;
-let objectActions;
 
 let hitTestSource = null;
 let hitTestSourceRequested = false;
@@ -87,7 +86,6 @@ function init() {
 
     placeButton = document.getElementById('placeButton');
     clearButton = document.getElementById('clearButton');
-    objectActions = document.getElementById('objectActions');
 
     placeButton.addEventListener(
         'click',
@@ -201,7 +199,8 @@ function init() {
 
             reticle.visible = false;
 
-            objectActions.style.display = 'none';
+            placeButton.style.display = 'none';
+            clearButton.style.display = 'none';
 
             if (controls) {
                 controls.enabled = true;
@@ -596,18 +595,32 @@ function showPlaceButton() {
     // Les styles en ligne évitent que le DOM Overlay WebXR ne replace
     // le bouton en haut de l'écran sur certains téléphones/émulateurs.
     Object.assign(
-        objectActions.style,
+        placeButton.style,
         {
-            display: 'flex',
+            display: 'block',
             position: 'fixed',
             top: 'auto',
             right: '16px',
             bottom: '24px',
             left: '16px',
             transform: 'none',
-            zIndex: '2147483647',
-            justifyContent: 'center',
-            gap: '8px'
+            width: 'calc(50% - 24px)',
+            zIndex: '2147483647'
+        }
+    );
+
+    Object.assign(
+        clearButton.style,
+        {
+            display: 'block',
+            position: 'fixed',
+            top: 'auto',
+            right: '16px',
+            bottom: '24px',
+            left: 'auto',
+            transform: 'none',
+            width: 'calc(50% - 24px)',
+            zIndex: '2147483647'
         }
     );
 }

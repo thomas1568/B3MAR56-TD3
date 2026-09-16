@@ -159,7 +159,8 @@ canvas {
 
 
 /* Bouton de placement utilisé sur téléphone pendant une session AR. */
-#objectActions {
+#placeButton,
+#clearButton {
     display: none;
 
     /*
@@ -168,25 +169,12 @@ canvas {
     */
     position: absolute;
     top: auto !important;
-    right: 16px;
+    right: auto;
     /* Reste accessible au-dessus de la barre système du téléphone. */
     bottom: 24px !important;
     left: 16px;
 
     z-index: 2;
-
-    justify-content: center;
-    gap: 8px;
-
-    pointer-events: auto;
-    touch-action: manipulation;
-}
-
-
-#placeButton,
-#clearButton {
-    flex: 1 1 0;
-    max-width: 190px;
 
     padding: 14px 20px;
 
@@ -200,6 +188,7 @@ canvas {
     white-space: nowrap;
 
     cursor: pointer;
+    pointer-events: auto;
     touch-action: manipulation;
 }
 
