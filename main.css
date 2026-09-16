@@ -168,14 +168,15 @@ canvas {
     */
     position: absolute;
     top: auto !important;
-    right: auto;
+    right: 16px;
     /* Reste accessible au-dessus de la barre système du téléphone. */
     bottom: 24px !important;
-    left: 50%;
+    left: 16px;
 
     z-index: 2;
 
-    transform: translateX(-50%);
+    justify-content: center;
+    gap: 8px;
 
     pointer-events: auto;
     touch-action: manipulation;
@@ -184,6 +185,9 @@ canvas {
 
 #placeButton,
 #clearButton {
+    flex: 1 1 0;
+    max-width: 190px;
+
     padding: 14px 20px;
 
     color: #fff;
@@ -191,8 +195,9 @@ canvas {
     border: 1px solid rgba(255, 255, 255, 0.8);
     border-radius: 10px;
 
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
+    white-space: nowrap;
 
     cursor: pointer;
     touch-action: manipulation;

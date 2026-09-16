@@ -601,12 +601,13 @@ function showPlaceButton() {
             display: 'flex',
             position: 'fixed',
             top: 'auto',
-            right: 'auto',
+            right: '16px',
             bottom: '24px',
-            left: '50%',
-            transform: 'translateX(-50%)',
+            left: '16px',
+            transform: 'none',
             zIndex: '2147483647',
-            gap: '10px'
+            justifyContent: 'center',
+            gap: '8px'
         }
     );
 }
