@@ -735,7 +735,34 @@ function showPlaceButton() {
             left: 'auto',
             transform: 'none',
             zIndex: '2147483647',
-            gap: '12px'
+            gap: '12px',
+            flexDirection: 'row',
+            flexWrap: 'nowrap',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            width: '124px',
+            height: '56px'
+        }
+    );
+
+    // Annule les anciennes positions fixes éventuelles sur les boutons.
+    [placeButton, clearButton].forEach(
+        function (button) {
+            Object.assign(
+                button.style,
+                {
+                    display: 'block',
+                    position: 'static',
+                    top: 'auto',
+                    right: 'auto',
+                    bottom: 'auto',
+                    left: 'auto',
+                    width: '56px',
+                    height: '56px',
+                    flex: '0 0 56px',
+                    transform: 'none'
+                }
+            );
         }
     );
 }
