@@ -65,6 +65,9 @@ function init() {
         window.innerHeight
     );
 
+    // Reçoit le focus clavier pendant la session XR sur PC.
+    renderer.domElement.tabIndex = 0;
+
     renderer.xr.enabled = true;
 
     document.body.appendChild(
@@ -181,6 +184,10 @@ function init() {
 
             showPlaceButton();
 
+            // Immersive Web Emulator donne parfois le focus au canvas.
+            // On le conserve pour que les raccourcis A et E soient reçus.
+            renderer.domElement.focus({ preventScroll: true });
+
             // Le modèle en attente de placement est caché
             if (current_object) {
                 current_object.visible = false;
@@ -233,9 +240,11 @@ function init() {
         onWindowResize
     );
 
-    window.addEventListener(
+    // Capture : le raccourci est lu avant les contrôles de l'émulateur XR.
+    document.addEventListener(
         'keydown',
-        onKeyboardShortcut
+        onKeyboardShortcut,
+        true
     );
 
 
@@ -609,6 +618,7 @@ function onKeyboardShortcut(event) {
     const target = event.target;
 
     if (
+        event.defaultPrevented ||
         event.repeat ||
         (
             target instanceof HTMLElement &&
