@@ -105,6 +105,13 @@ function init() {
         }
     );
 
+    clearButton.addEventListener(
+        'pointerdown',
+        function (event) {
+            event.stopPropagation();
+        }
+    );
+
     const options = {
 
         requiredFeatures: [
@@ -598,6 +605,9 @@ function showPlaceButton() {
         placeButton.style,
         {
             display: 'block',
+            visibility: 'visible',
+            opacity: '1',
+            pointerEvents: 'auto',
             position: 'fixed',
             top: 'auto',
             right: '16px',
@@ -613,6 +623,9 @@ function showPlaceButton() {
         clearButton.style,
         {
             display: 'block',
+            visibility: 'visible',
+            opacity: '1',
+            pointerEvents: 'auto',
             position: 'fixed',
             top: 'auto',
             right: '16px',
