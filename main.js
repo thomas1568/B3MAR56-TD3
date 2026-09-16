@@ -8,7 +8,6 @@ let scene;
 let camera;
 let renderer;
 let reticle;
-let controller;
 let controls;
 let placeButton;
 
@@ -84,15 +83,11 @@ function init() {
 
     controls.update();
 
-    controller = renderer.xr.getController(0);
-
-    scene.add(controller);
-
     placeButton = document.getElementById('placeButton');
 
     placeButton.addEventListener(
         'click',
-        onSelect
+        placeSelectedObject
     );
 
     const options = {
@@ -354,7 +349,7 @@ $('.ar-object').click(function (event) {
 // PLACEMENT D'UN MODELE
 // -------------------------------------------------
 
-function onSelect() {
+function placeSelectedObject() {
 
     // Aucun modèle à placer
     if (!current_object) {
