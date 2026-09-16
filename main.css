@@ -159,22 +159,22 @@ canvas {
 
 
 /* Bouton de placement utilisé sur téléphone pendant une session AR. */
-#placeButton,
-#clearButton {
+#actionButtons {
     display: none;
 
-    /*
-       "absolute" est plus fiable que "fixed" dans un dom-overlay WebXR :
-       le bouton est positionné par rapport à #content, qui couvre l'écran.
-    */
-    position: absolute;
-    top: auto !important;
-    right: auto;
-    /* Reste accessible au-dessus de la barre système du téléphone. */
-    bottom: 24px !important;
-    left: 16px;
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
 
     z-index: 2;
+    gap: 12px;
+
+    pointer-events: auto;
+}
+
+
+#placeButton,
+#clearButton {
 
     width: 56px;
     height: 56px;
@@ -206,19 +206,6 @@ canvas {
 }
 
 
-/* Ajout à gauche, suppression à droite, tous deux en bas à droite. */
-#placeButton {
-    right: 88px;
-    bottom: 20px;
-    left: auto;
-}
-
-
-#clearButton {
-    right: 20px;
-    bottom: 20px;
-    left: auto;
-}
 
 
 /*
