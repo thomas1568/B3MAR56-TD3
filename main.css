@@ -197,3 +197,27 @@ canvas {
 #clearButton:active {
     background-color: rgba(70, 70, 70, 0.9);
 }
+
+
+/*
+   Sur téléphone, les deux boutons sont empilés : la zone DOM Overlay
+   est parfois plus étroite que la largeur visible de l'écran XR.
+*/
+@media (pointer: coarse) and (max-width: 900px) {
+    #placeButton,
+    #clearButton {
+        position: fixed !important;
+        left: 16px !important;
+        right: 16px !important;
+        width: auto !important;
+        transform: none !important;
+    }
+
+    #placeButton {
+        bottom: 16px !important;
+    }
+
+    #clearButton {
+        bottom: 82px !important;
+    }
+}
