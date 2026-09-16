@@ -741,7 +741,8 @@ function showPlaceButton() {
             alignItems: 'center',
             justifyContent: 'flex-end',
             width: '124px',
-            height: '56px'
+            height: '56px',
+            whiteSpace: 'nowrap'
         }
     );
 
@@ -751,7 +752,7 @@ function showPlaceButton() {
             Object.assign(
                 button.style,
                 {
-                    display: 'block',
+                    display: 'inline-block',
                     position: 'static',
                     top: 'auto',
                     right: 'auto',

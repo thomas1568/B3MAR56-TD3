@@ -168,6 +168,7 @@ canvas {
 
     z-index: 2;
     gap: 12px;
+    white-space: nowrap;
 
     pointer-events: auto;
 }
@@ -175,6 +176,8 @@ canvas {
 
 #placeButton,
 #clearButton {
+    display: inline-block;
+    vertical-align: top;
 
     width: 56px;
     height: 56px;
