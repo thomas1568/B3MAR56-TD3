@@ -95,10 +95,9 @@ function init() {
     const options = {
 
         requiredFeatures: [
-            'hit-test'
-        ],
-
-        optionalFeatures: [
+            'hit-test',
+            // Le menu HTML doit faire partie de la session XR.
+            // En option, l'émulateur peut ignorer cette fonctionnalité.
             'dom-overlay'
         ],
 
