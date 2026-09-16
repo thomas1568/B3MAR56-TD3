@@ -170,7 +170,7 @@ canvas {
     top: auto !important;
     right: auto;
     /* Reste accessible au-dessus de la barre système du téléphone. */
-    bottom: max(24px, env(safe-area-inset-bottom)) !important;
+    bottom: 24px !important;
     left: 50%;
 
     z-index: 2;

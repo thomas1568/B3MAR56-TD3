@@ -90,6 +90,14 @@ function init() {
         placeSelectedObject
     );
 
+    // Le toucher sur le bouton ne doit jamais atteindre la simulation.
+    placeButton.addEventListener(
+        'pointerdown',
+        function (event) {
+            event.stopPropagation();
+        }
+    );
+
     const options = {
 
         requiredFeatures: [
@@ -157,7 +165,7 @@ function init() {
 
             reticle.visible = false;
 
-            placeButton.style.display = 'block';
+            showPlaceButton();
 
             // Le modèle en attente de placement est caché
             if (current_object) {
@@ -551,4 +559,28 @@ function onWindowResize() {
             window.innerHeight
         );
     }
+}
+
+
+// -------------------------------------------------
+// BOUTON DE PLACEMENT MOBILE
+// -------------------------------------------------
+
+function showPlaceButton() {
+
+    // Les styles en ligne évitent que le DOM Overlay WebXR ne replace
+    // le bouton en haut de l'écran sur certains téléphones/émulateurs.
+    Object.assign(
+        placeButton.style,
+        {
+            display: 'block',
+            position: 'fixed',
+            top: 'auto',
+            right: 'auto',
+            bottom: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: '2147483647'
+        }
+    );
 }
