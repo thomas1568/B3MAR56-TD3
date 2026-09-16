@@ -95,9 +95,13 @@ function init() {
     const options = {
 
         requiredFeatures: [
-            'hit-test',
-            // Le menu HTML doit faire partie de la session XR.
-            // En option, l'émulateur peut ignorer cette fonctionnalité.
+            'hit-test'
+        ],
+
+        // Certaines configurations de l'Immersive Web Emulator ne
+        // prennent pas en charge cette fonctionnalité. Elle doit donc
+        // rester optionnelle pour pouvoir entrer dans la simulation.
+        optionalFeatures: [
             'dom-overlay'
         ],
 
