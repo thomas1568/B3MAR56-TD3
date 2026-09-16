@@ -10,6 +10,8 @@ let renderer;
 let reticle;
 let controls;
 let placeButton;
+let clearButton;
+let objectActions;
 
 let hitTestSource = null;
 let hitTestSourceRequested = false;
@@ -84,10 +86,17 @@ function init() {
     controls.update();
 
     placeButton = document.getElementById('placeButton');
+    clearButton = document.getElementById('clearButton');
+    objectActions = document.getElementById('objectActions');
 
     placeButton.addEventListener(
         'click',
         placeSelectedObject
+    );
+
+    clearButton.addEventListener(
+        'click',
+        clearPlacedObjects
     );
 
     // Le toucher sur le bouton ne doit jamais atteindre la simulation.
@@ -192,7 +201,7 @@ function init() {
 
             reticle.visible = false;
 
-            placeButton.style.display = 'none';
+            objectActions.style.display = 'none';
 
             if (controls) {
                 controls.enabled = true;
@@ -563,6 +572,22 @@ function onWindowResize() {
 
 
 // -------------------------------------------------
+// SUPPRESSION DES MODELES POSES
+// -------------------------------------------------
+
+function clearPlacedObjects() {
+
+    placed_objects.forEach(
+        function (object) {
+            scene.remove(object);
+        }
+    );
+
+    placed_objects = [];
+}
+
+
+// -------------------------------------------------
 // BOUTON DE PLACEMENT MOBILE
 // -------------------------------------------------
 
@@ -571,16 +596,17 @@ function showPlaceButton() {
     // Les styles en ligne évitent que le DOM Overlay WebXR ne replace
     // le bouton en haut de l'écran sur certains téléphones/émulateurs.
     Object.assign(
-        placeButton.style,
+        objectActions.style,
         {
-            display: 'block',
+            display: 'flex',
             position: 'fixed',
             top: 'auto',
             right: 'auto',
             bottom: '24px',
             left: '50%',
             transform: 'translateX(-50%)',
-            zIndex: '2147483647'
+            zIndex: '2147483647',
+            gap: '10px'
         }
     );
 }

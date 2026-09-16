@@ -159,7 +159,7 @@ canvas {
 
 
 /* Bouton de placement utilisé sur téléphone pendant une session AR. */
-#placeButton {
+#objectActions {
     display: none;
 
     /*
@@ -177,6 +177,13 @@ canvas {
 
     transform: translateX(-50%);
 
+    pointer-events: auto;
+    touch-action: manipulation;
+}
+
+
+#placeButton,
+#clearButton {
     padding: 14px 20px;
 
     color: #fff;
@@ -188,11 +195,11 @@ canvas {
     font-weight: bold;
 
     cursor: pointer;
-    pointer-events: auto;
     touch-action: manipulation;
 }
 
 
-#placeButton:active {
+#placeButton:active,
+#clearButton:active {
     background-color: rgba(70, 70, 70, 0.9);
 }
