@@ -45,11 +45,7 @@ canvas {
 #content {
     position: fixed;
 
-    top: 0;
-    left: 0;
-
-    width: 100%;
-    height: 100%;
+    inset: 0;
 
     /*
        En session WebXR, cette div est aussi la racine du dom-overlay.
@@ -166,9 +162,15 @@ canvas {
 #placeButton {
     display: none;
 
-    position: fixed;
+    /*
+       "absolute" est plus fiable que "fixed" dans un dom-overlay WebXR :
+       le bouton est positionné par rapport à #content, qui couvre l'écran.
+    */
+    position: absolute;
+    top: auto !important;
+    right: auto;
     /* Reste accessible au-dessus de la barre système du téléphone. */
-    bottom: max(24px, env(safe-area-inset-bottom));
+    bottom: max(24px, env(safe-area-inset-bottom)) !important;
     left: 50%;
 
     z-index: 2;
