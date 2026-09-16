@@ -16,6 +16,13 @@ let actionButtons;
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 
+// État du glissement tactile utilisé pour la rotation du modèle.
+let touchDown = false;
+let touchX = 0;
+let touchY = 0;
+let deltaX = 0;
+let deltaY = 0;
+
 // État des actions venant des manettes émulées (anti-répétition).
 let xrAddShortcutHeld = false;
 let xrClearShortcutHeld = false;
@@ -77,6 +84,54 @@ function init() {
 
     document.body.appendChild(
         renderer.domElement
+    );
+
+    renderer.domElement.addEventListener(
+        'touchstart',
+        function (event) {
+
+            if (event.touches.length === 0) {
+                return;
+            }
+
+            event.preventDefault();
+
+            touchDown = true;
+            touchX = event.touches[0].pageX;
+            touchY = event.touches[0].pageY;
+        },
+        { passive: false }
+    );
+
+    renderer.domElement.addEventListener(
+        'touchend',
+        function (event) {
+
+            event.preventDefault();
+            touchDown = false;
+        },
+        { passive: false }
+    );
+
+    renderer.domElement.addEventListener(
+        'touchmove',
+        function (event) {
+
+            if (!touchDown || event.touches.length === 0) {
+                return;
+            }
+
+            event.preventDefault();
+
+            deltaX = event.touches[0].pageX - touchX;
+            deltaY = event.touches[0].pageY - touchY;
+
+            touchX = event.touches[0].pageX;
+            touchY = event.touches[0].pageY;
+
+            rotateObject();
+        },
+        { passive: false }
     );
 
     controls = new OrbitControls(
@@ -616,6 +671,18 @@ function clearPlacedObjects() {
     );
 
     placed_objects = [];
+}
+
+
+// -------------------------------------------------
+// ROTATION TACTILE DU MODELE EN ATTENTE DE PLACEMENT
+// -------------------------------------------------
+
+function rotateObject() {
+
+    if (current_object && reticle.visible) {
+        current_object.rotation.y += deltaX / 100;
+    }
 }
 
 
