@@ -10,6 +10,7 @@ let renderer;
 let reticle;
 let controller;
 let controls;
+let placeButton;
 
 let hitTestSource = null;
 let hitTestSourceRequested = false;
@@ -85,12 +86,14 @@ function init() {
 
     controller = renderer.xr.getController(0);
 
-    controller.addEventListener(
-        'select',
+    scene.add(controller);
+
+    placeButton = document.getElementById('placeButton');
+
+    placeButton.addEventListener(
+        'click',
         onSelect
     );
-
-    scene.add(controller);
 
     const options = {
 
@@ -159,6 +162,8 @@ function init() {
 
             reticle.visible = false;
 
+            placeButton.style.display = 'block';
+
             // Le modèle en attente de placement est caché
             if (current_object) {
                 current_object.visible = false;
@@ -183,6 +188,8 @@ function init() {
             hitTestSourceRequested = false;
 
             reticle.visible = false;
+
+            placeButton.style.display = 'none';
 
             if (controls) {
                 controls.enabled = true;
