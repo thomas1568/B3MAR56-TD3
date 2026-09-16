@@ -233,6 +233,11 @@ function init() {
         onWindowResize
     );
 
+    window.addEventListener(
+        'keydown',
+        onKeyboardShortcut
+    );
+
 
     renderer.setAnimationLoop(
         animate
@@ -590,6 +595,40 @@ function clearPlacedObjects() {
     );
 
     placed_objects = [];
+}
+
+
+// -------------------------------------------------
+// RACCOURCIS CLAVIER (PC)
+// A : ajoute le modèle sélectionné
+// E : supprime tous les modèles posés
+// -------------------------------------------------
+
+function onKeyboardShortcut(event) {
+
+    const target = event.target;
+
+    if (
+        event.repeat ||
+        (
+            target instanceof HTMLElement &&
+            target.matches('input, textarea, select, [contenteditable="true"]')
+        )
+    ) {
+        return;
+    }
+
+    if (event.key.toLowerCase() === 'a') {
+
+        event.preventDefault();
+        placeSelectedObject();
+    }
+
+    if (event.key.toLowerCase() === 'e') {
+
+        event.preventDefault();
+        clearPlacedObjects();
+    }
 }
 
 
