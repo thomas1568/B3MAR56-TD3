@@ -15,6 +15,10 @@ let clearButton;
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 
+// État des actions venant des manettes émulées (anti-répétition).
+let xrAddShortcutHeld = false;
+let xrClearShortcutHeld = false;
+
 let current_object = null;
 let loading_model = null;
 
@@ -179,6 +183,8 @@ function init() {
 
             hitTestSource = null;
             hitTestSourceRequested = false;
+            xrAddShortcutHeld = false;
+            xrClearShortcutHeld = false;
 
             reticle.visible = false;
 
@@ -210,6 +216,8 @@ function init() {
 
             hitTestSource = null;
             hitTestSourceRequested = false;
+            xrAddShortcutHeld = false;
+            xrClearShortcutHeld = false;
 
             reticle.visible = false;
 
@@ -461,6 +469,9 @@ function animate(
         return;
     }
 
+    // En Play mode, certaines touches deviennent des entrées de manette XR.
+    handleXRControllerShortcuts();
+
 
     const referenceSpace =
         renderer.xr.getReferenceSpace();
@@ -643,6 +654,65 @@ function onKeyboardShortcut(event) {
 
 
 // -------------------------------------------------
+// RACCOURCIS VIA MANETTES XR / IMMERSIVE WEB EMULATOR
+// - A en Play mode : stick gauche vers la gauche => ajout
+// - Bouton A / X : ajout
+// - Bouton B / Y : suppression
+// -------------------------------------------------
+
+function handleXRControllerShortcuts() {
+
+    const session = renderer.xr.getSession();
+
+    if (!session) {
+        return;
+    }
+
+    let addPressed = false;
+    let clearPressed = false;
+
+    session.inputSources.forEach(
+        function (inputSource) {
+
+            const gamepad = inputSource.gamepad;
+
+            if (!gamepad) {
+                return;
+            }
+
+            // Dans le Play mode, A pilote le stick gauche vers la gauche.
+            if (
+                inputSource.handedness === 'left' &&
+                gamepad.axes[0] <= -0.9
+            ) {
+                addPressed = true;
+            }
+
+            // Mapping standard Meta Touch : boutons 4 = A/X, 5 = B/Y.
+            if (gamepad.buttons[4] && gamepad.buttons[4].pressed) {
+                addPressed = true;
+            }
+
+            if (gamepad.buttons[5] && gamepad.buttons[5].pressed) {
+                clearPressed = true;
+            }
+        }
+    );
+
+    if (addPressed && !xrAddShortcutHeld) {
+        placeSelectedObject();
+    }
+
+    if (clearPressed && !xrClearShortcutHeld) {
+        clearPlacedObjects();
+    }
+
+    xrAddShortcutHeld = addPressed;
+    xrClearShortcutHeld = clearPressed;
+}
+
+
+// -------------------------------------------------
 // BOUTON DE PLACEMENT MOBILE
 // -------------------------------------------------
 
@@ -659,11 +729,12 @@ function showPlaceButton() {
             pointerEvents: 'auto',
             position: 'fixed',
             top: 'auto',
-            right: '16px',
-            bottom: '24px',
-            left: '16px',
+            right: '20px',
+            bottom: '20px',
+            left: 'auto',
             transform: 'none',
-            width: 'calc(50% - 24px)',
+            width: '56px',
+            height: '56px',
             zIndex: '2147483647'
         }
     );
@@ -677,11 +748,12 @@ function showPlaceButton() {
             pointerEvents: 'auto',
             position: 'fixed',
             top: 'auto',
-            right: '16px',
-            bottom: '24px',
+            right: '20px',
+            bottom: '88px',
             left: 'auto',
             transform: 'none',
-            width: 'calc(50% - 24px)',
+            width: '56px',
+            height: '56px',
             zIndex: '2147483647'
         }
     );

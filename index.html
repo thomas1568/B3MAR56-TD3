@@ -4,7 +4,7 @@
 <title>TP</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<link type="text/css" rel="stylesheet" href="main.css?v=5">
+<link type="text/css" rel="stylesheet" href="main.css?v=6">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
 <body>
@@ -18,8 +18,8 @@
 <a class="ar-object" id="4" href="#">item_4</a>
 </div>
 <div id="menuButton" onclick="openNav()">&#9776;</div>
-<button id="placeButton" type="button">Ajouter l'objet</button>
-<button id="clearButton" type="button">Supprimer tout</button>
+<button id="placeButton" type="button" aria-label="Ajouter l'objet" title="Ajouter l'objet"><img src="assets/add-circle.svg" alt=""></button>
+<button id="clearButton" type="button" aria-label="Supprimer tous les objets" title="Supprimer tous les objets"><img src="assets/bin.svg" alt=""></button>
 </div>
 
 <script type="importmap">
@@ -31,7 +31,7 @@
 }
 </script>
 
-<script type="module" src="./main.js?v=5"></script>
+<script type="module" src="./main.js?v=6"></script>
 
 <script>
 function openNav(){
