@@ -28,7 +28,7 @@ function app() {
     const logs = [];
     const context = vm.createContext({ THREE, assert, URLSearchParams,
         window: {location: {search: ''}, innerWidth: 400, innerHeight: 800},
-        document: {getElementById: node},
+        document: {getElementById: node, querySelectorAll: () => []},
         console: {info() {}, warn() {}, error: (...args) => logs.push(args)},
         $: () => ({click() {}}),
         GLTFLoader: class { load(url, success) { context.modelRequests.push({url, success}); } },
@@ -36,7 +36,7 @@ function app() {
     });
     vm.runInContext(source, context);
     const run = code => vm.runInContext(code, context);
-    run(`scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(70, 0.5, 0.01, 20);
+    run(`experienceMode = 'edit'; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(70, 0.5, 0.01, 20);
         camera.position.set(0, 2, 3); camera.lookAt(0, 0, 0); camera.updateMatrixWorld(true);
         pickingCamera.matrixWorld.copy(camera.matrixWorld);
         pickingCamera.matrixWorldInverse.copy(camera.matrixWorldInverse);
@@ -336,4 +336,38 @@ test('selection, editing, deselection and deletion keep the placement source ali
         assert.equal(hitTestSource,source); assert.equal(cancellations,0);
         animate(32,validFrame()); assert.ok(reticle.visible); assert.equal(placementPoseValid,true);
         assert.ok(inputTrace.length<=8);`);
+});
+
+test('visit taps open one content card, swipes and cancellation never edit the scene', () => {
+    const {run,context}=app();const opened=[];
+    context.testExperience={openPoint:id=>opened.push(id),setPlacementReady(){},updateHotspots(){}};
+    run("experience=testExperience; experienceMode='visit'; first.userData.poiId='naissance'; const pos=first.position.clone(), quat=first.quaternion.clone(); beginDrag(rayAt(0),1,p0); assert.equal(selectedObject,null); finishGesture(false);");
+    assert.deepEqual(opened,['naissance']);
+    run("beginDrag(rayAt(0),2,p0);updateGesture(rayAt(1),new THREE.Vector2(240,400));finishGesture(false);beginDrag(rayAt(0),3,p0);finishGesture(true);beginDrag(rayAt(15),4,p0);finishGesture(false);assert.ok(first.position.equals(pos));assert.ok(first.quaternion.equals(quat));assert.equal(placed_objects.length,3);assert.equal(drag,null);");
+    assert.deepEqual(opened,['naissance']);
+});
+
+test('visit mode guards add, delete and rotation commands', () => {
+    const {run}=app();
+    run("selectObject(first); experienceMode='visit'; primeHitTest();updatePlacement(validFrame(),activeSession,{},0);current_object=new THREE.Group();scene.add(current_object);deleteSelectedObject();placeSelectedObject();setInteractionMode('rotate');assert.equal(placed_objects.length,3);assert.equal(interactionMode,'move');assert.ok(first.parent===scene);assert.ok(hitTestSource);assert.equal(reticle.visible,true);");
+});
+
+test('new stage UI surfaces never enter scene picking', () => {
+    const {run,context}=app();
+    let selector;
+    context.target={closest:value=>{selector=value;return value.includes('[data-ui]')?{}:null;}};
+    run("onARPointerDown({type:'pointerdown',isPrimary:true,button:0,pointerId:1,target,clientX:200,clientY:400});assert.equal(drag,null);assert.equal(placed_objects.length,3);");
+    assert.ok(selector.includes('[data-ui]'));
+});
+
+
+test('GLTF cleanup keeps shared resources alive while a pending model uses them', () => {
+    const {run}=app();
+    run(`let freed=0;sharedGeometry.addEventListener('dispose',()=>freed++);
+        sharedMaterial.addEventListener('dispose',()=>freed++);
+        const pending=new THREE.Group();pending.add(new THREE.Mesh(sharedGeometry,sharedMaterial));
+        current_object=pending;ownedModelRoots.add(first);ownedModelRoots.add(second);ownedModelRoots.add(third);ownedModelRoots.add(pending);
+        for(const object of placed_objects)object.removeFromParent();placed_objects=[];
+        releaseModelResources();assert.equal(freed,0);assert.equal(ownedModelRoots.size,1);
+        current_object=null;releaseModelResources();assert.equal(freed,2);assert.equal(ownedModelRoots.size,0);`);
 });

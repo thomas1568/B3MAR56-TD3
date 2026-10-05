@@ -22,6 +22,7 @@ class ARButton {
 	static createButton( renderer, sessionInit = {} ) {
 
 		const button = document.createElement( 'button' );
+		const ownsOverlay = sessionInit.domOverlay === undefined;
 
 		function showStartAR( /*device*/ ) {
 
@@ -82,10 +83,10 @@ class ARButton {
 
 			function onSessionEnded( /*event*/ ) {
 
-				currentSession.removeEventListener( 'end', onSessionEnded );
+				currentSession?.removeEventListener( 'end', onSessionEnded );
 
 				button.textContent = 'START AR';
-				sessionInit.domOverlay.root.style.display = 'none';
+				if ( ownsOverlay ) sessionInit.domOverlay.root.style.display = 'none';
 
 				currentSession = null;
 
@@ -117,39 +118,22 @@ class ARButton {
 
 				if ( currentSession === null ) {
 
-					navigator.xr.requestSession( 'immersive-ar', sessionInit ).then( onSessionStarted );
+					button.disabled = true;
+                    navigator.xr.requestSession( 'immersive-ar', sessionInit )
+                        .then( async session => {
+                            try { await onSessionStarted( session ); }
+                            catch ( error ) { await session.end(); throw error; }
+                        } )
+                        .catch( error => button.dispatchEvent( new CustomEvent( 'arerror', { detail: error } ) ) )
+                        .finally( () => { button.disabled = false; } );
 
 				} else {
 
 					currentSession.end();
 
-					if ( navigator.xr.offerSession !== undefined ) {
-
-						navigator.xr.offerSession( 'immersive-ar', sessionInit )
-							.then( onSessionStarted )
-							.catch( ( err ) => {
-
-								console.warn( err );
-
-							} );
-
-					}
-
 				}
 
 			};
-
-			if ( navigator.xr.offerSession !== undefined ) {
-
-				navigator.xr.offerSession( 'immersive-ar', sessionInit )
-					.then( onSessionStarted )
-					.catch( ( err ) => {
-
-						console.warn( err );
-
-					} );
-
-			}
 
 		}
 

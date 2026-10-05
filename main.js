@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 import { GLTFLoader } from 'three/addons/webxr/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/webxr/OrbitControls.js';
+import { IUT_STEP } from './content/iut.js';
+import { createMemoriaScene } from './memoria/scene.js';
+import { loadLayout, saveLayout, LAYOUT_KEY } from './memoria/layout.js';
+import { createExperience } from './memoria/experience.js';
 
 let scene;
 let camera;
@@ -34,7 +38,14 @@ let diagnosticText;
 const selectionRaycaster = new THREE.Raycaster();
 const rayMatrix = new THREE.Matrix4();
 const dragPoint = new THREE.Vector3();
-const APP_VERSION = '12';
+const APP_VERSION = '13';
+const MAX_PLACED_OBJECTS = 16;
+let experience = null;
+let experienceMode = 'visit';
+let memoriaScene = null;
+let memoriaPlaced = false;
+let nativeARButton = null;
+let pendingPointId = null;
 // Read-only snapshot of the last rendered AR view; input never edits XR cameras.
 const pickingCamera = new THREE.PerspectiveCamera();
 pickingCamera.matrixAutoUpdate = false;
@@ -48,6 +59,7 @@ const DRAG_THRESHOLD = 6; // CSS pixels: a tap must never transform an object.
 let current_object = null;
 let loading_model = 0;
 let modelLoading = false;
+const ownedModelRoots = new Set();
 
 // Modèle actuellement sélectionné dans le menu
 let selected_model = '1';
@@ -58,6 +70,14 @@ let placed_objects = [];
 init();
 
 function init() {
+
+    experience = createExperience(IUT_STEP, {
+        startAR, exit: exitExperience, setMode: setExperienceMode,
+        placeScene: placeMemoriaScene, saveLayout: saveMemoriaLayout, resetLayout: resetMemoriaLayout,
+        onPointAction, viewInAR: viewPointInAR, onCardOpen: () => stopDrag()
+    });
+    experience.setMode('visit');
+    experience.setAvailability(false, 'Vérification de la disponibilité AR…');
 
     scene = new THREE.Scene();
 
@@ -82,14 +102,16 @@ function init() {
 
     scene.add(light);
 
-    renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true
-    });
+    try {
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    } catch (error) {
+        console.error('Initialisation WebGL', error);
+        experience.setAvailability(false, 'Vue AR indisponible. Les fiches restent accessibles.');
+        return;
+    }
+    renderer.domElement.className = 'ar-canvas';
 
-    renderer.setPixelRatio(
-        window.devicePixelRatio
-    );
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     renderer.setSize(
         window.innerWidth,
@@ -168,32 +190,32 @@ function init() {
         }
     );
 
+    // The visitor/editor commands require DOM Overlay during immersive AR.
     const options = {
-
-        requiredFeatures: [
-            'hit-test'
-        ],
-
-        // Certaines configurations de l'Immersive Web Emulator ne
-        // prennent pas en charge cette fonctionnalité. Elle doit donc
-        // rester optionnelle pour pouvoir entrer dans la simulation.
-        optionalFeatures: [
-            'dom-overlay'
-        ],
-
-        domOverlay: {
-            root: document.getElementById(
-                'content'
-            )
-        }
+        requiredFeatures: ['hit-test', 'dom-overlay'],
+        domOverlay: { root: overlay }
     };
-
-    document.body.appendChild(
-        ARButton.createButton(
-            renderer,
-            options
-        )
-    );
+    nativeARButton = ARButton.createButton(renderer, options);
+    nativeARButton.hidden = true;
+    nativeARButton.addEventListener('arerror', event => {
+        reportARError('Démarrage AR', event.detail);
+        experience.showMessage('Impossible de démarrer l’AR : ' + event.detail.message + '. La consultation 360° reste accessible.');
+    });
+    document.body.appendChild(nativeARButton);
+    if (window.isSecureContext && navigator.xr) {
+        navigator.xr.isSessionSupported('immersive-ar').then(supported => {
+            experience.setAvailability(supported, supported
+                ? 'AR disponible. Autorisez la caméra puis scannez une surface.'
+                : 'AR non prise en charge. Ouvrez la consultation 360°.');
+        }).catch(error => {
+            console.error('Disponibilité AR', error);
+            experience.setAvailability(false, 'AR indisponible : ' + error.message + '. Consultation 360° accessible.');
+        });
+    } else {
+        experience.setAvailability(false, window.isSecureContext
+            ? 'AR non prise en charge. Consultation 360° accessible.'
+            : 'L’AR nécessite HTTPS. Consultation des fiches accessible.');
+    }
 
     const geometry =
         new THREE.RingGeometry(
@@ -234,7 +256,12 @@ function init() {
         'sessionstart',
         function () {
 
+            cleanupSessionObjects();
             activeSession = renderer.xr.getSession();
+            experienceMode = 'visit';
+            experience.setMode('visit');
+            experience.setARState(true);
+            experience.setScenePlaced(false);
             hitTestSource = null;
             hitTestSourceRequested = false;
             hitTestRetryAt = 0;
@@ -243,6 +270,7 @@ function init() {
             invalidatePlacement();
             pickingCameraReady = false;
             inputTrace.length = 0;
+            lastInput = 'aucun'; lastRaycast = 'aucun'; lastAction = 'aucune';
             activeSession.addEventListener('selectstart', onXRSelectStart);
             activeSession.addEventListener('selectend', onXRSelectEnd);
             activeSession.addEventListener('inputsourceschange', onXRInputsChanged);
@@ -257,8 +285,7 @@ function init() {
             showPlaceButton();
             updateARStatus();
 
-            // Immersive Web Emulator donne parfois le focus au canvas.
-            // On le conserve pour que les raccourcis A et E soient reçus.
+            // Restore focus without scrolling the immersive overlay.
             renderer.domElement.focus({ preventScroll: true });
 
             // Le modèle en attente de placement est caché
@@ -304,17 +331,11 @@ function init() {
                 controls.enabled = true;
             }
 
-            // Le modèle non placé revient à sa position initiale
-            if (current_object) {
-
-                current_object.position.set(
-                    0,
-                    0,
-                    -2
-                );
-
-                current_object.visible = true;
-            }
+            cleanupSessionObjects();
+            pendingPointId = null;
+            experience.setARState(false);
+            experience.setScenePlaced(false);
+            if (current_object) current_object.visible = false;
         }
     );
 
@@ -329,8 +350,9 @@ function init() {
     );
 
 
-    // Modèle chargé au démarrage
-    loadModel('1');
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { stopDrag(); experience.stopSounds(); }
+    });
 }
 
 
@@ -353,10 +375,12 @@ function loadModel(model) {
         'model/' + model + '.glb',
 
         function (gltf) {
+            ownedModelRoots.add(gltf.scene);
 
             // Si un autre modèle a été sélectionné
             // pendant le chargement, on ignore celui-ci
             if (loading_model !== requestId) {
+                releaseModelResources();
                 return;
             }
 
@@ -411,7 +435,7 @@ function loadModel(model) {
             );
 
 
-            current_object.visible = true;
+            current_object.visible = false;
 
 
             // Pendant l'AR, il sera affiché
@@ -433,7 +457,11 @@ function loadModel(model) {
                 '.glb',
                 error
             );
-            if (loading_model === requestId) reportARError('Chargement du modele', error);
+            if (loading_model === requestId) {
+                modelLoading = false;
+                reportARError('Chargement du modèle', error);
+                experience?.showMessage('Modèle indisponible. Choisissez un autre modèle dans le menu.');
+            }
         }
     );
 }
@@ -443,24 +471,13 @@ function loadModel(model) {
 // MENU : CHANGEMENT DE MODELE
 // -------------------------------------------------
 
-$('.ar-object').click(function (event) {
-
-    event.preventDefault();
-
-    const model =
-        $(this).attr('id');
-
-
-    // On mémorise le modèle sélectionné
-    selected_model = model;
-
-
-    // On prépare un nouveau modèle
-    loadModel(model);
-
-
-    // Ferme le menu
-    closeNav();
+document.querySelectorAll('.ar-object').forEach(button => {
+    button.addEventListener('click', event => {
+        event.preventDefault();
+        if (experienceMode !== 'edit') return;
+        loadModel(button.id);
+        closeNav();
+    });
 });
 
 
@@ -470,7 +487,11 @@ $('.ar-object').click(function (event) {
 
 function placeSelectedObject() {
 
-    if (!renderer.xr.isPresenting || drag) return;
+    if (!renderer.xr.isPresenting || experienceMode !== 'edit' || drag) return;
+    if (placed_objects.length >= MAX_PLACED_OBJECTS) {
+        experience?.showMessage('Limite de 16 éléments atteinte. Supprimez un élément avant un nouvel ajout.');
+        return;
+    }
     if (!placementPoseValid || !reticle.visible) {
         recordAction('ajout refuse : aucune pose valide');
         return;
@@ -493,6 +514,7 @@ function placeSelectedObject() {
         placementMatrix
     );
 
+    if (memoriaPlaced) memoriaScene.root.attach(current_object);
     current_object.visible = true;
     current_object.userData.placedModel = selected_model;
     lastInspectedObject = current_object;
@@ -569,6 +591,8 @@ function animate(
         reportARError('Interaction AR', error);
     }
     updateARStatus();
+    try { updateMemoriaHotspots(); }
+    catch (error) { reportARError('Points de visite', error); }
     renderARScene();
 }
 
@@ -721,20 +745,25 @@ function recordAction(action) {
 
 function updateARStatus() {
     if (!placeButton || !arStatus) return;
-    placeButton.disabled = !renderer.xr.isPresenting || !placementPoseValid || !current_object || modelLoading || !!drag;
+    placeButton.disabled = experienceMode !== 'edit' || !renderer.xr.isPresenting || !placementPoseValid ||
+        !current_object || modelLoading || !!drag || placed_objects.length >= MAX_PLACED_OBJECTS;
+    experience?.setPlacementReady(renderer.xr.isPresenting && placementPoseValid && !drag);
     const message = !placementPoseValid
-        ? 'Deplacez doucement le telephone pour scanner une surface.'
-        : (!current_object || modelLoading) ? 'Chargement du modele...'
+        ? 'Déplacez doucement le téléphone pour scanner une surface.'
+        : !memoriaPlaced ? 'Surface détectée. Placez la scène IUT devant vous.'
+        : experienceMode === 'visit' ? 'Visite : touchez un repère pour ouvrir son récit.'
         : selectedObject ? (interactionMode === 'rotate'
-            ? 'Rotation : glissez horizontalement sur l’objet.'
-            : 'Deplacement : glissez sur l’objet.')
-        : 'Surface detectee. Appuyez sur Ajouter.';
+            ? 'Tourner : glissez horizontalement sur l’objet.'
+            : 'Déplacer : glissez sur l’objet.')
+        : modelLoading ? 'Chargement du modèle…'
+        : 'Édition : touchez un objet ou ajoutez un modèle.';
     const status = lastError ? message + ' Erreur AR : ouvrez le diagnostic.' : message;
     if (arStatus.textContent !== status) arStatus.textContent = status;
     const diagnostic = 'Version : ' + APP_VERSION + '\nEntree : ' + lastInput + '\nRaycast : ' + lastRaycast + '\nHit-test : ' + hitTestState + '\nPose : ' + placementPoseValid +
         '\nDOM Overlay : ' + !!activeSession?.domOverlayState +
         '\nObjets : ' + placed_objects.length + '\nSelection : ' +
         (selectedObject?.uuid || 'aucune') + '\nMode : ' + interactionMode +
+        '\nExpérience : ' + experienceMode + '\nScène : ' + (memoriaPlaced ? 'calage manuel' : 'à placer') +
         '\nAction : ' + lastAction + '\nObjet observe : ' + inspectedObjectState() +
         '\nGeste : ' + (drag ? (drag.moved ? 'glissement' : 'appui') : 'aucun') +
         '\nErreur : ' + (lastError || 'aucune') + '\nTrace :\n' + inputTrace.join('\n');
@@ -777,7 +806,7 @@ function removePlacedObject(object) {
 }
 
 function deleteSelectedObject() {
-    if (!selectedObject || drag) return;
+    if (experienceMode !== 'edit' || !selectedObject || drag) return;
     const object = selectedObject;
     lastInspectedObject = object;
     resetSelection();
@@ -825,7 +854,8 @@ function selectObject(object) {
 
 function updateSelectionUI() {
     if (!selectionActions) return;
-    selectionActions.hidden = !selectedObject;
+    selectionActions.hidden = experienceMode !== 'edit' || !selectedObject;
+    if (actionButtons) actionButtons.style.display = renderer.xr.isPresenting && experienceMode === 'edit' ? 'flex' : 'none';
     moveButton.setAttribute('aria-pressed', String(interactionMode === 'move'));
     rotateButton.setAttribute('aria-pressed', String(interactionMode === 'rotate'));
     clearButton.disabled = !selectedObject;
@@ -833,7 +863,7 @@ function updateSelectionUI() {
 }
 
 function setInteractionMode(mode) {
-    if (!selectedObject || drag || !['move', 'rotate'].includes(mode)) return;
+    if (experienceMode !== 'edit' || !selectedObject || drag || !['move', 'rotate'].includes(mode)) return;
     interactionMode = mode;
     updateSelectionUI();
     recordAction(mode === 'rotate' ? 'mode rotation' : 'mode deplacement');
@@ -841,6 +871,7 @@ function setInteractionMode(mode) {
 
 function pickPlacedObject(ray) {
     scene.updateMatrixWorld(true);
+    selectionRaycaster.camera = pickingCamera; // Sprites need the same read-only XR view as meshes.
     selectionRaycaster.ray.copy(ray);
     for (const hit of selectionRaycaster.intersectObjects(placed_objects, true)) {
         let object = hit.object;
@@ -865,11 +896,11 @@ function pickPlacedObject(ray) {
 function beginDrag(ray, owner, screenPoint = null) {
     if (drag) return;
     const object = pickPlacedObject(ray);
-    if (object) selectObject(object);
+    if (object && experienceMode === 'edit') selectObject(object);
     const origin = object?.getWorldPosition(new THREE.Vector3());
     let plane = null;
     let offset = null;
-    if (origin) {
+    if (origin && experienceMode === 'edit') {
         // Keep the detected AR surface fixed for this gesture; phone motion must
         // not move the plane. It is a local planar approximation of that surface.
         if (surfacePlane && Math.abs(surfacePlane.normal.dot(ray.direction)) > 0.05) {
@@ -882,7 +913,7 @@ function beginDrag(ray, owner, screenPoint = null) {
         const point = ray.intersectPlane(plane, new THREE.Vector3());
         if (point) offset = origin.clone().sub(point);
     }
-    drag = { owner, object, mode: interactionMode, ray: ray.clone(),
+    drag = { owner, object, mode: experienceMode === 'visit' ? 'visit' : interactionMode, ray: ray.clone(),
         startRay: ray.clone(), screenPoint, plane, offset, moved: false,
         quaternion: object?.quaternion.clone(), captureTarget: null };
     updateARStatus();
@@ -896,10 +927,10 @@ function updateGesture(ray, screenPoint = null) {
             : Math.acos(THREE.MathUtils.clamp(ray.direction.dot(drag.startRay.direction), -1, 1)) * 500;
         if (distance < DRAG_THRESHOLD) return;
         drag.moved = true;
-        recordAction(drag.mode === 'rotate' ? 'rotation' : 'deplacement');
+        recordAction(drag.mode === 'visit' ? 'glissement visite ignoré' : drag.mode === 'rotate' ? 'rotation' : 'deplacement');
     }
     drag.ray.copy(ray);
-    if (!drag.object || drag.object !== selectedObject) return;
+    if (drag.mode === 'visit' || !drag.object || drag.object !== selectedObject) return;
     if (drag.mode === 'rotate') {
         const dx = screenPoint && drag.screenPoint
             ? screenPoint.x - drag.screenPoint.x
@@ -947,7 +978,7 @@ function onARPointerDown(event) {
     guardPointerEvent(event, () => {
         if (!renderer.xr.isPresenting || !activeSession?.domOverlayState || !event.isPrimary || event.button !== 0 || drag) return;
         lastInput = event.type + ' #' + event.pointerId;
-        if (event.target.closest('button, a, #menuButton, #mySidenav, details')) {
+        if (event.target.closest('button, a, #menuButton, #mySidenav, details, [data-ui]')) {
             traceInput('interface ignoree par la scene');
             return;
         }
@@ -978,10 +1009,9 @@ function onARPointerEnd(event) {
         if (event.type === 'pointerup') {
             const ray = pointerRay(event);
             if (ray) updateGesture(ray, new THREE.Vector2(event.clientX, event.clientY));
-            if (!drag.moved && !drag.object) selectObject(null);
         }
         traceInput(event.type + ' : fin du geste');
-        stopDrag();
+        finishGesture(event.type !== 'pointerup');
     });
 }
 
@@ -1012,8 +1042,9 @@ function onXRSelectStart(event) {
 
 function onXRSelectEnd(event) {
     if (!drag || drag.owner !== event.inputSource) return;
-    if (!drag.moved && !drag.object) selectObject(null);
-    stopDrag();
+    const ray = inputRay(event.frame, event.inputSource);
+    if (ray) updateGesture(ray, rayScreenPoint(ray));
+    finishGesture(false);
 }
 
 function onXRInputsChanged(event) {
@@ -1023,6 +1054,7 @@ function onXRInputsChanged(event) {
 function onXRVisibilityChange() {
     if (activeSession?.visibilityState !== 'visible') {
         stopDrag();
+        experience?.stopSounds();
         pickingCameraReady = false;
         invalidatePlacement();
         traceInput('visibilite XR : ' + activeSession?.visibilityState);
@@ -1041,4 +1073,194 @@ function showPlaceButton() {
     // Layout lives in CSS so labels and selection commands fit narrow screens.
     actionButtons.style.display = 'flex';
     updateSelectionUI();
+}
+
+
+// Memoria Corti: content/UI are separate; only this module owns the XR session.
+function startAR() {
+    if (renderer?.xr.isPresenting) return;
+    if (!nativeARButton?.onclick || nativeARButton.disabled) {
+        experience.showMessage('AR indisponible. La consultation 360° et les fiches restent accessibles.');
+        return;
+    }
+    // Keep requestSession within the original user activation.
+    nativeARButton.click();
+}
+
+async function exitExperience() {
+    experience.stopSounds();
+    stopDrag();
+    if (activeSession) {
+        try { await activeSession.end(); }
+        catch (error) { reportARError('Sortie de l’étape', error); return; }
+    }
+    experience.leave();
+}
+
+function cleanupSessionObjects() {
+    resetSelection();
+    for (const object of placed_objects) object.removeFromParent();
+    placed_objects = [];
+    lastInspectedObject = null;
+    memoriaScene?.dispose();
+    releaseModelResources();
+    memoriaScene = null;
+    memoriaPlaced = false;
+    experience?.updateHotspots([]);
+}
+
+function ensureMemoriaScene() {
+    if (memoriaScene) return;
+    memoriaScene = createMemoriaScene(IUT_STEP, {
+        onAssetError: error => { console.error('Média de la scène', error); experience.showMessage('Une image de la scène est indisponible. Sa fiche reste accessible.'); }
+    });
+    scene.add(memoriaScene.root);
+    try { loadLayout(window.localStorage, memoriaScene, IUT_STEP.id); }
+    catch (error) {
+        console.warn('Agencement local', error);
+        experience.showMessage('Sauvegarde locale indisponible. Agencement initial utilisé.');
+    }
+}
+
+function placeMemoriaScene() {
+    if (!renderer.xr.isPresenting || !placementPoseValid || drag) return;
+    ensureMemoriaScene();
+    if (!memoriaPlaced && placed_objects.length + memoriaScene.objects.filter(object => object.parent === memoriaScene.root).length > MAX_PLACED_OBJECTS) {
+        experience.showMessage('Supprimez quelques modèles pour placer la scène complète (16 éléments maximum).');
+        return;
+    }
+    resetSelection();
+    memoriaScene.root.position.setFromMatrixPosition(placementMatrix);
+    // Upright scene faces the visitor; no façade recognition or world anchor.
+    const viewer = new THREE.Vector3().setFromMatrixPosition(pickingCamera.matrixWorld);
+    const direction = viewer.sub(memoriaScene.root.position);
+    memoriaScene.root.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(direction.x, direction.z));
+    memoriaScene.root.visible = true;
+    memoriaScene.root.updateMatrixWorld(true);
+    if (!memoriaPlaced) {
+        for (const object of placed_objects) memoriaScene.root.attach(object);
+        for (const object of memoriaScene.objects) {
+            if (object.parent === memoriaScene.root) placed_objects.push(object);
+        }
+    }
+    memoriaPlaced = true;
+    experience.setScenePlaced(true);
+    recordAction('placement manuel de la scène IUT');
+    if (pendingPointId) { onPointAction(pendingPointId); pendingPointId = null; }
+}
+
+function setExperienceMode(mode) {
+    if (!['visit', 'edit'].includes(mode)) return;
+    resetSelection();
+    experience.closePoint();
+    experienceMode = mode;
+    experience.setMode(mode);
+    if (mode === 'edit' && !current_object && !modelLoading) loadModel(selected_model);
+    updateSelectionUI();
+    recordAction(mode === 'visit' ? 'mode visite' : 'mode édition');
+}
+
+function onPointAction(id) {
+    const object = memoriaScene?.byPoint.get(id);
+    if (experienceMode === 'edit') {
+        if (!memoriaPlaced || !placed_objects.includes(object)) return;
+        stopDrag();
+        selectObject(object);
+    } else {
+        experience.openPoint(id);
+        recordAction('fiche ' + id);
+    }
+}
+
+function viewPointInAR(id) {
+    pendingPointId = id;
+    if (!renderer?.xr.isPresenting) { startAR(); return; }
+    const object = memoriaScene?.byPoint.get(id);
+    if (!memoriaPlaced) {
+        experience.showMessage('Scannez une surface puis utilisez « Placer la scène ».');
+    } else if (!placed_objects.includes(object)) {
+        experience.showMessage('Élément supprimé. En édition, restaurez l’agencement initial pour le retrouver.');
+        pendingPointId = null;
+    } else {
+        if (experienceMode === 'edit') selectObject(object);
+        experience.showMessage('Repère « ' + IUT_STEP.points.find(point => point.id === id).shortTitle + ' » dans la scène. Déplacez doucement le téléphone pour l’observer.');
+        pendingPointId = null;
+    }
+}
+
+function saveMemoriaLayout() {
+    if (experienceMode !== 'edit' || !memoriaPlaced || drag) return;
+    try {
+        saveLayout(window.localStorage, memoriaScene, IUT_STEP.id);
+        experience.showMessage('Agencement relatif enregistré. Il faudra recaler la scène à la prochaine session.');
+        recordAction('agencement relatif enregistré');
+    } catch (error) {
+        console.error('Enregistrement de l’agencement', error);
+        experience.showMessage('Enregistrement impossible : ' + error.message);
+    }
+}
+
+function resetMemoriaLayout() {
+    if (experienceMode !== 'edit' || !memoriaPlaced || drag) return;
+    resetSelection();
+    memoriaScene.reset();
+    for (const object of memoriaScene.objects) if (!placed_objects.includes(object)) placed_objects.push(object);
+    try { window.localStorage.removeItem(LAYOUT_KEY); }
+    catch (error) { console.warn('Réinitialisation de la sauvegarde', error); experience.showMessage('Agencement restauré ; la sauvegarde du navigateur n’a pas pu être effacée.'); }
+    recordAction('agencement initial restauré');
+}
+
+function updateMemoriaHotspots() {
+    if (!experience || !memoriaPlaced || !pickingCameraReady) { experience?.updateHotspots([]); return; }
+    scene.updateMatrixWorld(true);
+    const rect = document.getElementById('content').getBoundingClientRect();
+    const projected = IUT_STEP.points.map(point => {
+        const object = memoriaScene.byPoint.get(point.id);
+        let marker = null;
+        object.traverse(child => { if (child.userData.poiMarker) marker = child; });
+        const position = (marker || object).getWorldPosition(new THREE.Vector3());
+        const cameraPosition = position.clone().applyMatrix4(pickingCamera.matrixWorldInverse);
+        position.project(pickingCamera);
+        return { id: point.id, x: (position.x + 1) * rect.width / 2,
+            y: (1 - position.y) * rect.height / 2,
+            visible: placed_objects.includes(object) && object.visible && cameraPosition.z < 0 &&
+                position.z > -1 && position.z < 1 && Math.abs(position.x) < 0.85 && Math.abs(position.y) < 0.75 };
+    });
+    experience.updateHotspots(projected);
+}
+
+function finishGesture(cancelled) {
+    const gesture = drag;
+    if (!gesture) return;
+    stopDrag();
+    if (cancelled || gesture.moved) return;
+    if (gesture.mode === 'visit') {
+        if (gesture.object?.userData.poiId) onPointAction(gesture.object.userData.poiId);
+    } else if (!gesture.object) {
+        selectObject(null);
+    }
+}
+
+
+// Release GLTF resources only when no retained model references them. Deleted
+// roots stay in the pool until cleanup, so shared materials remain safe.
+function releaseModelResources() {
+    const keep = new Set([...placed_objects, ...(current_object ? [current_object] : [])]);
+    const retained = { geometry: new Set(), material: new Set(), texture: new Set() };
+    const unused = { geometry: new Set(), material: new Set(), texture: new Set() };
+    const collect = (root, target) => root.traverse(child => {
+        if (child.geometry) target.geometry.add(child.geometry);
+        for (const material of (Array.isArray(child.material) ? child.material : child.material ? [child.material] : [])) {
+            target.material.add(material);
+            for (const value of Object.values(material)) if (value?.isTexture) target.texture.add(value);
+        }
+    });
+    for (const root of keep) collect(root, retained);
+    for (const root of ownedModelRoots) {
+        if (keep.has(root)) continue;
+        collect(root, unused); root.removeFromParent(); ownedModelRoots.delete(root);
+    }
+    for (const type of Object.keys(unused)) {
+        for (const resource of unused[type]) if (!retained[type].has(resource)) resource.dispose();
+    }
 }

@@ -1,240 +1,145 @@
-html,
-body {
-    margin: 0;
-    padding: 0;
+* { box-sizing: border-box; }
+:root { color-scheme: light; --ink: #153b39; --paper: #f6f2e8; --gold: #c9a976; --muted: #63716b; }
+[hidden] { display: none !important; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; color: var(--ink); background: var(--paper); }
+button, select, input { font: inherit; }
+button { min-height: 46px; padding: 11px 17px; border: 1px solid #b8c3b9; background: #fffaf0; color: var(--ink); border-radius: 7px; cursor: pointer; touch-action: manipulation; font-weight: 600; }
+button:hover { background: #e5eee8; }
+button:disabled { cursor: default; opacity: .5; }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid #cc973f; outline-offset: 3px; }
+button.primary { background: var(--ink); color: #fff8e9; border-color: var(--ink); }
+button.primary:hover { background: #285650; }
+button small { display: block; font-size: 11px; font-weight: 400; margin-top: 3px; }
+a { color: inherit; text-underline-offset: 3px; }
+h1, h2, h3 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; margin-top: 0; }
+h2 { font-size: clamp(24px, 4vw, 36px); } h3 { font-size: 23px; }
+p { line-height: 1.65; }
+.eyebrow { text-transform: uppercase; letter-spacing: .15em; font-size: 11px; font-weight: 650; }
+.small-note { font-size: 12px; color: var(--muted); }
+.button-row { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+label { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+select { min-height: 44px; max-width: 100%; padding: 6px; border: 1px solid #a7b7aa; border-radius: 5px; background: white; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 0; cursor: pointer; }
+canvas.ar-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
+#content { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+[data-ui] { pointer-events: auto; }
+#homeView { height: 100%; overflow-y: auto; padding: 0 max(22px, calc((100vw - 1140px)/2)) 140px; background: var(--paper); }
+.site-header { min-height: 105px; display: flex; justify-content: space-between; align-items: center; gap: 15px; border-bottom: 1px solid #d6dccf; }
+.brand { display: flex; align-items: center; gap: 14px; text-decoration: none; font-family: Georgia, serif; font-size: 26px; }
+.brand em { font-weight: 400; } .brand small { display: block; margin-top: 4px; font: 10px system-ui; letter-spacing: .07em; color: var(--muted); }
+.seal { width: 46px; height: 46px; border: 1px solid var(--ink); border-radius: 50%; font-size: 17px; display: grid; place-items: center; letter-spacing: -2px; }
+.location-chip { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; white-space: nowrap; }
+.hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; padding: 64px 0 45px; align-items: center; }
+.hero h1 { font-size: clamp(43px, 5.2vw, 76px); letter-spacing: -.045em; line-height: 1.05; margin-bottom: 22px; max-width: 600px; }
+.hero-subtitle { font-family: Georgia, serif; font-size: 20px; color: #517165; line-height: 1.45; max-width: 460px; }
+.location-line { font-size: 12px; font-weight: 600; margin: 24px 0; } .location-line span { margin: 0 8px; color: #a38c65; }
+.intro { max-width: 460px; font-size: 15px; color: #4d625b; margin-bottom: 25px; }
+.hero .primary { padding: 16px 21px; } .hero .primary span { margin-left: 18px; }
+.hero-art { position: relative; min-height: 410px; background: radial-gradient(ellipse at center, #e3e9d8 0%, #edf0e3 65%, transparent 70%); display: flex; align-items: center; }
+.hero-art svg { width: 100%; }
+.art-caption { position: absolute; top: 8px; left: 20px; font: italic 19px Georgia; }
+.art-date { position: absolute; font: 23px Georgia; color: #647361; background: var(--paper); padding: 4px 10px; border: 1px solid #cbd1c1; }
+.date-one { top: 80px; left: 12px; transform: rotate(-6deg); } .date-two { right: 10px; top: 170px; transform: rotate(5deg); } .date-three { bottom: 25px; left: 50px; transform: rotate(-2deg); }
+.art-footnote { position: absolute; bottom: 0; right: 14px; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.dates-band { padding: 22px 0 28px; border-top: 1px solid #ccd4c6; border-bottom: 1px solid #ccd4c6; }
+#timeline { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 18px; }
+#timeline button { border: 0; border-radius: 0; background: none; text-align: left; padding: 4px 22px; border-left: 1px solid #ccd4c6; }
+#timeline button:first-child { padding-left: 0; border-left: 0; }
+.timeline-year { display: block; font: 39px Georgia; letter-spacing: -.035em; }
+.timeline-caption { font-size: 12px; font-weight: 400; display: block; margin-top: 9px; }
+.step-section { padding-top: 45px; scroll-margin-top: 20px; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 24px 0; }
+.section-heading h2, .section-heading h3 { margin-bottom: 0; }
+.step-count { border: 1px solid #c3cebe; border-radius: 40px; padding: 8px 13px; font-size: 11px; white-space: nowrap; }
+.start-panel { display: flex; gap: 30px; justify-content: space-between; padding: 28px; background: #e4ecdf; border-radius: 12px; }
+.start-panel h3 { margin-bottom: 12px; } .start-panel p { font-size: 13px; max-width: 600px; }
+.start-actions { display: flex; flex-direction: column; justify-content: center; gap: 12px; min-width: 235px; }
+#arAvailability { color: #476355; font-weight: 600; }
+.historical-note { font-size: 12px; color: #657163; padding: 15px 18px; border-left: 2px solid var(--gold); }
+.point-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.point-card { min-height: 165px; display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 22px; border-radius: 10px; }
+.point-card span { font-size: 11px; letter-spacing: .09em; color: #7f7055; margin-bottom: 17px; }
+.point-card strong { font: 22px Georgia; } .point-card small { font-size: 12px; color: #657b6d; line-height: 1.6; margin-top: 13px; }
+.listen-section { padding: 27px; border: 1px solid #c9d2c2; border-radius: 10px; margin: 30px 0; }
+.listen-section p { font-size: 13px; }
+.listen-section details { margin: 18px 0; } .listen-section details p { max-width: 750px; }
+.site-footer { border-top: 1px solid #ced6c7; margin-top: 40px; padding: 24px 0; display: flex; justify-content: space-between; gap: 10px; font-size: 10px; color: #607265; }
 
-    width: 100%;
-    height: 100%;
-
-    overflow: hidden;
-
-    color: #fff;
-
-    font-family: Arial, sans-serif;
+/* AR: the root stays transparent. Controls alone intercept UI interactions. */
+#content.ar-active { pointer-events: auto; touch-action: none; }
+#arToolbar { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; background: #143b39ed; border: 1px solid #829a86; border-radius: 12px; padding: 12px; color: #fff8e6; display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.brand-mini { font: 22px Georgia; } .brand-mini small { display: block; font: 10px system-ui; margin-top: 4px; color: #d7e3cc; }
+#arToolbar button, #actionButtons button, #sceneControls button, #menuButton, #arDiagnostics, #audioDock { color: #fff9e9; background: #153b39eb; border-color: #a5b7a2; }
+#modeSwitch { grid-column: 1 / -1; display: flex; gap: 8px; }
+#modeSwitch button { flex: 1; }
+button[aria-pressed="true"] { border-color: var(--gold) !important; background: #376a59 !important; }
+#modeDescription { grid-column: 1 / -1; font-size: 11px; margin: 0; color: #e2e9da; line-height: 1.5; }
+#arStatus { display: none; }
+.ar-active #arStatus { display: block; position: absolute; top: 165px; left: 15px; right: 15px; font-size: 12px; color: white; background: #13312be6; border-radius: 6px; padding: 8px 12px; pointer-events: none; }
+#sceneControls { position: absolute; bottom: max(75px, env(safe-area-inset-bottom)); left: 12px; right: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+#content[data-mode="edit"] #sceneControls { bottom: 195px; }
+#sceneControls button { font-size: 12px; }
+#actionButtons { display: none; position: absolute; left: 12px; right: 12px; bottom: 72px; gap: 8px; flex-wrap: wrap; }
+#content[data-mode="visit"] #actionButtons, #content[data-mode="visit"] #menuButton { display: none !important; }
+#selectionActions { display: flex; flex-wrap: wrap; gap: 8px; }
+#menuButton { display: none; position: absolute; bottom: 140px; left: 12px; z-index: 3; font-size: 12px; }
+.ar-active[data-mode="edit"] #menuButton { display: block; }
+.sidenav { visibility: hidden; position: absolute; top: 0; bottom: 0; left: 0; width: min(280px, 85vw); padding: 70px 22px 20px; background: #f6f2e8; z-index: 15; transform: translateX(-105%); transition: transform .2s; }
+.sidenav.open { visibility: visible; transform: translateX(0); }
+.sidenav .closebtn { position: absolute; top: 14px; right: 14px; font-size: 25px; }
+.sidenav a { display: block; padding: 16px 0; border-bottom: 1px solid #ced6c7; text-decoration: none; }
+.sidenav p { font-size: 12px; }
+#poiHotspots { position: absolute; inset: 0; pointer-events: none; }
+.world-hotspot { position: absolute; transform: translate(-50%, -100%); min-height: 44px; max-width: 200px; padding: 9px 12px; border-radius: 24px; border: 2px solid #e2c382; background: #193e36ed; color: #fff8e8; font-size: 12px; box-shadow: 0 3px 16px #001b1833; pointer-events: auto; z-index: 1; }
+.world-hotspot::after { content: ''; position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #d9bb7a; bottom: -10px; left: calc(50% - 3px); }
+#arDiagnostics { display: none; }
+.ar-active #arDiagnostics { display: block; position: absolute; right: 12px; bottom: 15px; padding: 0 10px; border-radius: 6px; font-size: 10px; max-width: min(340px, calc(100vw - 24px)); z-index: 8; }
+#diagnosticText { max-height: 24vh; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10px; }
+.modal-backdrop { position: absolute; inset: 0; display: grid; place-items: center; background: #0e282bcc; z-index: 30; padding: 14px; }
+.content-card { background: var(--paper); width: min(650px, 100%); max-height: 86dvh; display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; box-shadow: 0 16px 80px #061a3055; }
+.content-card > header { padding: 20px; border-bottom: 1px solid #cdd6c7; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.content-card h2 { margin: 9px 0 0; font-size: 27px; }
+.content-card header button { min-width: 46px; flex-shrink: 0; }
+.card-scroll { overflow-y: auto; overscroll-behavior: contain; padding: 20px; }
+.card-scroll p { font-size: 14px; }
+.status-tag { font-size: 10px !important; text-transform: uppercase; letter-spacing: .08em; color: #61776a; }
+.content-card figure { margin: 20px 0; } .content-card img { max-width: 100%; display: block; border-radius: 6px; }
+figcaption { font-size: 10px; color: #657869; margin-top: 9px; line-height: 1.6; }
+.media-placeholder { min-height: 160px; border: 1px dashed #96ac98; display: grid; place-items: center; padding: 30px; text-align: center; background: #e8ece0; font: italic 19px Georgia; color: #57715b; }
+.source-list { display: flex; flex-direction: column; gap: 12px; font-size: 12px; margin-bottom: 24px; }
+.archive-modal { z-index: 35; } .archive-scroll { overflow: auto; margin: 15px; }
+#archiveModal label, #archiveCaption { margin: 15px; } #archiveImage { max-width: none; }
+.full-panel { position: absolute; inset: 0; background: var(--paper); padding: 20px; overflow-y: auto; z-index: 25; }
+.full-panel > header { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.full-panel h2 { font-size: 25px; } .full-panel p { font-size: 12px; }
+#panoramaScene { position: relative; height: min(55dvh, 480px); min-height: 230px; overflow: hidden; border-radius: 14px; background: #173c3c; margin: 22px 0; }
+canvas.panorama-canvas { display: block; width: 100%; height: 100%; position: absolute; inset: 0; touch-action: none; }
+#fallbackPointList { margin-bottom: 70px; } .text-point { font-size: 12px; }
+#comparison img { max-height: 240px; }
+#audioDock { position: absolute; left: 12px; right: 12px; bottom: 12px; border: 1px solid #adbeab; border-radius: 12px; padding: 0 15px; z-index: 40; box-shadow: 0 4px 20px #001b1822; }
+#audioDock summary { font-size: 12px; } #audioDock p { font-size: 11px; margin: 5px 0; max-height: 18vh; overflow-y: auto; }
+#audioDock button { min-height: 44px; padding: 8px 12px; font-size: 12px; } #audioDock label { font-size: 11px; }
+#playerSource { color: #d1e6d1; } #playerMessage { color: #ffdf9a; }
+.notice { position: absolute; left: 14px; right: 14px; bottom: 25px; background: #fff6dc; color: #254439; border: 1px solid #b59a62; border-radius: 8px; padding: 14px; font-size: 12px; z-index: 50; max-width: 650px; margin: auto; }
+.ar-active .notice { top: 213px; bottom: auto; }
+@media (max-width: 700px) {
+ .site-header { min-height: 85px; } .brand { font-size: 23px; } .location-chip { display: none; }
+ .hero { grid-template-columns: 1fr; gap: 10px; padding-top: 36px; } .hero h1 { max-width: 420px; } .hero-subtitle { font-size: 19px; }
+ .hero-art { min-height: 290px; max-width: 420px; margin: 0 auto; width: 100%; } .art-date { font-size: 20px; } .art-caption { font-size: 17px; } .date-one { top: 65px; }
+ .timeline-year { font-size: 32px; } #timeline button { padding: 4px 12px; } .timeline-caption { font-size: 10px; }
+ .start-panel { flex-direction: column; padding: 21px; gap: 14px; } .start-actions { min-width: 0; }
+ .point-grid { grid-template-columns: 1fr 1fr; gap: 10px; } .point-card { padding: 16px; min-height: 170px; } .point-card strong { font-size: 20px; }
+ .section-heading .eyebrow { font-size: 9px; } .listen-section { padding: 18px; } .site-footer { flex-direction: column; }
+ .content-card { max-height: 90dvh; } .card-scroll { padding: 17px; } .content-card > header { padding: 17px; }
+ #content[data-mode="edit"] #sceneControls { bottom: 195px; } #sceneControls button { padding: 10px; font-size: 11px; }
+ #actionButtons button { padding: 10px 12px; font-size: 12px; }
 }
+@media (prefers-reduced-motion: reduce) { .sidenav { transition: none; } }
 
+.world-hotspot:hover { background: #2c584a; }
+input[type=range] { min-height: 44px; }
 
-body {
-    position: relative;
-}
+#storiesContainer .listen-section { margin: 0; border: 0; padding: 0; }
 
-
-/* ==================================================
-   CANVAS
-================================================== */
-
-canvas {
-    display: block;
-
-    width: 100%;
-    height: 100%;
-
-    position: fixed;
-    top: 0;
-    left: 0;
-
-    /* La simulation WebGL reste derrière l'interface HTML. */
-    z-index: 0;
-}
-
-
-/* ==================================================
-   CONTENEUR DOM OVERLAY AR
-================================================== */
-
-#content {
-    position: fixed;
-
-    inset: 0;
-
-    /*
-       En session WebXR, cette div est aussi la racine du dom-overlay.
-       Une couche dédiée évite que le canvas de l'Immersive Web Emulator
-       soit recomposé au-dessus du menu.
-    */
-    z-index: 2147483647;
-    isolation: isolate;
-    transform: translateZ(0);
-
-    pointer-events: none;
-}
-
-
-/* ==================================================
-   MENU LATÉRAL
-================================================== */
-
-.sidenav {
-    height: 100%;
-
-    width: 0;
-
-    position: fixed;
-
-    z-index: 1;
-
-    top: 0;
-    left: 0;
-
-    background-color: rgba(17, 17, 17, 0.95);
-
-    overflow-x: hidden;
-
-    transition: 0.4s;
-
-    padding-top: 60px;
-
-    pointer-events: auto;
-}
-
-
-.sidenav a {
-    padding: 12px 8px 12px 32px;
-
-    text-decoration: none;
-
-    font-size: 20px;
-
-    color: #fff;
-
-    display: block;
-
-    transition: 0.3s;
-
-    pointer-events: auto;
-}
-
-
-.sidenav a:hover {
-    color: #aaa;
-}
-
-
-/* ==================================================
-   BOUTON X
-================================================== */
-
-.sidenav .closebtn {
-    position: absolute;
-
-    top: 10px;
-    right: 20px;
-
-    font-size: 36px;
-
-    margin-left: 50px;
-
-    pointer-events: auto;
-}
-
-
-/* ==================================================
-   BOUTON MENU
-================================================== */
-
-#menuButton {
-    position: fixed;
-
-    top: 20px;
-    left: 20px;
-
-    z-index: 2;
-
-    font-size: 30px;
-
-    cursor: pointer;
-
-    color: white;
-
-    background-color: rgba(0, 0, 0, 0.65);
-
-    padding: 5px 12px;
-
-    border-radius: 8px;
-
-    pointer-events: auto;
-
-    touch-action: manipulation;
-}
-
-
-/* AR commands use the existing WebXR DOM Overlay. */
-#actionButtons {
-    display: none;
-    position: fixed;
-    right: 12px;
-    bottom: max(72px, env(safe-area-inset-bottom));
-    left: 12px;
-    z-index: 2;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    pointer-events: auto;
-}
-
-#selectionActions { display: flex; gap: 8px; flex-wrap: wrap; }
-#selectionActions[hidden] { display: none; }
-
-#actionButtons button {
-    min-height: 48px;
-    padding: 10px 12px;
-    font: inherit;
-    color: white;
-    background: rgba(0, 0, 0, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    border-radius: 8px;
-    pointer-events: auto;
-    touch-action: manipulation;
-}
-
-#actionButtons button[aria-pressed="true"] {
-    border-color: #80d8ff;
-    background: rgba(20, 75, 100, 0.85);
-}
-#actionButtons button:disabled { opacity: 0.45; }
-
-#arStatus, #arDiagnostics { display: none; }
-.ar-active #arStatus {
-    display: block;
-    position: fixed;
-    top: 65px;
-    left: 16px;
-    right: 16px;
-    padding: 10px;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.65);
-    pointer-events: none;
-}
-.ar-active #arDiagnostics {
-    display: block;
-    position: fixed;
-    top: 145px;
-    left: 16px;
-    max-width: calc(100vw - 32px);
-    pointer-events: auto;
-    font-size: 12px;
-}
-#arDiagnostics summary, #diagnosticText {
-    width: fit-content;
-    max-width: 100%;
-    padding: 6px;
-    border-radius: 6px;
-    background: rgba(0, 0, 0, 0.65);
-}
-#diagnosticText { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24vh; overflow-y: auto; }
-
-/* The fullscreen interaction overlay covers the original external ARButton. */
-#stopARButton { display: none; }
-.ar-active #stopARButton {
-    display: block;
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    min-height: 44px;
-    padding: 8px 12px;
-    color: white;
-    background: rgba(0, 0, 0, 0.75);
-    border: 1px solid white;
-    border-radius: 8px;
-    pointer-events: auto;
-}
+.hotspot-leaders { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.hotspot-leaders line { stroke: #dec287; stroke-width: 1.5; opacity: .8; }
