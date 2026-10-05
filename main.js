@@ -16,14 +16,17 @@ let actionButtons;
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 
-// État du glissement tactile utilisé pour la rotation du modèle.
-let touchDown = false;
-let touchX = 0;
-let touchY = 0;
-let deltaX = 0;
-let deltaY = 0;
+// Selection and single-finger translation state.
+let selectedObject = null;
+let selectionHelper = null;
+let drag = null;
+let dragHitSource = null;
+let dragHitPending = false;
+let dragHitRay = null;
+const selectionRaycaster = new THREE.Raycaster();
+const rayMatrix = new THREE.Matrix4();
+const dragPoint = new THREE.Vector3();
 
-// État des actions venant des manettes émulées (anti-répétition).
 let xrAddShortcutHeld = false;
 let xrClearShortcutHeld = false;
 
@@ -86,53 +89,14 @@ function init() {
         renderer.domElement
     );
 
-    renderer.domElement.addEventListener(
-        'touchstart',
-        function (event) {
-
-            if (event.touches.length === 0) {
-                return;
-            }
-
-            event.preventDefault();
-
-            touchDown = true;
-            touchX = event.touches[0].pageX;
-            touchY = event.touches[0].pageY;
-        },
-        { passive: false }
-    );
-
-    renderer.domElement.addEventListener(
-        'touchend',
-        function (event) {
-
-            event.preventDefault();
-            touchDown = false;
-        },
-        { passive: false }
-    );
-
-    renderer.domElement.addEventListener(
-        'touchmove',
-        function (event) {
-
-            if (!touchDown || event.touches.length === 0) {
-                return;
-            }
-
-            event.preventDefault();
-
-            deltaX = event.touches[0].pageX - touchX;
-            deltaY = event.touches[0].pageY - touchY;
-
-            touchX = event.touches[0].pageX;
-            touchY = event.touches[0].pageY;
-
-            rotateObject();
-        },
-        { passive: false }
-    );
+    // DOM overlay handles touch coordinates; native XR input is the fallback.
+    const overlay = document.getElementById('content');
+    overlay.addEventListener('beforexrselect', event => event.preventDefault());
+    overlay.addEventListener('pointerdown', onARPointerDown);
+    overlay.addEventListener('pointermove', onARPointerMove);
+    overlay.addEventListener('pointerup', onARPointerEnd);
+    overlay.addEventListener('pointercancel', onARPointerEnd);
+    overlay.addEventListener('lostpointercapture', onARPointerEnd);
 
     controls = new OrbitControls(
         camera,
@@ -245,6 +209,13 @@ function init() {
 
             reticle.visible = false;
 
+            const session = renderer.xr.getSession();
+            session.addEventListener('selectstart', onXRSelectStart);
+            session.addEventListener('selectend', onXRSelectEnd);
+            session.addEventListener('inputsourceschange', onXRInputsChanged);
+            overlay.style.pointerEvents = 'auto';
+            overlay.style.touchAction = 'none';
+            resetSelection();
             showPlaceButton();
 
             // Immersive Web Emulator donne parfois le focus au canvas.
@@ -278,6 +249,9 @@ function init() {
 
             reticle.visible = false;
 
+            resetSelection();
+            overlay.style.pointerEvents = '';
+            overlay.style.touchAction = '';
             actionButtons.style.display = 'none';
 
             if (controls) {
@@ -452,6 +426,8 @@ $('.ar-object').click(function (event) {
 
 function placeSelectedObject() {
 
+    if (drag) return; // A drag never also places a model.
+
     // Aucun modèle à placer
     if (!current_object) {
         return;
@@ -526,6 +502,8 @@ function animate(
     }
 
     // En Play mode, certaines touches deviennent des entrées de manette XR.
+    updateARDrag(frame);
+    if (selectionHelper && selectedObject) selectionHelper.update();
     handleXRControllerShortcuts();
 
 
@@ -664,6 +642,8 @@ function onWindowResize() {
 
 function clearPlacedObjects() {
 
+    resetSelection();
+
     placed_objects.forEach(
         function (object) {
             scene.remove(object);
@@ -675,22 +655,174 @@ function clearPlacedObjects() {
 
 
 // -------------------------------------------------
-// ROTATION TACTILE DU MODELE EN ATTENTE DE PLACEMENT
+// SELECTION ET DEPLACEMENT DES MODELES POSES
 // -------------------------------------------------
 
-function rotateObject() {
+// Selection and translation use the same local XR space as placement.
+function stopDrag() {
+    drag = null;
+    if (dragHitSource) dragHitSource.cancel();
+    dragHitSource = null;
+    dragHitRay = null;
+}
 
-    if (current_object && reticle.visible) {
-        current_object.rotation.y += deltaX / 100;
+function resetSelection() {
+    stopDrag();
+    selectedObject = null;
+    if (selectionHelper) {
+        scene.remove(selectionHelper);
+        selectionHelper.dispose();
+        selectionHelper = null;
     }
 }
 
+function beginDrag(ray, owner) {
+    if (drag) return;
+    scene.updateMatrixWorld(true);
+    selectionRaycaster.ray.copy(ray);
+    const hit = selectionRaycaster.intersectObjects(placed_objects, true)
+        .find(result => result.object.visible);
+    resetSelection();
+    if (!hit) return;
+    selectedObject = hit.object;
+    while (!placed_objects.includes(selectedObject)) selectedObject = selectedObject.parent;
+    selectionHelper = new THREE.BoxHelper(selectedObject, 0x80d8ff);
+    selectionHelper.material.transparent = true;
+    selectionHelper.material.opacity = 0.55;
+    scene.add(selectionHelper);
+    const origin = selectedObject.getWorldPosition(new THREE.Vector3());
+    // Fixed horizontal plane through the origin; camera-facing at grazing angles.
+    const normal = Math.abs(ray.direction.y) > 0.15
+        ? new THREE.Vector3(0, 1, 0) : ray.direction.clone().negate();
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin);
+    const initial = ray.intersectPlane(plane, new THREE.Vector3());
+    drag = { owner, ray: ray.clone(), plane,
+        planeOffset: initial ? origin.clone().sub(initial) : null,
+        surfaceOffset: null, moved: false, lastOrigin: origin.clone() };
+}
 
-// -------------------------------------------------
-// RACCOURCIS CLAVIER (PC)
-// A : ajoute le modèle sélectionné
-// E : supprime tous les modèles posés
-// -------------------------------------------------
+function applyDragPoint(point, surface, ray) {
+    if (!drag || !selectedObject || !point ||
+        ![point.x, point.y, point.z].every(Number.isFinite)) return;
+    const key = surface ? 'surfaceOffset' : 'planeOffset';
+    // Rebase on projection changes to avoid jumps when tracking changes.
+    if (!drag[key]) drag[key] = drag.lastOrigin.clone().sub(point);
+    if (!drag.moved) return;
+    const position = point.clone().add(drag[key]);
+    selectedObject.position.copy(selectedObject.parent.worldToLocal(position.clone()));
+    selectedObject.updateMatrixWorld(true);
+    drag.lastOrigin.copy(position);
+    if (surface) {
+        const fallback = ray.intersectPlane(drag.plane, new THREE.Vector3());
+        if (fallback) drag.planeOffset = position.clone().sub(fallback);
+    } else drag.surfaceOffset = null;
+}
+
+function pointerRay(event) {
+    const rect = document.getElementById('content').getBoundingClientRect();
+    renderer.xr.updateCamera(camera);
+    const xrCamera = renderer.xr.getCamera();
+    const viewCamera = xrCamera.cameras[0] || xrCamera;
+    selectionRaycaster.setFromCamera(new THREE.Vector2(
+        (event.clientX - rect.left) / rect.width * 2 - 1,
+        -(event.clientY - rect.top) / rect.height * 2 + 1
+    ), viewCamera);
+    return selectionRaycaster.ray.clone();
+}
+
+function onARPointerDown(event) {
+    if (!renderer.xr.isPresenting || !event.isPrimary || event.button !== 0 ||
+        event.target.closest('button, a, #menuButton, #mySidenav')) return;
+    event.preventDefault();
+    beginDrag(pointerRay(event), event.pointerId);
+    if (drag) event.currentTarget.setPointerCapture(event.pointerId);
+}
+
+function onARPointerMove(event) {
+    if (!drag || drag.owner !== event.pointerId) return;
+    event.preventDefault();
+    drag.ray.copy(pointerRay(event));
+    drag.moved = true;
+}
+
+function onARPointerEnd(event) {
+    if (!drag || drag.owner !== event.pointerId) return;
+    // Commit the final finger position even when no XR frame ran after pointermove.
+    if (event.type === 'pointerup' && drag.moved) {
+        const ray = pointerRay(event);
+        applyDragPoint(ray.intersectPlane(drag.plane, dragPoint), false, ray);
+    }
+    stopDrag();
+}
+
+function inputRay(frame, inputSource) {
+    const pose = frame.getPose(inputSource.targetRaySpace, renderer.xr.getReferenceSpace());
+    if (!pose) return null;
+    rayMatrix.fromArray(pose.transform.matrix);
+    return new THREE.Ray(new THREE.Vector3().setFromMatrixPosition(rayMatrix),
+        new THREE.Vector3(0, 0, -1).transformDirection(rayMatrix));
+}
+
+function onXRSelectStart(event) {
+    if (renderer.xr.getSession().domOverlayState || event.inputSource.targetRayMode !== 'screen') return;
+    const ray = inputRay(event.frame, event.inputSource);
+    if (ray) beginDrag(ray, event.inputSource);
+}
+
+function onXRSelectEnd(event) {
+    if (drag && drag.owner === event.inputSource) stopDrag();
+}
+
+function onXRInputsChanged(event) {
+    if (drag && event.removed.includes(drag.owner)) stopDrag();
+}
+
+function updateARDrag(frame) {
+    if (!drag) return;
+    if (typeof drag.owner !== 'number') {
+        const ray = inputRay(frame, drag.owner);
+        if (!ray) return;
+        if (ray.direction.distanceToSquared(drag.ray.direction) > 1e-8 ||
+            ray.origin.distanceToSquared(drag.ray.origin) > 1e-8) drag.moved = true;
+        drag.ray.copy(ray);
+    }
+    // Query real geometry under the finger, not under the central reticle.
+    // Serialize requests; ignore sources belonging to an ended gesture/session.
+    if (dragHitSource) {
+        const results = frame.getHitTestResults(dragHitSource);
+        const pose = results[0]?.getPose(renderer.xr.getReferenceSpace());
+        const ray = dragHitRay;
+        if (pose) {
+            dragPoint.setFromMatrixPosition(rayMatrix.fromArray(pose.transform.matrix));
+            applyDragPoint(dragPoint, true, ray);
+        } else applyDragPoint(ray.intersectPlane(drag.plane, dragPoint), false, ray);
+        dragHitSource.cancel();
+        dragHitSource = null;
+    }
+    if (typeof XRRay === 'undefined') {
+        applyDragPoint(drag.ray.intersectPlane(drag.plane, dragPoint), false, drag.ray);
+        return;
+    }
+    if (!dragHitPending) {
+        const gesture = drag;
+        const session = renderer.xr.getSession();
+        const ray = drag.ray.clone();
+        dragHitPending = true;
+        session.requestHitTestSource({
+            space: renderer.xr.getReferenceSpace(),
+            offsetRay: new XRRay(
+                { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z, w: 1 },
+                { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z, w: 0 }
+            )
+        }).then(source => {
+            if (drag !== gesture || renderer.xr.getSession() !== session) source.cancel();
+            else { dragHitSource = source; dragHitRay = ray; }
+        }).catch(() => {
+            if (drag === gesture) applyDragPoint(ray.intersectPlane(drag.plane, dragPoint), false, ray);
+        }).finally(() => { dragHitPending = false; });
+    }
+}
+
 
 function onKeyboardShortcut(event) {
 
