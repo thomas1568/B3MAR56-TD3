@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 import { GLTFLoader } from 'three/addons/webxr/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/webxr/OrbitControls.js';
-import { HDRLoader } from 'three/addons/webxr/HDRLoader.js';
 
 let scene;
 let camera;
@@ -35,9 +34,16 @@ let diagnosticText;
 const selectionRaycaster = new THREE.Raycaster();
 const rayMatrix = new THREE.Matrix4();
 const dragPoint = new THREE.Vector3();
+const APP_VERSION = '12';
+// Read-only snapshot of the last rendered AR view; input never edits XR cameras.
+const pickingCamera = new THREE.PerspectiveCamera();
+pickingCamera.matrixAutoUpdate = false;
+let pickingCameraReady = false;
+let lastInspectedObject = null;
+let lastInput = 'aucun';
+let lastRaycast = 'aucun';
+const inputTrace = [];
 const DRAG_THRESHOLD = 6; // CSS pixels: a tap must never transform an object.
-let xrAddShortcutHeld = false;
-let xrClearShortcutHeld = false;
 
 let current_object = null;
 let loading_model = 0;
@@ -141,7 +147,6 @@ function init() {
     });
     moveButton.addEventListener('click', () => setInteractionMode('move'));
     rotateButton.addEventListener('click', () => setInteractionMode('rotate'));
-    document.getElementById('clearAllButton').addEventListener('click', clearPlacedObjects);
     // Commands have one activation route (click), never scene pointer/XR routes.
     overlay.addEventListener('click', event => {
         if (event.target.closest('button, a, #menuButton')) event.stopPropagation();
@@ -236,8 +241,8 @@ function init() {
             lastError = '';
             hitTestState = 'demande en cours';
             invalidatePlacement();
-            xrAddShortcutHeld = false;
-            xrClearShortcutHeld = false;
+            pickingCameraReady = false;
+            inputTrace.length = 0;
             activeSession.addEventListener('selectstart', onXRSelectStart);
             activeSession.addEventListener('selectend', onXRSelectEnd);
             activeSession.addEventListener('inputsourceschange', onXRInputsChanged);
@@ -287,8 +292,8 @@ function init() {
             hitTestSourceRequested = false;
             hitTestState = 'inactif';
             invalidatePlacement();
-            xrAddShortcutHeld = false;
-            xrClearShortcutHeld = false;
+            pickingCameraReady = false;
+            inputTrace.length = 0;
             resetSelection();
             overlay.style.pointerEvents = '';
             overlay.style.touchAction = '';
@@ -318,14 +323,6 @@ function init() {
         'resize',
         onWindowResize
     );
-
-    // Capture : le raccourci est lu avant les contrôles de l'émulateur XR.
-    document.addEventListener(
-        'keydown',
-        onKeyboardShortcut,
-        true
-    );
-
 
     renderer.setAnimationLoop(
         animate
@@ -497,6 +494,8 @@ function placeSelectedObject() {
     );
 
     current_object.visible = true;
+    current_object.userData.placedModel = selected_model;
+    lastInspectedObject = current_object;
 
 
     // On ajoute le modèle à la liste
@@ -546,10 +545,7 @@ function animate(
     // Pas de session AR
     if (!frame) {
 
-        renderer.render(
-            scene,
-            camera
-        );
+        renderARScene();
 
         return;
     }
@@ -558,22 +554,87 @@ function animate(
     const referenceSpace = renderer.xr.getReferenceSpace();
     if (session !== activeSession || !referenceSpace) {
         invalidatePlacement();
-        renderer.render(scene, camera);
+        renderARScene();
         return;
     }
 
     // Placement and rendering remain independent from editing interactions.
+    updatePickingCamera(frame, referenceSpace);
     updatePlacement(frame, session, referenceSpace, timestamp);
     try {
         updateARDrag(frame);
-        handleXRControllerShortcuts();
         if (selectionHelper && selectedObject) selectionHelper.update();
     } catch (error) {
         stopDrag();
         reportARError('Interaction AR', error);
     }
     updateARStatus();
-    renderer.render(scene, camera);
+    renderARScene();
+}
+
+function renderARScene() {
+    try {
+        renderer.render(scene, camera);
+    } catch (error) {
+        stopDrag();
+        reportARError('Rendu AR', error);
+        // If the new selection indicator is the trigger, recover the scene
+        // without hiding/removing any placed object or stopping the hit-test.
+        if (selectionHelper && selectionHelper.visible) {
+            selectionHelper.visible = false;
+            traceInput('indicateur masque apres erreur de rendu');
+            try { renderer.render(scene, camera); }
+            catch (retryError) { reportARError('Rendu AR sans indicateur', retryError); }
+        }
+    }
+}
+
+function updatePickingCamera(frame, referenceSpace) {
+    pickingCameraReady = false;
+    try {
+        const view = frame.getViewerPose(referenceSpace)?.views[0];
+        if (!view || !finiteMatrix(view.transform.matrix) || !finiteMatrix(view.projectionMatrix)) return;
+        pickingCamera.matrixWorld.fromArray(view.transform.matrix);
+        pickingCamera.projectionMatrix.fromArray(view.projectionMatrix);
+        if (Math.abs(pickingCamera.matrixWorld.determinant()) < 1e-10 ||
+            Math.abs(pickingCamera.projectionMatrix.determinant()) < 1e-10) return;
+        pickingCamera.matrixWorldInverse.copy(pickingCamera.matrixWorld).invert();
+        pickingCamera.projectionMatrixInverse.copy(pickingCamera.projectionMatrix).invert();
+        pickingCameraReady = true;
+    } catch (error) { reportARError('Pose de camera AR', error); }
+}
+
+function finiteMatrix(matrix) {
+    return matrix?.length === 16 && Array.from(matrix).every(Number.isFinite);
+}
+
+function traceInput(message) {
+    inputTrace.push(message);
+    if (inputTrace.length > 8) inputTrace.shift();
+    if (new URLSearchParams(window.location.search).has('arDebug')) console.info('[AR v' + APP_VERSION + ']', message);
+}
+
+function inspectedObjectState() {
+    const object = lastInspectedObject;
+    if (!object) return 'aucun';
+    if (!placed_objects.includes(object)) return 'retire de la liste';
+    let inScene = false;
+    let visible = true;
+    for (let ancestor = object; ancestor; ancestor = ancestor.parent) {
+        visible = visible && ancestor.visible;
+        if (ancestor === scene) inScene = true;
+    }
+    if (!inScene) return 'detache de la scene';
+    if (!visible) return 'masque';
+    if (!finiteMatrix(object.matrixWorld.elements) ||
+        ![...object.position.toArray(), ...object.quaternion.toArray(), ...object.scale.toArray()].every(Number.isFinite)) {
+        return 'transformation invalide';
+    }
+    if (!pickingCameraReady) return 'present, suivi indisponible';
+    const box = new THREE.Box3().setFromObject(object);
+    const frustum = new THREE.Frustum().setFromProjectionMatrix(
+        new THREE.Matrix4().multiplyMatrices(pickingCamera.projectionMatrix, pickingCamera.matrixWorldInverse));
+    return frustum.intersectsBox(box) ? 'present dans le champ' : 'present hors champ';
 }
 
 function cancelPlacementSource() {
@@ -640,13 +701,18 @@ function updatePlacement(frame, session, referenceSpace, timestamp) {
 }
 
 function reportARError(context, error) {
-    lastError = context + ' : ' + (error.message || String(error));
-    console.error(context, error);
+    const message = context + ' : ' + (error.message || String(error));
+    if (lastError !== message) {
+        traceInput(message);
+        console.error(context, error);
+    }
+    lastError = message;
     updateARStatus();
 }
 
 function recordAction(action) {
     lastAction = action;
+    traceInput(action);
     if (new URLSearchParams(window.location.search).has('arDebug')) {
         console.info('[AR]', action, 'objets:', placed_objects.length);
     }
@@ -665,11 +731,13 @@ function updateARStatus() {
         : 'Surface detectee. Appuyez sur Ajouter.';
     const status = lastError ? message + ' Erreur AR : ouvrez le diagnostic.' : message;
     if (arStatus.textContent !== status) arStatus.textContent = status;
-    const diagnostic = 'Hit-test : ' + hitTestState + '\nPose : ' + placementPoseValid +
+    const diagnostic = 'Version : ' + APP_VERSION + '\nEntree : ' + lastInput + '\nRaycast : ' + lastRaycast + '\nHit-test : ' + hitTestState + '\nPose : ' + placementPoseValid +
         '\nDOM Overlay : ' + !!activeSession?.domOverlayState +
         '\nObjets : ' + placed_objects.length + '\nSelection : ' +
         (selectedObject?.uuid || 'aucune') + '\nMode : ' + interactionMode +
-        '\nAction : ' + lastAction + '\nErreur : ' + (lastError || 'aucune');
+        '\nAction : ' + lastAction + '\nObjet observe : ' + inspectedObjectState() +
+        '\nGeste : ' + (drag ? (drag.moved ? 'glissement' : 'appui') : 'aucun') +
+        '\nErreur : ' + (lastError || 'aucune') + '\nTrace :\n' + inputTrace.join('\n');
     if (diagnosticText && diagnosticText.textContent !== diagnostic) diagnosticText.textContent = diagnostic;
 }
 
@@ -711,23 +779,18 @@ function removePlacedObject(object) {
 function deleteSelectedObject() {
     if (!selectedObject || drag) return;
     const object = selectedObject;
+    lastInspectedObject = object;
     resetSelection();
     removePlacedObject(object);
     recordAction('suppression individuelle');
-}
-
-function clearPlacedObjects() {
-    if (drag) return;
-    resetSelection();
-    [...placed_objects].forEach(removePlacedObject);
-    recordAction('suppression de tous les objets');
 }
 
 function stopDrag() {
     const gesture = drag;
     drag = null;
     if (gesture?.captureTarget?.hasPointerCapture(gesture.owner)) {
-        gesture.captureTarget.releasePointerCapture(gesture.owner);
+        try { gesture.captureTarget.releasePointerCapture(gesture.owner); }
+        catch (error) { reportARError('Fin de capture tactile', error); }
     }
     updateARStatus();
 }
@@ -748,6 +811,7 @@ function selectObject(object) {
     if (selectedObject === object) return;
     resetSelection();
     selectedObject = object;
+    if (object) lastInspectedObject = object;
     if (object) {
         selectionHelper = new THREE.BoxHelper(object, 0x80d8ff);
         selectionHelper.material.transparent = true;
@@ -769,7 +833,7 @@ function updateSelectionUI() {
 }
 
 function setInteractionMode(mode) {
-    if (!selectedObject || drag) return;
+    if (!selectedObject || drag || !['move', 'rotate'].includes(mode)) return;
     interactionMode = mode;
     updateSelectionUI();
     recordAction(mode === 'rotate' ? 'mode rotation' : 'mode deplacement');
@@ -787,8 +851,14 @@ function pickPlacedObject(ray) {
             if (placed_objects.includes(object)) root = object;
             object = object.parent;
         }
-        if (visible && root) return root;
+        if (visible && root) {
+            lastRaycast = (hit.object.name || hit.object.uuid.slice(0, 8)) + ' -> racine ' + root.uuid.slice(0, 8);
+            traceInput('raycast ' + lastRaycast);
+            return root;
+        }
     }
+    lastRaycast = 'vide';
+    traceInput('raycast vide');
     return null;
 }
 
@@ -844,54 +914,75 @@ function updateGesture(ray, screenPoint = null) {
         const point = ray.intersectPlane(drag.plane, dragPoint);
         if (!point || ![point.x, point.y, point.z].every(Number.isFinite)) return;
         const position = point.clone().add(drag.offset);
-        drag.object.position.copy(drag.object.parent.worldToLocal(position));
+        const parent = drag.object.parent;
+        if (!parent || Math.abs(parent.matrixWorld.determinant()) < 1e-10) return;
+        const localPosition = parent.worldToLocal(position);
+        if (!localPosition.toArray().every(Number.isFinite)) return;
+        drag.object.position.copy(localPosition);
     }
     drag.object.updateMatrixWorld(true);
     if (selectionHelper) selectionHelper.update();
 }
 
 function pointerRay(event) {
+    if (!pickingCameraReady || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return null;
     const rect = document.getElementById('content').getBoundingClientRect();
     if (!rect.width || !rect.height) return null;
-    // WebXRManager updates these matrices before the app animation callback.
-    renderer.xr.updateCamera(camera);
-    const xrCamera = renderer.xr.getCamera();
-    const viewCamera = xrCamera.cameras[0];
-    if (!viewCamera) return null; // Tracking not ready: do not use a preview ray.
     selectionRaycaster.setFromCamera(new THREE.Vector2(
         (event.clientX - rect.left) / rect.width * 2 - 1,
         -(event.clientY - rect.top) / rect.height * 2 + 1
-    ), viewCamera);
+    ), pickingCamera);
     return selectionRaycaster.ray.clone();
 }
 
+function guardPointerEvent(event, handle) {
+    try { handle(); }
+    catch (error) {
+        stopDrag();
+        reportARError('Tactile ' + event.type, error);
+    }
+}
+
 function onARPointerDown(event) {
-    if (!renderer.xr.isPresenting || !activeSession?.domOverlayState || !event.isPrimary || event.button !== 0 || drag ||
-        event.target.closest('button, a, #menuButton, #mySidenav, details')) return;
-    const ray = pointerRay(event);
-    if (!ray) return;
-    event.preventDefault();
-    beginDrag(ray, event.pointerId, new THREE.Vector2(event.clientX, event.clientY));
-    drag.captureTarget = event.currentTarget;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    guardPointerEvent(event, () => {
+        if (!renderer.xr.isPresenting || !activeSession?.domOverlayState || !event.isPrimary || event.button !== 0 || drag) return;
+        lastInput = event.type + ' #' + event.pointerId;
+        if (event.target.closest('button, a, #menuButton, #mySidenav, details')) {
+            traceInput('interface ignoree par la scene');
+            return;
+        }
+        traceInput(lastInput + ' (' + event.clientX + ',' + event.clientY + ')');
+        const ray = pointerRay(event);
+        if (!ray) { traceInput('rayon indisponible : suivi AR'); updateARStatus(); return; }
+        event.preventDefault();
+        beginDrag(ray, event.pointerId, new THREE.Vector2(event.clientX, event.clientY));
+        drag.captureTarget = event.currentTarget;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        traceInput('appui arme, aucune transformation');
+        updateARStatus();
+    });
 }
 
 function onARPointerMove(event) {
-    if (!drag || drag.owner !== event.pointerId) return;
-    event.preventDefault();
-    const ray = pointerRay(event);
-    if (ray) updateGesture(ray, new THREE.Vector2(event.clientX, event.clientY));
+    guardPointerEvent(event, () => {
+        if (!drag || drag.owner !== event.pointerId) return;
+        event.preventDefault();
+        const ray = pointerRay(event);
+        if (ray) updateGesture(ray, new THREE.Vector2(event.clientX, event.clientY));
+    });
 }
 
 function onARPointerEnd(event) {
-    if (!drag || drag.owner !== event.pointerId) return;
-    if (event.type === 'pointerup') {
-        const ray = pointerRay(event);
-        if (ray) updateGesture(ray, new THREE.Vector2(event.clientX, event.clientY));
-        if (!drag.moved && !drag.object) selectObject(null);
-    }
-    // No change of projection on release. Cancellation retains the last valid pose.
-    stopDrag();
+    guardPointerEvent(event, () => {
+        if (!drag || drag.owner !== event.pointerId) return;
+        if (event.type === 'pointerup') {
+            const ray = pointerRay(event);
+            if (ray) updateGesture(ray, new THREE.Vector2(event.clientX, event.clientY));
+            if (!drag.moved && !drag.object) selectObject(null);
+        }
+        traceInput(event.type + ' : fin du geste');
+        stopDrag();
+    });
 }
 
 function inputRay(frame, inputSource) {
@@ -905,17 +996,16 @@ function inputRay(frame, inputSource) {
 }
 
 function rayScreenPoint(ray) {
-    renderer.xr.updateCamera(camera);
-    const viewCamera = renderer.xr.getCamera().cameras[0];
-    if (!viewCamera) return null;
-    const point = ray.origin.clone().add(ray.direction).project(viewCamera);
+    if (!pickingCameraReady) return null;
+    const point = ray.origin.clone().add(ray.direction).project(pickingCamera);
     return new THREE.Vector2((point.x + 1) * window.innerWidth / 2,
         (1 - point.y) * window.innerHeight / 2);
 }
 
 function onXRSelectStart(event) {
     // With DOM Overlay, pointer events are the sole scene interaction route.
-    if (activeSession?.domOverlayState || event.inputSource.targetRayMode !== 'screen') return;
+    if (activeSession?.domOverlayState) { traceInput('selectstart XR ignore : route pointer active'); return; }
+    if (event.inputSource.targetRayMode !== 'screen') return;
     const ray = inputRay(event.frame, event.inputSource);
     if (ray) beginDrag(ray, event.inputSource, rayScreenPoint(ray));
 }
@@ -933,7 +1023,9 @@ function onXRInputsChanged(event) {
 function onXRVisibilityChange() {
     if (activeSession?.visibilityState !== 'visible') {
         stopDrag();
+        pickingCameraReady = false;
         invalidatePlacement();
+        traceInput('visibilite XR : ' + activeSession?.visibilityState);
         updateARStatus();
     }
 }
@@ -944,100 +1036,6 @@ function updateARDrag(frame) {
     if (ray) updateGesture(ray, rayScreenPoint(ray));
 }
 
-
-function onKeyboardShortcut(event) {
-
-    const target = event.target;
-
-    if (
-        event.defaultPrevented ||
-        event.repeat ||
-        (
-            target instanceof HTMLElement &&
-            target.matches('input, textarea, select, [contenteditable="true"]')
-        )
-    ) {
-        return;
-    }
-
-    if (event.key.toLowerCase() === 'a') {
-
-        event.preventDefault();
-        placeSelectedObject();
-    }
-
-    if (event.key.toLowerCase() === 'e') {
-
-        event.preventDefault();
-        if (event.shiftKey) clearPlacedObjects();
-        else deleteSelectedObject();
-    }
-}
-
-
-// -------------------------------------------------
-// RACCOURCIS VIA MANETTES XR / IMMERSIVE WEB EMULATOR
-// - A en Play mode : stick gauche vers la gauche => ajout
-// - Bouton A / X : ajout
-// - Bouton B / Y : suppression de la selection
-// -------------------------------------------------
-
-function handleXRControllerShortcuts() {
-
-    const session = renderer.xr.getSession();
-
-    if (!session) {
-        return;
-    }
-
-    let addPressed = false;
-    let clearPressed = false;
-
-    session.inputSources.forEach(
-        function (inputSource) {
-
-            const gamepad = inputSource.gamepad;
-
-            // A phone touchscreen may expose a gamepad: never read it as Meta Touch.
-            if (inputSource.targetRayMode !== 'tracked-pointer' || !gamepad || gamepad.mapping !== 'xr-standard') {
-                return;
-            }
-
-            // Dans le Play mode, A pilote le stick gauche vers la gauche.
-            if (
-                inputSource.handedness === 'left' &&
-                gamepad.axes[0] <= -0.9
-            ) {
-                addPressed = true;
-            }
-
-            // Mapping standard Meta Touch : boutons 4 = A/X, 5 = B/Y.
-            if (gamepad.buttons[4] && gamepad.buttons[4].pressed) {
-                addPressed = true;
-            }
-
-            if (gamepad.buttons[5] && gamepad.buttons[5].pressed) {
-                clearPressed = true;
-            }
-        }
-    );
-
-    if (addPressed && !xrAddShortcutHeld) {
-        placeSelectedObject();
-    }
-
-    if (clearPressed && !xrClearShortcutHeld) {
-        deleteSelectedObject();
-    }
-
-    xrAddShortcutHeld = addPressed;
-    xrClearShortcutHeld = clearPressed;
-}
-
-
-// -------------------------------------------------
-// BOUTON DE PLACEMENT MOBILE
-// -------------------------------------------------
 
 function showPlaceButton() {
     // Layout lives in CSS so labels and selection commands fit narrow screens.

@@ -175,7 +175,7 @@ canvas {
 #selectionActions { display: flex; gap: 8px; flex-wrap: wrap; }
 #selectionActions[hidden] { display: none; }
 
-#actionButtons button, #clearAllButton {
+#actionButtons button {
     min-height: 48px;
     padding: 10px 12px;
     font: inherit;
@@ -192,8 +192,6 @@ canvas {
     background: rgba(20, 75, 100, 0.85);
 }
 #actionButtons button:disabled { opacity: 0.45; }
-#clearAllButton { display: none; margin: 24px; }
-.ar-active #clearAllButton { display: block; }
 
 #arStatus, #arDiagnostics { display: none; }
 .ar-active #arStatus {
@@ -212,7 +210,7 @@ canvas {
     position: fixed;
     top: 145px;
     left: 16px;
-    right: 16px;
+    max-width: calc(100vw - 32px);
     pointer-events: auto;
     font-size: 12px;
 }
@@ -223,7 +221,7 @@ canvas {
     border-radius: 6px;
     background: rgba(0, 0, 0, 0.65);
 }
-#diagnosticText { white-space: pre-wrap; overflow-wrap: anywhere; }
+#diagnosticText { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24vh; overflow-y: auto; }
 
 /* The fullscreen interaction overlay covers the original external ARButton. */
 #stopARButton { display: none; }

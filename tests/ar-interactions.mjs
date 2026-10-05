@@ -38,6 +38,11 @@ function app() {
     const run = code => vm.runInContext(code, context);
     run(`scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(70, 0.5, 0.01, 20);
         camera.position.set(0, 2, 3); camera.lookAt(0, 0, 0); camera.updateMatrixWorld(true);
+        pickingCamera.matrixWorld.copy(camera.matrixWorld);
+        pickingCamera.matrixWorldInverse.copy(camera.matrixWorldInverse);
+        pickingCamera.projectionMatrix.copy(camera.projectionMatrix);
+        pickingCamera.projectionMatrixInverse.copy(camera.projectionMatrixInverse);
+        pickingCameraReady = true;
         activeSession = {domOverlayState: {type: 'screen'}, inputSources: [], visibilityState: 'visible'};
         renderer = {xr: {isPresenting: true, updateCamera() {}, getCamera: () => ({cameras: [camera]}),
             getSession: () => activeSession, getReferenceSpace: () => ({})}, render() {}};
@@ -60,7 +65,7 @@ function app() {
         }
         const p0 = new THREE.Vector2(200, 400);
         function validFrame(matrix = new THREE.Matrix4().makeTranslation(0, 0, -1).elements) {
-            return {getHitTestResults: () => [{getPose: () => ({transform: {matrix}})}]};
+            return {getViewerPose: () => ({views: [{transform: {matrix: camera.matrixWorld.elements}, projectionMatrix: camera.projectionMatrix.elements}]}), getHitTestResults: () => [{getPose: () => ({transform: {matrix}})}]};
         }
         function primeHitTest() { hitTestSourceRequested = true; hitTestSource = {cancel() {}}; }
     `);
@@ -163,7 +168,7 @@ test('no pose or invalid pose hides the circle and disables Add', () => {
 test('hit-test errors are diagnosed and rendering continues', () => {
     const {run, logs} = app();
     run(`primeHitTest(); let renders=0; renderer.render=()=>renders++;
-        animate(0,{getHitTestResults(){throw new Error('source inactive');}});
+        animate(0,{getViewerPose:()=>null, getHitTestResults(){throw new Error('source inactive');}});
         assert.equal(renders,1); assert.equal(placementPoseValid,false); assert.equal(hitTestState,'erreur');
         assert.ok(lastError.includes('source inactive')); assert.equal(hitTestSource,null);`);
     assert.equal(logs.length, 1);
@@ -185,11 +190,13 @@ test('late hit-test source from an ended session is cancelled', async () => {
     run('assert.equal(hitTestSource,null);');
 });
 
-test('phone screen gamepads never invoke add/delete controller shortcuts', () => {
+test('there are no keyboard or gamepad paths that add or delete objects', () => {
     const {run} = app();
     run(`selectObject(first); activeSession.inputSources = [{targetRayMode:'screen', handedness:'left',
         gamepad:{mapping:'xr-standard', axes:[-1], buttons:Array.from({length:6},()=>({pressed:true}))}}];
-        handleXRControllerShortcuts(); assert.equal(placed_objects.length,3); assert.equal(selectedObject,first);`);
+        assert.equal(typeof handleXRControllerShortcuts, 'undefined');
+        assert.equal(typeof onKeyboardShortcut, 'undefined');
+        assert.equal(placed_objects.length,3); assert.equal(selectedObject,first);`);
 });
 
 test('DOM buttons and native XR duplicates never enter scene interaction', () => {
@@ -232,4 +239,101 @@ test('the newest request wins even when the same GLB is loaded twice', () => {
     context.modelRequests[1].success({scene: latest});
     context.latest = latest;
     run('assert.equal(current_object,latest); assert.equal(modelLoading,false); assert.equal(placed_objects.length,3);');
+});
+
+// These failures model an exception without claiming it occurred on a phone.
+test('a render exception must not escape and stop the next XR frame', () => {
+    const {run, logs} = app();
+    run(`primeHitTest(); selectObject(first);
+        renderer.render = () => { throw new Error('render failed after selection'); };
+        assert.doesNotThrow(() => animate(0, validFrame()));
+        assert.ok(lastError.includes('render failed after selection'));
+        assert.equal(placed_objects.length,3); assert.ok(first.visible);
+        renderer.render = () => {}; animate(16,validFrame());
+        assert.equal(reticle.visible,true); assert.equal(placementPoseValid,true);`);
+    assert.ok(logs.length > 0);
+});
+
+test('a capture exception must release interaction without cancelling placement', () => {
+    const {run, node, context} = app();
+    context.overlay = node('content');
+    context.overlay.setPointerCapture = () => { throw new Error('pointer capture unavailable'); };
+    run(`primeHitTest(); updatePlacement(validFrame(),activeSession,{},0);
+        const source = hitTestSource, position = first.position.clone();
+        assert.doesNotThrow(() => onARPointerDown({type:'pointerdown',isPrimary:true,button:0,pointerId:7,
+            clientX:200,clientY:400,target:{closest:()=>null},currentTarget:overlay,preventDefault(){}}));
+        assert.equal(drag,null); assert.equal(hitTestSource,source);
+        assert.ok(first.position.equals(position)); assert.ok(first.visible);
+        updatePlacement(validFrame(),activeSession,{},16); assert.ok(reticle.visible);`);
+});
+
+test('nonfinite coordinates in parent space must not poison an object transform', () => {
+    const {run} = app();
+    run(`beginDrag(rayAt(0),1,p0); const position = first.position.clone();
+        scene.scale.setScalar(0); scene.updateMatrixWorld(true);
+        updateGesture(rayAt(1),new THREE.Vector2(220,400));
+        assert.ok(first.position.equals(position));
+        assert.ok(first.position.toArray().every(Number.isFinite));`);
+});
+
+
+test('raycasting uses an XR view snapshot without modifying the renderer camera', () => {
+    const {run} = app();
+    run(`const eye = camera.clone(); eye.position.set(1,2,3); eye.lookAt(first.position); eye.updateMatrixWorld(true);
+        const frame = {getViewerPose: () => ({views: [{transform: {matrix: eye.matrixWorld.elements}, projectionMatrix: eye.projectionMatrix.elements}]})};
+        updatePickingCamera(frame, {});
+        const mainMatrix = camera.matrixWorld.clone();
+        renderer.xr.updateCamera = () => { throw new Error('input must not write the XR camera'); };
+        const projected = first.position.clone().project(eye);
+        const event = {clientX:(projected.x+1)*200,clientY:(1-projected.y)*400};
+        assert.equal(pickPlacedObject(pointerRay(event)), first);
+        assert.ok(camera.matrixWorld.equals(mainMatrix));
+        eye.position.x = 50; eye.updateMatrixWorld(true);
+        assert.equal(pickPlacedObject(pointerRay(event)), first);`);
+});
+
+test('tracking loss blocks input until a valid camera pose returns', () => {
+    const {run} = app();
+    run(`primeHitTest(); const source=hitTestSource;
+        updatePickingCamera({getViewerPose:()=>null},{});
+        assert.equal(pointerRay({clientX:200,clientY:400}),null);
+        assert.equal(hitTestSource,source);
+        updatePickingCamera(validFrame(),{}); assert.ok(pickingCameraReady);
+        assert.equal(pickPlacedObject(pointerRay({clientX:200,clientY:400})),first);`);
+});
+
+test('a raycast exception is diagnosed without hiding objects or losing the hit-test', () => {
+    const {run, node, context} = app();
+    context.overlay=node('content');
+    run(`primeHitTest(); const source=hitTestSource;
+        first.children[0].children[0].raycast = () => {throw new Error('mesh raycast failed');};
+        onARPointerDown({type:'pointerdown',pointerId:7,button:0,isPrimary:true,clientX:200,clientY:400,
+            target:{closest:()=>null},currentTarget:overlay,preventDefault(){}});
+        assert.equal(drag,null); assert.equal(hitTestSource,source);
+        assert.ok(first.visible); assert.equal(first.parent,scene); assert.equal(placed_objects.length,3);
+        assert.ok(lastError.includes('mesh raycast failed'));
+        animate(16,validFrame()); assert.ok(reticle.visible);`);
+});
+
+test('diagnostic differentiates removal, hiding, invalid transforms and out-of-view objects', () => {
+    const {run} = app();
+    run(`lastInspectedObject=first; assert.equal(inspectedObjectState(),'present dans le champ');
+        first.visible=false; assert.equal(inspectedObjectState(),'masque'); first.visible=true;
+        first.position.x=NaN; assert.equal(inspectedObjectState(),'transformation invalide');
+        first.position.x=50; first.updateMatrixWorld(true); assert.equal(inspectedObjectState(),'present hors champ');
+        removePlacedObject(first); assert.equal(inspectedObjectState(),'retire de la liste');`);
+});
+
+test('selection, editing, deselection and deletion keep the placement source alive', () => {
+    const {run} = app();
+    run(`primeHitTest(); let cancellations=0; hitTestSource.cancel=()=>cancellations++;
+        const source=hitTestSource;
+        updatePlacement(validFrame(),activeSession,{},0);
+        beginDrag(rayAt(0),1,p0); stopDrag(); assert.equal(selectedObject,first);
+        setInteractionMode('rotate'); beginDrag(rayAt(0),2,p0);
+        updateGesture(rayAt(0.5),new THREE.Vector2(230,400));stopDrag();
+        selectObject(null); selectObject(second); deleteSelectedObject();
+        assert.equal(hitTestSource,source); assert.equal(cancellations,0);
+        animate(32,validFrame()); assert.ok(reticle.visible); assert.equal(placementPoseValid,true);
+        assert.ok(inputTrace.length<=8);`);
 });
