@@ -158,60 +158,85 @@ canvas {
 }
 
 
-/* Bouton de placement utilisé sur téléphone pendant une session AR. */
+/* AR commands use the existing WebXR DOM Overlay. */
 #actionButtons {
     display: none;
-
     position: fixed;
-    right: 20px;
-    bottom: 20px;
-
+    right: 12px;
+    bottom: max(72px, env(safe-area-inset-bottom));
+    left: 12px;
     z-index: 2;
-    gap: 12px;
-    white-space: nowrap;
-
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     pointer-events: auto;
 }
 
+#selectionActions { display: flex; gap: 8px; flex-wrap: wrap; }
+#selectionActions[hidden] { display: none; }
 
-#placeButton,
-#clearButton {
-    display: inline-block;
-    vertical-align: top;
-
-    width: 56px;
-    height: 56px;
-    padding: 12px;
-
-    color: #fff;
-    background-color: rgba(0, 0, 0, 0.75);
+#actionButtons button, #clearAllButton {
+    min-height: 48px;
+    padding: 10px 12px;
+    font: inherit;
+    color: white;
+    background: rgba(0, 0, 0, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.8);
-    border-radius: 50%;
-
-    cursor: pointer;
+    border-radius: 8px;
     pointer-events: auto;
     touch-action: manipulation;
 }
 
+#actionButtons button[aria-pressed="true"] {
+    border-color: #80d8ff;
+    background: rgba(20, 75, 100, 0.85);
+}
+#actionButtons button:disabled { opacity: 0.45; }
+#clearAllButton { display: none; margin: 24px; }
+.ar-active #clearAllButton { display: block; }
 
-#placeButton img,
-#clearButton img {
+#arStatus, #arDiagnostics { display: none; }
+.ar-active #arStatus {
     display: block;
-    width: 100%;
-    height: 100%;
-    filter: invert(1);
+    position: fixed;
+    top: 65px;
+    left: 16px;
+    right: 16px;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.65);
+    pointer-events: none;
 }
-
-
-#placeButton:active,
-#clearButton:active {
-    background-color: rgba(70, 70, 70, 0.9);
+.ar-active #arDiagnostics {
+    display: block;
+    position: fixed;
+    top: 145px;
+    left: 16px;
+    right: 16px;
+    pointer-events: auto;
+    font-size: 12px;
 }
+#arDiagnostics summary, #diagnosticText {
+    width: fit-content;
+    max-width: 100%;
+    padding: 6px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.65);
+}
+#diagnosticText { white-space: pre-wrap; overflow-wrap: anywhere; }
 
-
-
-
-/*
-   Sur téléphone, les deux boutons sont empilés : la zone DOM Overlay
-   est parfois plus étroite que la largeur visible de l'écran XR.
-*/
+/* The fullscreen interaction overlay covers the original external ARButton. */
+#stopARButton { display: none; }
+.ar-active #stopARButton {
+    display: block;
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    min-height: 44px;
+    padding: 8px 12px;
+    color: white;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid white;
+    border-radius: 8px;
+    pointer-events: auto;
+}

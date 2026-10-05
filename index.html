@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<title>TP</title>
-<title>TP</title>
+<title>Visite AR de Corte</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<link type="text/css" rel="stylesheet" href="main.css?v=8">
+<link type="text/css" rel="stylesheet" href="main.css?v=9">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
 <body>
@@ -17,11 +16,22 @@
 <a class="ar-object" id="2" href="#">item_2</a>
 <a class="ar-object" id="3" href="#">item_3</a>
 <a class="ar-object" id="4" href="#">item_4</a>
+<button id="clearAllButton" type="button">Tout effacer</button>
 </div>
 <div id="menuButton" onclick="openNav()">&#9776;</div>
+<button id="stopARButton" type="button">Quitter AR</button>
+<p id="arStatus" role="status" aria-live="polite"></p>
+<details id="arDiagnostics">
+<summary>Diagnostic AR</summary>
+<pre id="diagnosticText"></pre>
+</details>
 <div id="actionButtons">
-<button id="placeButton" type="button" aria-label="Ajouter l'objet" title="Ajouter l'objet"><img src="assets/add-circle.svg" alt=""></button>
-<button id="clearButton" type="button" aria-label="Supprimer tous les objets" title="Supprimer tous les objets"><img src="assets/bin.svg" alt=""></button>
+<button id="placeButton" type="button" disabled>Ajouter</button>
+<div id="selectionActions" hidden>
+<button id="moveButton" type="button" aria-pressed="true">D&#233;placement</button>
+<button id="rotateButton" type="button" aria-pressed="false">Rotation</button>
+<button id="clearButton" type="button" disabled>Supprimer</button>
+</div>
 </div>
 </div>
 
@@ -34,7 +44,7 @@
 }
 </script>
 
-<script type="module" src="./main.js?v=10"></script>
+<script type="module" src="./main.js?v=11"></script>
 
 <script>
 function openNav(){
