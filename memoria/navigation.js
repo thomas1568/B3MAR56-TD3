@@ -16,7 +16,7 @@ export function createTabNavigation({ nav, view, pages, getPage, navigate, canNa
   function clear() { gesture = null; nav.classList.remove('is-dragging'); view.classList.remove('is-swiping'); sync(); }
   function pointerDown(event, surface) {
     if (!canNavigate() || event.isPrimary === false || event.button > 0 || (surface === 'page' && event.pointerType !== 'touch')) return;
-    if (surface === 'page' && event.target.closest('button,a,input,select,textarea,summary,canvas,label,[role="slider"]')) return;
+    if (surface === 'page' && event.target.closest('button,a,input,select,textarea,summary,canvas,label,[role="slider"],[data-map],[data-no-swipe]')) return;
     suppressClickUntil = 0;
     if (gesture) { clear(); return; }
     gesture = { id: event.pointerId, surface, x: event.clientX, y: event.clientY, dragged: false, target: getPage(), rejected: false };

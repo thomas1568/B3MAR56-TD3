@@ -12,9 +12,17 @@ La sélection de la barre principale se déplace sous le doigt : glisser d’une
 
 Le bouton principal **Créer mon profil** ouvre directement le choix du pseudo et de l’image, sans passer par un formulaire d’authentification indisponible. Il fonctionne sans Supabase et annonce explicitement la conservation sur l’appareil. Le bouton distinct **Créer un compte connecté** apparaît lorsque Supabase est configuré. Sans configuration, l’information sur la synchronisation propose une action réelle pour créer le profil local au lieu d’un formulaire bloqué.
 
-Le projet ne contient toujours aucune photographie du territoire. Les trois nouveaux visuels SVG de `assets/` sont des illustrations originales, clairement étiquetées ; ils ne représentent pas des archives ni une restitution fidèle d’un bâtiment. Les cards n’affichent pas de durées inventées. La progression correspond précisément au nombre de fiches distinctes consultées parmi les cinq repères de l’IUT.
+Le projet intègre quatre photographies réelles de Corte et de la Restonica, téléchargées depuis Wikimedia Commons dans `assets/photos/` avec auteurs, sources et licences vérifiées dans `credits.json`. L’accueil, la galerie et la card du Palazzu utilisent ces photos avec crédits visibles. Les visuels SVG de transmission et de récits restent clairement identifiés comme illustrations ; aucune photo de la ville n’est présentée comme une photographie de l’IUT ou une archive historique. Les cards n’affichent pas de durées inventées. La progression correspond précisément au nombre de fiches distinctes consultées parmi les cinq repères de l’IUT.
 
-Sept avatars SVG sont proposés : citadelle, livre, voix, montagne, rivière, boussole et initiales. Une photo JPEG, PNG ou WebP de 5 Mo maximum peut être importée, déplacée ou ajustée avec les curseurs, puis recadrée en carré de 640 px et affichée en cercle. L’export JPEG retire les métadonnées du fichier original. Une modification d’image est immédiatement visible dans le profil, l’en-tête et l’onglet Profil ; hors première utilisation, le choix d’image est enregistré automatiquement. Le pseudo est enregistré avec le bouton du formulaire.
+Sept avatars SVG sont proposés : citadelle, livre, voix, montagne, rivière, boussole et initiales. Une photo JPEG, PNG ou WebP de 5 Mo maximum peut être importée, déplacée directement au doigt et agrandie par pincement, avec un seul curseur de zoom et des boutons +/−. Un masque circulaire montre le cadrage final ; « Recentrer » réinitialise la vue et « Utiliser cette photo » reste visible dans le pied du dialogue. Les flèches, +/− et Début permettent aussi le cadrage au clavier. Les limites empêchent les bords vides. L’export carré JPEG de 640 px retire les métadonnées du fichier original. Une modification d’image est immédiatement visible dans le profil, l’en-tête et l’onglet Profil ; hors première utilisation, le choix d’image est enregistré automatiquement. Le pseudo est enregistré avec le bouton du formulaire. Les champs de saisie utilisent au minimum 16 px pour éviter le zoom automatique de mise au point sur iPhone, sans désactiver le zoom manuel de la page.
+
+### Carte de Corte et médias locaux
+
+L’onglet **Parcours** contient une carte interactive de Corte (Haute-Corse), fondée sur un extrait réel OpenStreetMap distribué dans `assets/maps/corte.json`. Le fond et les photos sont servis avec le site ; aucun compte cartographique, clé API, géolocalisation ou chargement de tuiles externes n’est nécessaire. Zoom, pincement, déplacement au doigt, clavier, recentrage et sélection des deux lieux sont disponibles. Un échec de chargement affiche un bouton de reprise et laisse les fiches accessibles.
+
+Les marqueurs utilisent les positions des bâtiments OpenStreetMap **IUT di Corsica** (way `350787319`, centre approximatif `42.297383, 9.154338`) et **Palais National** (way `121178674`, centre approximatif `42.305007, 9.149190`). Le premier est disponible ; le second reste annoncé à venir. Une liaison indicative est calculée sur les voies piétonnes et rues connectées de l’extrait, en excluant les voies privées ou interdites aux piétons. Elle ne tient pas compte des changements temporaires ni des accès d’entrée précis ; le lien « Ouvrir ce lieu dans un plan » donne accès au lieu dans OpenStreetMap. La carte 2D est indépendante du placement AR manuel et ne prétend pas suivre la position de l’utilisateur.
+
+Sources de localisation : [plan officiel des campus](https://www.universita.corsica/fr/universita/plan-des-campus/), [IUT dans OpenStreetMap](https://www.openstreetmap.org/way/350787319), [Palais National dans OpenStreetMap](https://www.openstreetmap.org/way/121178674). Les données cartographiques sont attribuées à OpenStreetMap et distribuées sous ODbL ; voir `assets/maps/README.md`. Les conditions de chaque photographie figurent dans `assets/photos/README.md` et dans le manifeste. Le script `node --use-system-ca scripts/fetch-corte-assets.mjs` reproduit le téléchargement et l’extraction ; il ne s’exécute pas dans l’application.
 
 ### Activer les véritables comptes Supabase
 
@@ -32,12 +40,12 @@ Références : [authentification par mot de passe](https://supabase.com/docs/gui
 ### Vérifications de la nouvelle interface
 
 ```powershell
-node --test --test-isolation=none tests/ar-interactions.mjs tests/memoria.mjs tests/accounts.mjs
+node --test --test-isolation=none tests/ar-interactions.mjs tests/memoria.mjs tests/accounts.mjs tests/city-and-crop.mjs
 node tests/shell-browser.mjs
 node tests/browser-smoke.mjs
 ```
 
-Les tests du profil couvrent les validations, le mode invité, la persistance après rechargement, les sept avatars, le recadrage et l’import, l’image dans la navigation, la progression et la reprise. Le test Chrome exécute aussi une inscription avec confirmation e-mail, une connexion refusée puis réussie, le stockage de photo et la reconnexion **contre un serveur HTTP simulant Supabase**. Il ne crée aucun compte réel. Les contrôles des politiques RLS, de SMTP et des e-mails réels nécessitent la configuration du projet et restent à effectuer. Les vues mobiles, tablette et ordinateur sont contrôlées à 320, 390, 768 et 1440 px. Les tests AR utilisent toujours des poses simulées ; le suivi et les permissions sur téléphone restent à confirmer.
+Les tests du profil couvrent les validations, le mode invité, la persistance après rechargement, les sept avatars, le déplacement, le pincement, le recentrage et l’import de photo, l’image dans la navigation, la progression et la reprise. La carte est contrôlée pour le chargement de données locales, la liaison entre les lieux, le zoom, le déplacement sans changement d’onglet et la sélection disponible/à venir. Le test Chrome exécute aussi une inscription avec confirmation e-mail, une connexion refusée puis réussie, le stockage de photo et la reconnexion **contre un serveur HTTP simulant Supabase**. Il ne crée aucun compte réel. Les contrôles des politiques RLS, de SMTP et des e-mails réels nécessitent la configuration du projet et restent à effectuer. Les vues mobiles, tablette et ordinateur sont contrôlées à 320, 390, 768 et 1440 px. Les tests AR utilisent toujours des poses simulées ; le suivi et les permissions sur téléphone restent à confirmer. Le rendu réel du clavier et du zoom Safari nécessite un contrôle sur iPhone.
 
 ## Interface et navigation
 
@@ -102,7 +110,7 @@ Aucune photographie, archive, bande sonore ou image panoramique n’était prés
 
 À fournir avec identification, date, crédit et conditions de réutilisation :
 
-- Photographie actuelle de l’IUT, document lié à 1765, portrait identifié de Paoli, archive de 1981, carte géographique vérifiée.
+- Photographie actuelle de l’IUT, document lié à 1765, portrait historique identifié de Paoli et archive de 1981. La carte géographique 2D du parcours est désormais intégrée ; le support AR de Corte reste un schéma d’évocation.
 - Photographie équirectangulaire 360° du lieu, puis calage des angles des POI. L’état actuel est **Panorama à fournir**, avec un espace neutre et cinq fiches accessibles, y compris si WebGL échoue.
 - Enregistrements de l’accueil (texte prévu pour 15–20 s), du récit (environ une minute) et des cinq points ; les durées réelles doivent être mesurées après enregistrement.
 - Ambiances pages/écriture/murmures et campus ; musique d’entrée et de fin seulement avec réutilisation autorisée.

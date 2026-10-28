@@ -1,6 +1,9 @@
-import { createAccount, validatePhoto, validatePseudo } from './account.js?v=16';
+import { createAccount, validatePhoto, validatePseudo } from './account.js?v=17';
 import { AVATARS, renderAvatar } from './avatars.js';
-import { createTabNavigation } from './navigation.js?v=16';
+import { createTabNavigation } from './navigation.js?v=17';
+import { cropGeometry, zoomCrop } from './photo-crop.js';
+import { CORTE_PHOTOS } from '../content/corte.js';
+import { createCityMap } from './city-map.js';
 
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 export function createShell(experience, step) {
@@ -9,7 +12,8 @@ export function createShell(experience, step) {
   const account = createAccount();
   let state = account.getState(), page = 'home', inStep = false, settingUp = false, authMode = 'signup', busy = false;
   let draft = { ...state.profile }, cropImage = null, cropBefore = null, profileReturn = null, uploadGeneration = 0;
-  let tabNavigation = null;
+  let tabNavigation = null, cityMap = null;
+  let cropState = { zoom: 1, offsetX: 0, offsetY: 0 };
   const pages = ['home', 'explore', 'route', 'listen', 'profile'];
   const scrollPositions = new Map();
   const app = document.createElement('main'); app.id = 'appView'; app.dataset.ui = '';
@@ -17,10 +21,10 @@ export function createShell(experience, step) {
     <header class="site-header app-header"><a class="brand" href="#accueil" data-page="home"><span class="seal">MC</span><span>Memoria <em>Corti</em><small>Des lieux. Des voix. Une mémoire.</small></span></a><div class="header-end"><span class="location-chip">${icon('pin')}Corte · Corse</span><button id="headerProfile" class="profile-shortcut" aria-label="Ouvrir mon profil" data-page="profile"><span data-profile-avatar class="avatar"></span></button></div></header>
     <section id="page-home" class="app-page" aria-labelledby="greeting"><div class="welcome-line"><div><p class="eyebrow">BENVENUTI IN CORTI</p><h1 id="greeting">Bonghjornu.</h1><p class="page-subtitle">Chaque lieu a une histoire. La vôtre commence ici.</p></div><span id="sessionBadge" class="subtle-badge"></span></div>
       <article id="resumeCard" class="resume-card" hidden><img class="resume-thumbnail" src="assets/savoir-illustration.svg" alt="Illustration du livre ouvert de l’étape IUT" width="100" height="100"><div><p class="eyebrow">VOTRE PARCOURS EN COURS</p><h2>Reprendre ma découverte</h2><p id="resumeDescription"></p><progress id="resumeProgress" max="5" value="0" aria-label="Repères consultés à l’IUT"></progress></div><button id="resumeButton" class="primary">Reprendre ${icon('arrow')}</button></article>
-      <article class="feature-card"><img src="assets/corte-illustration.svg" alt="Illustration originale et symbolique de Corte, entre montagnes et citadelle" width="1000" height="600"><div class="feature-overlay"><span class="visual-label">Illustration · Corte</span><p class="eyebrow">UN TERRITOIRE À RENCONTRER</p><h2>Corte se raconte.<br>À vous de l’explorer.</h2><p>Des lieux de savoir aux voix de la ville, suivez le fil des mémoires.</p><button class="light-button" data-page="explore">Explorer Corte ${icon('arrow')}</button></div></article>
+      <article class="feature-card"><img src="assets/photos/corte-citadelle.jpg" alt="La citadelle de Corte sur son éperon rocheux, dans les montagnes corses" width="1280" height="960" fetchpriority="high"><div class="feature-overlay"><a class="visual-label photo-source" href="https://commons.wikimedia.org/wiki/File:Citadelle_de_Corte,_Corte,_Corsica,_France.jpg" target="_blank" rel="noopener noreferrer">Photo · Bj.schoenmakers · CC0</a><p class="eyebrow">UN TERRITOIRE À RENCONTRER</p><h2>Corte se raconte.<br>À vous de l’explorer.</h2><p>Des lieux de savoir aux voix de la ville, suivez le fil des mémoires.</p><button class="light-button" data-page="explore">Explorer Corte ${icon('arrow')}</button></div></article>
       <div class="section-heading"><div><p class="eyebrow">LES LIEUX, AUTREMENT</p><h2>Explorer Corte</h2></div><button class="text-button" data-page="explore">Tout explorer ${icon('arrow')}</button></div><div id="homePlaces" class="editorial-grid"></div>
       <div class="section-heading"><div><p class="eyebrow">PRENEZ LE TEMPS</p><h2>À écouter</h2></div><button class="text-button" data-page="listen">Les récits ${icon('arrow')}</button></div><div id="homeStories" class="story-grid"></div>
-      <div class="quiet-note">${icon('route')}<p>L’IUT ouvre le parcours. Les autres étapes de Corte se préparent, une histoire après l’autre.</p></div>
+      <div class="section-heading"><div><p class="eyebrow">REGARDS SUR LE TERRITOIRE</p><h2>Les visages de Corte</h2></div></div><div id="corteGallery" class="corte-gallery"></div><div class="quiet-note">${icon('route')}<div><p>L’IUT ouvre le parcours. Les autres étapes de Corte se préparent, une histoire après l’autre.</p><button class="text-button" data-page="route">Voir le parcours sur la carte ${icon('arrow')}</button></div></div>
     </section>
     <section id="page-explore" class="app-page" hidden aria-labelledby="exploreTitle"><p class="eyebrow">LES MÉMOIRES D’UN TERRITOIRE</p><h1 id="exploreTitle">Explorer Corte</h1><p class="page-subtitle">Des lieux à observer, des histoires à rencontrer.</p><div class="filter-row" role="group" aria-label="Filtrer les lieux"><button id="filterAll" aria-pressed="true">Tous les lieux</button><button id="filterAvailable" aria-pressed="false">Disponibles</button><button id="filterComing" aria-pressed="false">À venir</button></div><div id="explorePlaces" class="editorial-grid"></div><p class="small-note">Les visuels sont des illustrations originales. Les photographies documentées du parcours restent à fournir.</p></section>
     <section id="page-route" class="app-page" hidden aria-labelledby="routeTitle"><p class="eyebrow">UN FIL ENTRE LES LIEUX</p><h1 id="routeTitle">Mon parcours</h1><p class="page-subtitle">Une première étape à découvrir. D’autres mémoires à venir.</p><div class="route-summary"><div><span id="routeCount" class="large-number">0 / 5</span><p>repères consultés à l’IUT</p></div><div><h2>Corte, une ville de savoir</h2><p id="routeDescription">Votre découverte commence sur le campus Grimaldi.</p><progress id="routeProgress" max="5" value="0" aria-label="Progression de l’étape IUT"></progress></div></div><ol class="route-steps"><li><span class="route-marker">01</span><div><span class="status-pill">Disponible</span><h2>L’IUT de Corse</h2><p>Apprendre, transmettre et relier les mémoires de l’université.</p><button id="routeStartButton" class="primary">Découvrir l’étape ${icon('arrow')}</button></div></li><li><span class="route-marker muted-marker">02</span><div><span class="status-pill coming">À venir</span><h2>Le Palazzu Naziunale</h2><p>L’université historique, un autre lieu de savoir. Cette étape est en préparation.</p><button data-coming="Le Palazzu Naziunale">En savoir plus</button></div></li></ol></section>
@@ -41,23 +45,42 @@ export function createShell(experience, step) {
   form.innerHTML = `<label for="pseudoInput">Votre pseudo</label><input id="pseudoInput" name="pseudo" type="text" minlength="3" maxlength="24" autocomplete="nickname" required placeholder="Votre prénom ou votre pseudo" aria-describedby="pseudoHelp profileMessage"><p id="pseudoHelp" class="small-note">3 à 24 caractères. Votre adresse e-mail ne sera pas affichée.</p><fieldset><legend>Choisissez votre avatar</legend><div id="avatarChoices" class="avatar-grid"></div></fieldset><div class="photo-import"><label for="photoInput" class="upload-button">Importer ma photo ${icon('arrow')}</label><input id="photoInput" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp"><p class="small-note">JPEG, PNG ou WebP · 5 Mo maximum.<br>Recadrez votre photo avant de la confirmer.</p></div><div class="selected-avatar"><span class="avatar avatar-preview" id="profilePreview"></span><span id="avatarSelectionLabel" class="small-note"></span><button id="removePhotoButton" type="button" hidden>Revenir à un avatar</button></div><p id="profileMessage" class="form-message" role="status" aria-live="polite"></p><button id="saveProfileButton" class="primary" type="submit">Enregistrer mon profil</button>`;
   el('profileEditorHome').appendChild(form);
   const crop = document.createElement('div'); crop.id = 'cropModal'; crop.className = 'modal-backdrop crop-modal'; crop.dataset.ui = ''; crop.hidden = true;
-  crop.innerHTML = `<article class="content-card" role="dialog" aria-modal="true" aria-labelledby="cropTitle"><header><div><p class="eyebrow">VOTRE PHOTO</p><h2 id="cropTitle">Un visage dans un cercle</h2></div><button id="cancelCrop" type="button">Annuler</button></header><div class="card-scroll"><p class="small-note">Glissez l’image ou utilisez les curseurs. Le carré recadré sera affiché dans un cercle.</p><canvas id="cropCanvas" width="640" height="640" tabindex="0" aria-label="Aperçu du recadrage ; utilisez les curseurs pour ajuster la photo"></canvas><label for="cropZoom">Zoom</label><input id="cropZoom" type="range" min="1" max="3" step="0.01" value="1"><label for="cropX">Position horizontale</label><input id="cropX" type="range" min="-1" max="1" step="0.01" value="0"><label for="cropY">Position verticale</label><input id="cropY" type="range" min="-1" max="1" step="0.01" value="0"><p id="cropMessage" role="status" class="form-message"></p><button id="confirmCrop" type="button" class="primary">Utiliser cette photo</button></div></article>`;
+  crop.innerHTML = `<article class="content-card" role="dialog" aria-modal="true" aria-labelledby="cropTitle"><header><div><p class="eyebrow">VOTRE PHOTO</p><h2 id="cropTitle">Cadrez à votre image.</h2></div><button id="cancelCrop" type="button">Annuler</button></header><div class="card-scroll crop-editor"><p id="cropInstructions" class="small-note">Déplacez la photo avec le doigt. Pincez pour zoomer.<br>Ce qui apparaît dans le cercle sera votre avatar.</p><div class="crop-stage"><canvas id="cropCanvas" width="640" height="640" tabindex="0" aria-describedby="cropInstructions cropKeyboardHelp" aria-label="Photo à déplacer pour choisir le cadrage"></canvas><div class="crop-circle" aria-hidden="true"></div></div><div class="crop-zoom-controls"><button id="cropZoomOut" type="button" aria-label="Réduire le zoom">−</button><label class="sr-only" for="cropZoom">Zoom de la photo</label><input id="cropZoom" type="range" min="1" max="4" step="0.01" value="1"><button id="cropZoomIn" type="button" aria-label="Agrandir la photo">+</button></div><p id="cropZoomLabel" class="small-note">Zoom · 100 %</p><p id="cropKeyboardHelp" class="sr-only">Au clavier : flèches pour déplacer, + et − pour zoomer, Début pour recentrer.</p></div><footer class="crop-footer"><p id="cropMessage" role="status" class="form-message"></p><div><button id="resetCrop" type="button">Recentrer</button><button id="confirmCrop" type="button" class="primary">Utiliser cette photo</button></div></footer></article>`;
   root.appendChild(crop);
   const upcoming = document.createElement('div'); upcoming.id = 'comingModal'; upcoming.className = 'modal-backdrop'; upcoming.dataset.ui = ''; upcoming.hidden = true;
   upcoming.innerHTML = `<article class="content-card" role="dialog" aria-modal="true" aria-labelledby="comingTitle"><header><div><p class="eyebrow">LE PARCOURS S’ÉTOFFE</p><h2 id="comingTitle"></h2></div><button id="closeComing">Fermer</button></header><div class="card-scroll"><img class="coming-visual" src="assets/corte-illustration.svg" alt="Illustration symbolique de Corte"><p>Cette étape est en préparation. Ses contenus, médias et repères AR ne sont pas encore disponibles.</p><button id="comingStart" class="primary">Découvrir la première étape : l’IUT</button></div></article>`;
   root.appendChild(upcoming);
+  const mapHost = document.createElement('section'); mapHost.id = 'cityMap';
+  el('page-route').querySelector('.route-steps').before(mapHost);
+  cityMap = createCityMap(mapHost, { onStep: () => startStep(), onComing: openComing });
+  el('page-explore').querySelector(':scope > .small-note').textContent = 'Photographies de Corte et illustrations du parcours : les crédits et les licences accompagnent chaque cliché.';
+  function photoCredit(photo) {
+    const credit = document.createElement('div'); credit.className = 'photo-credit';
+    const source = document.createElement('a'); source.href = photo.source; source.target = '_blank'; source.rel = 'noopener noreferrer'; source.textContent = 'Photo : ' + photo.author;
+    const license = document.createElement('a'); license.href = photo.licenseURL; license.target = '_blank'; license.rel = 'noopener noreferrer'; license.textContent = photo.license;
+    credit.append(source, document.createTextNode(' · '), license); return credit;
+  }
+  for(const photo of CORTE_PHOTOS.filter(item => item.id !== 'citadelle')) {
+    const figure = document.createElement('figure'); figure.className = 'corte-photo-card';
+    const image = document.createElement('img'); image.src = photo.src; image.alt = photo.alt; image.width = 1280; image.height = 960; image.loading = 'lazy'; image.style.objectPosition = photo.position;
+    const caption = document.createElement('figcaption'), title = document.createElement('h3'), description = document.createElement('p'); title.textContent = photo.title; description.textContent = photo.description;
+    caption.append(title, description, photoCredit(photo)); figure.append(image, caption); el('corteGallery').appendChild(figure);
+  }
+  const comingPhoto = CORTE_PHOTOS.find(item => item.id === 'palazzu');
+  const comingImage = upcoming.querySelector('.coming-visual'); comingImage.src = comingPhoto.src; comingImage.alt = comingPhoto.alt; comingImage.after(photoCredit(comingPhoto));
   const back = document.createElement('button'); back.id = 'backToApp'; back.type = 'button'; back.className = 'text-button'; back.textContent = '← Accueil';
   el('homeView').querySelector('.site-header').appendChild(back); back.addEventListener('click', () => showPage('home'));
   el('homeView').querySelector('.brand').addEventListener('click', event => { event.preventDefault(); showPage('home'); });
 
   const places = [
     { id: 'iut', title: 'Corte, une ville de savoir', description: 'De Pasquale Paoli aux étudiants d’aujourd’hui. Première étape : l’IUT de Corse.', image: 'savoir', status: 'Étape 01 · Disponible', action: 'Découvrir l’IUT', available: true },
-    { id: 'palazzu', title: 'Le Palazzu Naziunale', description: 'Un autre lieu, aux origines de l’histoire universitaire de Corte.', image: 'corte', status: 'Étape 02 · À venir', action: 'En savoir plus', available: false }
+    { id: 'palazzu', title: 'Le Palazzu Naziunale', description: 'Un autre lieu, aux origines de l’histoire universitaire de Corte.', image: 'corte', photo: comingPhoto, status: 'Étape 02 · À venir', action: 'En savoir plus', available: false }
   ];
   function placeCard(item) {
     const article = document.createElement('article'); article.className = 'editorial-card';
     article.innerHTML = `<div class="card-visual"><img src="assets/${item.image}-illustration.svg" alt="Illustration symbolique ${item.available ? 'de la transmission du savoir' : 'de Corte'}" width="1000" height="600" loading="lazy"><span class="visual-label">Illustration</span></div><div class="editorial-card-body"><span class="status-pill ${item.available ? '' : 'coming'}"></span><h3></h3><p></p><button class="${item.available ? 'primary' : ''}"></button></div>`;
     article.querySelector('.status-pill').textContent = item.status; article.querySelector('h3').textContent = item.title; article.querySelector('p').textContent = item.description;
+    if(item.photo) { const image = article.querySelector('img'); image.src = item.photo.src; image.alt = item.photo.alt; image.style.objectPosition = item.photo.position; article.querySelector('.visual-label').textContent = 'Photographie · Corte'; article.querySelector('.editorial-card-body').appendChild(photoCredit(item.photo)); }
     const button = article.querySelector('button'); button.textContent = item.action; button.addEventListener('click', () => item.available ? startStep() : openComing(item.title)); return article;
   }
   function renderPlaces(filter = 'all') {
@@ -88,6 +111,7 @@ export function createShell(experience, step) {
     }
     app.scrollTo({ top: scrollPositions.get(next) || 0, behavior: 'instant' });
     if (next === 'profile') { settingUp = false; el('profileEditorHome').appendChild(form); draft = { ...state.profile }; fillEditor(); }
+    if (next === 'route') cityMap?.load();
     if (focus) { const title = el('page-' + next).querySelector('h1'); title.tabIndex = -1; title.focus({ preventScroll: true }); }
     tabNavigation?.sync();
     if (previousPage !== next || wasInStep) tabNavigation?.animate(el('page-' + next), pages.indexOf(next) >= pages.indexOf(previousPage) ? 1 : -1);
@@ -237,14 +261,13 @@ export function createShell(experience, step) {
   function drawCrop() {
     if (!cropImage) return;
     const canvas = el('cropCanvas'), context = canvas.getContext('2d');
-    const scale = Math.max(640 / cropImage.width, 640 / cropImage.height) * Number(el('cropZoom').value);
-    const width = cropImage.width * scale, height = cropImage.height * scale;
-    const x = (640 - width) / 2 + Number(el('cropX').value) * (width - 640) / 2;
-    const y = (640 - height) / 2 + Number(el('cropY').value) * (height - 640) / 2;
-    context.fillStyle = '#F4F0E8'; context.fillRect(0, 0, 640, 640); context.drawImage(cropImage, x, y, width, height);
+    cropState = cropGeometry(cropImage, cropState);
+    context.fillStyle = '#F4F0E8'; context.fillRect(0, 0, 640, 640); context.drawImage(cropImage, cropState.x, cropState.y, cropState.width, cropState.height);
+    el('cropZoom').value = cropState.zoom; el('cropZoomLabel').textContent = 'Zoom · ' + Math.round(cropState.zoom * 100) + ' %';
+    el('cropZoomOut').disabled = cropState.zoom <= 1; el('cropZoomIn').disabled = cropState.zoom >= 4;
   }
   function closeCrop() {
-    uploadGeneration++; crop.hidden = true; cropImage?.close?.(); cropImage = null; el('photoInput').value = '';
+    uploadGeneration++; crop.hidden = true; cropImage?.close?.(); cropImage = null; cropPointers.clear(); el('photoInput').value = '';
     app.inert = !overlay.hidden; overlay.inert = false; dock.inert = false; (cropBefore || el('photoInput')).focus();
   }
   async function decodePhoto(file) {
@@ -267,18 +290,39 @@ export function createShell(experience, step) {
       if (generation !== uploadGeneration) { bitmap.close?.(); return; }
       if (bitmap.width * bitmap.height > 40000000) { bitmap.close?.(); throw new Error('Cette image est trop grande. Choisissez une version de moins de 40 mégapixels.'); }
       cropImage?.close?.(); cropImage = bitmap; cropBefore = el('photoInput');
-      for (const id of ['cropZoom','cropX','cropY']) el(id).value = id === 'cropZoom' ? 1 : 0;
+      cropState = { zoom: 1, offsetX: 0, offsetY: 0 }; cropPointers.clear();
       message('profileMessage', ''); message('cropMessage', ''); crop.hidden = false; app.inert = true; overlay.inert = true; dock.inert = true; drawCrop(); el('cancelCrop').focus();
     } catch (error) { message('profileMessage', error.message || 'Cette image ne peut pas être lue. Essayez un autre fichier.', true); el('photoInput').value = ''; }
   });
-  for (const id of ['cropZoom','cropX','cropY']) el(id).addEventListener('input', drawCrop);
-  let dragging = null;
-  el('cropCanvas').addEventListener('pointerdown', event => { dragging = { x: event.clientX, y: event.clientY, px: Number(el('cropX').value), py: Number(el('cropY').value) }; event.currentTarget.setPointerCapture(event.pointerId); });
-  el('cropCanvas').addEventListener('pointermove', event => {
-    if (!dragging) return;
-    el('cropX').value = Math.max(-1, Math.min(1, dragging.px + (event.clientX - dragging.x) / 100)); el('cropY').value = Math.max(-1, Math.min(1, dragging.py + (event.clientY - dragging.y) / 100)); drawCrop();
+  function setCropZoom(zoom, anchor) { if (!cropImage || busy) return; cropState = zoomCrop(cropImage, cropState, zoom, anchor); drawCrop(); }
+  el('cropZoom').addEventListener('input', event => setCropZoom(Number(event.target.value)));
+  el('cropZoomOut').addEventListener('click', () => setCropZoom(cropState.zoom - .15));
+  el('cropZoomIn').addEventListener('click', () => setCropZoom(cropState.zoom + .15));
+  function resetCrop() { cropState = { zoom: 1, offsetX: 0, offsetY: 0 }; drawCrop(); }
+  el('resetCrop').addEventListener('click', resetCrop);
+  const cropPointers = new Map(); let pinch = null;
+  const cropPoint = event => { const rect = el('cropCanvas').getBoundingClientRect(); return { x: (event.clientX - rect.left) * 640 / rect.width, y: (event.clientY - rect.top) * 640 / rect.height }; };
+  const pinchMeasure = () => { const [a,b] = [...cropPointers.values()]; return { distance: Math.hypot(a.x-b.x,a.y-b.y), center: {x:(a.x+b.x)/2,y:(a.y+b.y)/2} }; };
+  el('cropCanvas').addEventListener('pointerdown', event => {
+    if (busy) return; event.preventDefault(); cropPointers.set(event.pointerId, cropPoint(event)); event.currentTarget.setPointerCapture(event.pointerId);
+    if (cropPointers.size === 2) pinch = { ...pinchMeasure(), state: { ...cropState } };
   });
-  for (const type of ['pointerup','pointercancel','lostpointercapture']) el('cropCanvas').addEventListener(type, () => { dragging = null; });
+  el('cropCanvas').addEventListener('pointermove', event => {
+    const previous = cropPointers.get(event.pointerId); if (!previous || busy) return;
+    event.preventDefault(); const point = cropPoint(event); cropPointers.set(event.pointerId, point);
+    if (cropPointers.size === 2 && pinch) {
+      const measured = pinchMeasure(); cropState = zoomCrop(cropImage, pinch.state, pinch.state.zoom * measured.distance / Math.max(1,pinch.distance), pinch.center);
+      cropState.offsetX += measured.center.x - pinch.center.x; cropState.offsetY += measured.center.y - pinch.center.y;
+    } else { cropState.offsetX += point.x - previous.x; cropState.offsetY += point.y - previous.y; }
+    drawCrop();
+  });
+  for (const type of ['pointerup','pointercancel','lostpointercapture']) el('cropCanvas').addEventListener(type, event => { cropPointers.delete(event.pointerId); pinch = null; });
+  el('cropCanvas').addEventListener('keydown', event => {
+    if (!cropImage || busy) return;
+    const movements = { ArrowLeft:[-16,0],ArrowRight:[16,0],ArrowUp:[0,-16],ArrowDown:[0,16] };
+    if (movements[event.key]) { event.preventDefault(); cropState.offsetX += movements[event.key][0]; cropState.offsetY += movements[event.key][1]; drawCrop(); }
+    else if (['+','=','-','Home'].includes(event.key)) { event.preventDefault(); if (event.key === 'Home') resetCrop(); else setCropZoom(cropState.zoom + (event.key === '-' ? -.1 : .1)); }
+  });
   el('cancelCrop').addEventListener('click', closeCrop);
   el('confirmCrop').addEventListener('click', async () => {
     if (busy) return; busy = true; el('confirmCrop').disabled = true; el('cancelCrop').disabled = true; message('cropMessage', 'Enregistrement de la photo…');

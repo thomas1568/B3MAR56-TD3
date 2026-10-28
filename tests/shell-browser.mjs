@@ -70,9 +70,11 @@ try {
   const shot = async name => { const result = await send('Page.captureScreenshot',{format:'png'}); const file = path.join(profileDir,name+'.png'); fs.writeFileSync(file,Buffer.from(result.data,'base64')); console.log('Screenshot: '+file); };
   const nav = async () => { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/?run=${Date.now()}`}); await loaded; await until('!!document.getElementById("guestButton")'); await until('!document.getElementById("onboardingStatus").textContent.includes("Préparation")'); };
   await send('Runtime.enable'); await send('Page.enable');
-  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true}); await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1});
+  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true}); await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});
   await nav(); await shot('welcome-mobile');
   await click('signupButton'); assert.equal(await ev('document.getElementById("onboardingSetup").hidden'),false);
+  assert.equal(await ev('getComputedStyle(document.getElementById("pseudoInput")).fontSize'),'16px');
+  assert.equal(await ev('document.querySelector("meta[name=viewport]").content.includes("user-scalable=no")'),false);
   assert.equal(await ev('document.getElementById("onboardingAuth").hidden'),true);
   await input('pseudoInput','x'); await click('saveProfileButton');
   assert.equal(await ev('document.getElementById("pseudoInput").getAttribute("aria-invalid")'),'true');
@@ -81,6 +83,8 @@ try {
   await until('document.getElementById("onboarding").hidden');
   assert.match(await ev('document.getElementById("greeting").textContent'),/Lisandra/);
   assert.equal(await ev('document.getElementById("sessionBadge").textContent'),'Mode invité');
+  await until('document.querySelector(".feature-card > img").complete && document.querySelector(".feature-card > img").naturalWidth>100');
+  assert.match(await ev('document.querySelector(".feature-card > img").getAttribute("src")'),/photos\/corte-citadelle/);
   // Real pointer drags select an arbitrary tab without generating a second click.
   async function drag(from, to, cancel = false) {
     await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[from]});
@@ -108,7 +112,19 @@ try {
   assert.match(await ev('document.getElementById("profileMessage").textContent'),/JPEG/);
   async function importPhoto() {
     await ev(`new Promise(resolve=>{const canvas=document.createElement('canvas');canvas.width=900;canvas.height=600;const ctx=canvas.getContext('2d');ctx.fillStyle='#273B31';ctx.fillRect(0,0,450,600);ctx.fillStyle='#B86D4E';ctx.fillRect(450,0,450,600);canvas.toBlob(blob=>{const dt=new DataTransfer();dt.items.add(new File([blob],'portrait.png',{type:'image/png'}));const node=document.getElementById('photoInput');node.files=dt.files;node.dispatchEvent(new Event('change'));resolve();},'image/png');})`);
-    await until('!document.getElementById("cropModal").hidden'); await input('cropZoom','1.4'); await input('cropX','0.7');
+    await until('!document.getElementById("cropModal").hidden'); await input('cropZoom','1.4');
+    const cropPoint=await ev('(()=>{const r=document.getElementById("cropCanvas").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
+    const zoomBeforePinch=await ev('Number(document.getElementById("cropZoom").value)');
+    await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:cropPoint.x-40,y:cropPoint.y},{id:2,x:cropPoint.x+40,y:cropPoint.y}]});
+    for(let n=1;n<=5;n++)await send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:1,x:cropPoint.x-40-n*5,y:cropPoint.y},{id:2,x:cropPoint.x+40+n*5,y:cropPoint.y}]});
+    await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    assert.ok(await ev('Number(document.getElementById("cropZoom").value)')>zoomBeforePinch);
+    await click('resetCrop');assert.equal(await ev('Number(document.getElementById("cropZoom").value)'),1);
+    await input('cropZoom','1.4');
+    const beforeCrop=await ev('document.getElementById("cropCanvas").toDataURL()');
+    await drag(cropPoint,{x:cropPoint.x+50,y:cropPoint.y+22});
+    assert.notEqual(await ev('document.getElementById("cropCanvas").toDataURL()'),beforeCrop);
+    assert.ok(await ev('(()=>{const r=document.getElementById("confirmCrop").getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;})()'));
     await shot('photo-crop'); await click('confirmCrop'); await until('document.getElementById("cropModal").hidden'); await until('!document.getElementById("saveProfileButton").disabled');
   }
   await ev('window.createImageBitmap=undefined'); // Also exercise the decoder used on older phones.
@@ -118,7 +134,21 @@ try {
   { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.reload'); await loaded; } await until('document.getElementById("onboarding")?.hidden');
   assert.match(await ev('document.getElementById("greeting").textContent'),/Lisandra Corti/);
   assert.ok(await ev('!!document.querySelector("#tab-profile img")'));
-  await click('tab-route'); await click('routeStartButton');
+  await click('tab-route');
+  await until('document.querySelectorAll(".map-roads path").length>100');
+  assert.ok(await ev('!!document.querySelector(".map-route-line")'));
+  const originalMap=await ev('document.querySelector(".city-map-svg").getAttribute("viewBox")');
+  await click('map-in');assert.notEqual(await ev('document.querySelector(".city-map-svg").getAttribute("viewBox")'),originalMap);
+  await click('map-reset');
+  const mapPoint=await ev('(()=>{const r=document.querySelector(".city-map-frame").getBoundingClientRect();return {x:r.x+r.width*.5,y:r.y+r.height*.6};})()');
+  await drag(mapPoint,{x:mapPoint.x+42,y:mapPoint.y+25});
+  assert.equal(await ev('document.getElementById("tab-route").getAttribute("aria-current")'),'page');
+  assert.notEqual(await ev('document.querySelector(".city-map-svg").getAttribute("viewBox")'),originalMap);
+  await click('map-reset');await click('map-stop-palazzu');
+  assert.match(await ev('document.querySelector(".map-stop-status").textContent'),/À venir/);
+  await shot('city-map-mobile');
+  await click('map-stop-iut');assert.match(await ev('document.querySelector(".map-stop-status").textContent'),/Disponible/);
+  await click('routeStartButton');
   await shot('step-mobile');
   assert.equal(await ev('!!document.querySelector("#homeView .hero")'),false);
   assert.equal(await ev('!!document.querySelector("#homeView .step-cover img")'),true);
