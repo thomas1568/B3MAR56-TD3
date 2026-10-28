@@ -72,14 +72,32 @@ try {
   await send('Runtime.enable'); await send('Page.enable');
   await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true}); await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1});
   await nav(); await shot('welcome-mobile');
-  await click('signupButton'); assert.equal(await ev('document.getElementById("authSubmit").disabled'),true);
-  await click('authGuest'); await input('pseudoInput','x'); await click('saveProfileButton');
+  await click('signupButton'); assert.equal(await ev('document.getElementById("onboardingSetup").hidden'),false);
+  assert.equal(await ev('document.getElementById("onboardingAuth").hidden'),true);
+  await input('pseudoInput','x'); await click('saveProfileButton');
   assert.equal(await ev('document.getElementById("pseudoInput").getAttribute("aria-invalid")'),'true');
   await input('pseudoInput','Lisandra');
   await ev('document.querySelector("[data-avatar=livre]").click()'); await click('saveProfileButton');
   await until('document.getElementById("onboarding").hidden');
   assert.match(await ev('document.getElementById("greeting").textContent'),/Lisandra/);
   assert.equal(await ev('document.getElementById("sessionBadge").textContent'),'Mode invité');
+  // Real pointer drags select an arbitrary tab without generating a second click.
+  async function drag(from, to, cancel = false) {
+    await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[from]});
+    for(let n=1;n<=8;n++) { await send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:from.x+(to.x-from.x)*n/8,y:from.y+(to.y-from.y)*n/8}]}); await ev('new Promise(r=>setTimeout(r,16))'); }
+    await send('Input.dispatchTouchEvent',{type:cancel?'touchCancel':'touchEnd',touchPoints:[]});
+  }
+  const tabPoint = id => ev(`(()=>{const r=document.getElementById(${JSON.stringify(id)}).getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);
+  await drag(await tabPoint('tab-home'),await tabPoint('tab-profile'));
+  await until('document.getElementById("tab-profile").getAttribute("aria-current")==="page"');
+  await drag(await tabPoint('tab-profile'),await tabPoint('tab-home'));
+  await until('document.getElementById("tab-home").getAttribute("aria-current")==="page"');
+  await drag(await tabPoint('tab-home'),await tabPoint('tab-profile'),true);
+  assert.equal(await ev('document.getElementById("tab-home").getAttribute("aria-current")'),'page');
+  const heading = await ev('(()=>{const r=document.getElementById("greeting").getBoundingClientRect();return {x:Math.min(270,r.right-20),y:r.y+r.height/2};})()');
+  await drag(heading,{x:heading.x-140,y:heading.y+3});
+  await until('document.getElementById("tab-explore").getAttribute("aria-current")==="page"');
+  await click('tab-home');
   await click('tab-profile'); await shot('profile-mobile');
   await ev('document.querySelector("[data-avatar=initiales]").click()'); await until('!document.getElementById("saveProfileButton").disabled');
   assert.equal(await ev('document.querySelector("#tab-profile .avatar").textContent'),'L');
@@ -93,6 +111,7 @@ try {
     await until('!document.getElementById("cropModal").hidden'); await input('cropZoom','1.4'); await input('cropX','0.7');
     await shot('photo-crop'); await click('confirmCrop'); await until('document.getElementById("cropModal").hidden'); await until('!document.getElementById("saveProfileButton").disabled');
   }
+  await ev('window.createImageBitmap=undefined'); // Also exercise the decoder used on older phones.
   await importPhoto();
   await until('!!document.querySelector("#tab-profile img")');
   assert.equal(await ev('document.querySelector("#tab-profile img").src'),await ev('document.querySelector("#headerProfile img").src'));
@@ -100,10 +119,20 @@ try {
   assert.match(await ev('document.getElementById("greeting").textContent'),/Lisandra Corti/);
   assert.ok(await ev('!!document.querySelector("#tab-profile img")'));
   await click('tab-route'); await click('routeStartButton');
+  await shot('step-mobile');
+  assert.equal(await ev('!!document.querySelector("#homeView .hero")'),false);
+  assert.equal(await ev('!!document.querySelector("#homeView .step-cover img")'),true);
   await ev('document.querySelector("#pointList button").click()'); await until('!document.getElementById("poiModal").hidden');
+  await shot('point-mobile');
   await click('closePointButton'); await click('backToApp');
   await until('!document.getElementById("resumeCard").hidden'); assert.match(await ev('document.getElementById("resumeDescription").textContent'),/1 repère/);
   await click('resumeButton'); assert.match(await ev('document.getElementById("pointTitle").textContent'),/IUT/); await click('closePointButton'); await click('backToApp');
+  await click('tab-listen'); await ev('document.querySelector("#listenStories button").click()');
+  await until('!document.getElementById("storiesModal").hidden'); await shot('stories-mobile'); await click('closeStoriesButton');
+  await click('tab-route'); await click('routeStartButton');
+  if(!await ev('document.getElementById("poiModal").hidden'))await click('closePointButton');
+  await click('openPanoramaButton'); await until('!document.getElementById("panoramaPanel").hidden'); await shot('panorama-mobile');
+  await click('closePanoramaButton'); await click('backToApp');
   for (const [width,height] of [[320,740],[768,1024],[1440,1000]]) {
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<1000});
     await ev('document.getElementById("appView").scrollTop=0');
@@ -114,7 +143,7 @@ try {
   await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
   // A separate configured run exercises actual auth/REST/Storage HTTP boundaries.
   withAuth = true; await ev('localStorage.clear()'); await nav();
-  await click('signupButton'); await input('emailInput','lisandra@example.com'); await input('passwordInput','password-fixture'); await click('authSubmit');
+  await click('createAccountButton'); await input('emailInput','lisandra@example.com'); await input('passwordInput','password-fixture'); await click('authSubmit');
   await until('document.getElementById("authMessage").textContent.includes("messagerie")');
   assert.equal(await ev('document.getElementById("onboardingAuth").hidden'),false);
   await click('authSwitch'); await input('passwordInput','wrong'); await click('authSubmit');
@@ -140,6 +169,11 @@ try {
   assert.equal(storedProfile.avatar,'montagne'); assert.equal(storedProfile.photo_path,null);
   await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
   assert.equal(await ev('getComputedStyle(document.getElementById("appView")).scrollBehavior'),'auto');
+  assert.equal(await ev('getComputedStyle(document.querySelector(".nav-active-pill")).transitionDuration'),'0s');
+  await ev('document.getElementById("tab-profile").focus()');
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowLeft',code:'ArrowLeft'});
+  assert.equal(await ev('document.getElementById("tab-listen").getAttribute("aria-current")'),'page');
+  assert.equal(await ev('document.getElementById("page-listen").getAnimations().length'),0);
   assert.equal(errors.length,0,JSON.stringify(errors));
   console.log('PASS: onboarding, explicit guest mode, validation, seven avatars, crop/import, reactive nav image, persistence/reload, resume, responsive layouts, real HTTP auth/profile/storage/progress against a Supabase fixture.');
 } catch (error) {

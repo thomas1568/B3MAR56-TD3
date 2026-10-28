@@ -1,4 +1,4 @@
-import { ACCOUNT_CONFIG } from './config.js';
+import { ACCOUNT_CONFIG } from './config.js?v=16';
 import { AVATARS } from './avatars.js';
 
 export const GUEST_KEY = 'memoria:guest:v1';

@@ -5,8 +5,9 @@
 <title>Memoria Corti — Des lieux, des voix, une mémoire</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#273B31">
-<link rel="stylesheet" href="main.css?v=15">
-<link rel="stylesheet" href="memoria/shell.css?v=15">
+<link rel="stylesheet" href="main.css?v=16">
+<link rel="stylesheet" href="memoria/shell.css?v=16">
+<link rel="stylesheet" href="memoria/experience.css?v=16">
 <script type="importmap">
 {"imports":{"three":"./build/three.module.js","three/addons/":"./jsm/"}}
 </script>
@@ -24,28 +25,9 @@
   <symbol id="icon-route" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M8 5h8a4 4 0 0 1 0 8H8a3 3 0 0 0 0 6h8"/></symbol>
 </defs></svg>
 <div id="content" data-mode="visit">
-<main id="homeView" data-ui hidden>
+<main id="homeView" class="detail-view" data-ui hidden>
   <header class="site-header"><a class="brand" href="#homeView"><span class="seal">MC</span><span>Memoria <em>Corti</em><small>Des lieux. Des voix. Une mémoire.</small></span></a><span class="location-chip"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg>Corte · Corse</span></header>
-  <section class="hero">
-    <div class="hero-copy"><p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>Le parcours commence ici · Étape 01</p><h1 id="stepTitle">Corte, une ville de savoir</h1><p class="hero-subtitle" id="stepSubtitle"></p><p class="location-line">IUT de Corse <span>—</span> Campus Grimaldi</p><p id="stepIntroduction" class="intro"></p>
-      <button id="openStepButton" class="primary" type="button">Explorer l’étape IUT <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button>
-      <p class="small-note">Une rencontre entre histoire universitaire et campus d’aujourd’hui.</p>
-    </div>
-    <div class="hero-art" aria-label="Illustration symbolique d’un livre ouvert : évocation, pas une archive">
-      <span class="art-kicker">PATRIMOINE & MÉMOIRES · CORTE</span><span class="art-caption">Transmettre le savoir</span>
-      <svg viewBox="0 0 540 390" aria-hidden="true">
-        <circle cx="270" cy="185" r="153" fill="none" stroke="#a3b5a4" stroke-width="1"/><circle cx="270" cy="185" r="127" fill="none" stroke="#a3b5a4" stroke-width="1" stroke-dasharray="3 8"/>
-        <path d="M100 254L270 325 440 254 270 195Z" fill="#244b47"/><path d="M270 325V359M125 267V324M415 267V324" stroke="#244b47" stroke-width="13"/>
-        <path d="M128 167L266 208 266 285 128 244Z" fill="#e6d5ae"/><path d="M266 208L405 164 405 242 266 285Z" fill="#fff4d9"/>
-        <path d="M128 167Q203 143 266 208Q335 139 405 164" fill="none" stroke="#fdf8e7" stroke-width="8"/>
-        <path d="M266 208V285" stroke="#b49262" stroke-width="3"/>
-        <path d="M151 187L242 215M151 207L242 235M151 227L220 248M292 215L379 187M292 235L379 207M292 255L355 235" stroke="#b29269" stroke-width="3" opacity=".75"/>
-        <rect x="344" y="77" width="75" height="56" rx="2" fill="#c5a36f" transform="rotate(8 344 77)"/>
-        <path d="M353 90L406 99M352 104L403 113" stroke="#fff3da" stroke-width="2"/>
-      </svg>
-      <span class="art-date date-one">1765</span><span class="art-date date-two">1981</span><span class="art-date date-three">1983</span><span class="art-footnote">Une scène d’évocation à explorer en AR</span>
-    </div>
-  </section>
+  <section class="step-introduction"><p class="eyebrow">LES LIEUX, AUTREMENT · ÉTAPE 01</p><h1 id="stepTitle">Corte, une ville de savoir</h1><p id="stepSubtitle" class="page-subtitle"></p><div class="step-cover"><img src="assets/savoir-illustration.svg" alt="Illustration originale d’un livre ouvert, symbole de transmission" width="1000" height="600"><span class="visual-label">Illustration · Transmission du savoir</span><div class="step-cover-caption"><span class="status-pill">Première étape · Disponible</span><p>Les mémoires se transmettent.<br>La découverte commence à l’IUT.</p></div></div><div class="step-overview"><div><p class="location-line"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg>IUT de Corse · Campus Grimaldi</p><p id="stepIntroduction" class="intro"></p></div><div><button id="openStepButton" class="primary" type="button">Préparer ma découverte <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button><p class="small-note">Une rencontre entre histoire universitaire et campus d’aujourd’hui.</p></div></div></section>
   <section class="dates-band" aria-label="Les trois dates du parcours"><p class="eyebrow">Trois repères,<br><span>une histoire.</span></p><div id="timeline"></div></section>
   <section id="stepSection" class="step-section" hidden>
     <div class="section-heading"><div><p class="eyebrow">01 / L’IUT de Corte</p><h2>Observer. Toucher. Écouter.</h2></div><span class="step-count">5 repères</span></div>
@@ -53,7 +35,7 @@
     <div class="start-panel"><div><h3>Ouvrir une fenêtre sur le savoir</h3><p id="positioningNote"></p><p id="arAvailability" role="status">Vérification de la disponibilité AR…</p></div><div class="start-actions"><button id="startARButton" class="primary" type="button" disabled>Démarrer l’expérience AR</button><button id="openPanoramaButton" type="button">Consulter en 360°</button></div></div>
     <p id="historicalNote" class="historical-note"></p>
     <div class="section-heading"><h3>Les points à découvrir</h3><span class="eyebrow">À votre rythme</span></div><div id="pointList" class="point-grid"></div>
-    <section id="narrationSection" class="listen-section" aria-label="Les récits"><h3>Une histoire à écouter ou à lire</h3><p>Enregistrements et ambiances à fournir. Une lecture par synthèse vocale peut lire les transcriptions ; ce n’est pas une archive sonore.</p>
+    <section id="narrationSection" class="listen-section" aria-label="Les récits"><div class="narration-cover"><img src="assets/voix-illustration.svg" alt="Illustration originale d’ondes sonores" width="1000" height="600"><div><p class="eyebrow">LES HISTOIRES PRENNENT VOIX</p><h3>Une histoire à écouter ou à lire</h3></div></div><p>Enregistrements et ambiances à fournir. Une lecture par synthèse vocale peut lire les transcriptions ; ce n’est pas une archive sonore.</p>
       <label>Source de lecture <select id="voiceChoice"><option id="speechOption" value="speech">Synthèse vocale</option><option value="recording">Enregistrement · à fournir</option></select></label>
       <div class="button-row"><button id="welcomeAudioButton" type="button">Écouter l’accueil <small>15–20 s</small></button><button id="mainAudioButton" type="button">Écouter le récit <small>≈ 1 minute</small></button><button id="outroMusicButton" type="button" disabled>Musique de fin · à fournir</button></div>
       <details><summary>Lire les transcriptions de l’accueil et du récit</summary><h4>Accueil</h4><p id="welcomeTranscript"></p><h4>Récit principal</h4><p id="mainTranscript"></p></details>
@@ -93,7 +75,7 @@
   </nav>
 </div>
 </div>
-<script type="module" src="./main.js?v=15"></script>
+<script type="module" src="./main.js?v=16"></script>
 <script>
 function openNav(){document.getElementById('mySidenav').classList.add('open');}
 function closeNav(){document.getElementById('mySidenav').classList.remove('open');}

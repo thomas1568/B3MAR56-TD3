@@ -5,8 +5,8 @@ import { OrbitControls } from 'three/addons/webxr/OrbitControls.js';
 import { IUT_STEP } from './content/iut.js';
 import { createMemoriaScene } from './memoria/scene.js';
 import { loadLayout, saveLayout, LAYOUT_KEY } from './memoria/layout.js';
-import { createExperience } from './memoria/experience.js';
-import { createShell } from './memoria/shell.js';
+import { createExperience } from './memoria/experience.js?v=16';
+import { createShell } from './memoria/shell.js?v=16';
 
 let scene;
 let camera;

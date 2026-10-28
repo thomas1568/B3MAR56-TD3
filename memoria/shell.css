@@ -68,3 +68,18 @@ input[aria-invalid="true"] { border-color: #a43d2e; background: #fff5f0; }
 }
 @media (max-width: 359px) { #appView { padding-inline: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); }.app-header .brand { font-size: 21px; }.app-header .brand small { max-width: 180px; font-size: 7px; }.welcome-line h1 { font-size: 30px; }.feature-overlay { padding: 23px; }.feature-overlay h2 { font-size: 34px; }.feature-card { height: 385px; }.section-heading .text-button { font-size: 10px; }.section-heading .text-button .icon { display: none; }.app-page .section-heading h2 { font-size: 26px; }.story-card { grid-template-columns: 70px 1fr; gap: 12px; padding: 14px; }.story-card h3 { font-size: 21px; }.onboarding { padding-inline: 20px; }.onboarding-screen h1 { font-size: 42px; }.setup-screen h1 { font-size: 35px; }.avatar-name { font-size: 9px; } }
 @media (prefers-reduced-motion: reduce) { #appView { scroll-behavior: auto; }.card-visual > img { transition: none; } }
+
+/* One selection capsule moves with the finger instead of flashing per tab. */
+.gliding-nav { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.nav-active-pill { position: absolute; inset: 0 auto auto 0; z-index: 0; border-radius: 34px; background: var(--green); border: 1px solid #ffffff66; box-shadow: inset 0 1px 2px #ffffff26, 0 3px 9px #273b3126; pointer-events: none; transition: transform .24s cubic-bezier(.2,.7,.25,1), width .24s cubic-bezier(.2,.7,.25,1); }
+.gliding-nav .journey-item { z-index: 1; background: transparent !important; box-shadow: none !important; border-color: transparent !important; transition: color .14s, transform .14s; }
+.gliding-nav .journey-item[aria-current="page"] { color: #435148; }
+.gliding-nav .journey-item.is-preview, .gliding-nav .journey-item[aria-current="page"].is-preview { color: var(--paper); }
+.gliding-nav .journey-item:not(.is-preview) > .icon { stroke: currentColor; }
+.gliding-nav .journey-item.is-preview > .icon { stroke: #e6b59b; }
+.gliding-nav.is-dragging .nav-active-pill { transition-duration: .12s; box-shadow: inset 0 1px 3px #ffffff40, 0 4px 16px #273b3138; }
+.gliding-nav.is-dragging .journey-item.is-preview { transform: translateY(-1px); }
+#appView { touch-action: pan-y pinch-zoom; }.app-page { overflow-wrap: anywhere; }
+.onboarding-actions #createAccountButton { font-size: 12px; }
+#onboardingAuth #authGuest { width: 100%; justify-content: center; background: #e4e8dc; border: 1px solid #bcc9ad; border-radius: 14px; min-height: 48px; }
+@media (prefers-reduced-motion: reduce) { .nav-active-pill, .gliding-nav .journey-item { transition: none; }.gliding-nav.is-dragging .journey-item.is-preview { transform: none; } }

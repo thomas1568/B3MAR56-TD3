@@ -27,11 +27,11 @@ export function createExperience(step, api) {
       : activeAR ? scenePlaced ? 'La scène est en place · explorez les cinq repères.' : 'Scannez une surface, puis placez la scène.'
       : availableAR ? 'Votre visite est prête · placez la scène ou découvrez en 360°.' : 'AR indisponible ici · découvrez les repères en 360°.';
   }
-  function prepareVisit() {
+  function prepareVisit({ scroll = true } = {}) {
     prepared = true; currentStage = 'prepare';
     closePoint(); closeStories(); closePanorama();
     if (activeAR) { el('prepareModal').hidden = false; el('closePrepareButton').focus(); }
-    else { el('stepSection').hidden = false; el('stepSection').scrollIntoView({behavior:scrollBehavior(), block:'start'}); }
+    else { el('stepSection').hidden = false; if (scroll) el('stepSection').scrollIntoView({behavior:scrollBehavior(), block:'start'}); }
     updateJourney();
     document.dispatchEvent(new CustomEvent('memoria:prepare'));
   }
@@ -113,6 +113,9 @@ export function createExperience(step, api) {
       const date = document.createElement('span'); date.textContent = point.date;
       const question = document.createElement('small'); question.textContent = point.question;
       button.prepend(date); button.appendChild(question);
+      const visual = document.createElement('img'); visual.className = 'point-card-visual'; visual.src = point.id === 'corte' ? 'assets/corte-illustration.svg' : 'assets/savoir-illustration.svg';
+      visual.alt = ''; visual.loading = 'lazy'; visual.width = 1000; visual.height = 600; button.prepend(visual);
+      const visualLabel = document.createElement('span'); visualLabel.className = 'point-visual-label'; visualLabel.textContent = 'Illustration'; button.appendChild(visualLabel);
       const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       arrow.classList.add('icon', 'point-arrow'); arrow.setAttribute('aria-hidden', 'true');
       const use = document.createElementNS('http://www.w3.org/2000/svg', 'use'); use.setAttribute('href', '#icon-arrow'); arrow.appendChild(use); button.appendChild(arrow);
@@ -195,6 +198,7 @@ export function createExperience(step, api) {
     closeStories(); api.onCardOpen(); audio.stopNarration(); focusBefore = document.activeElement; activePoint = point;
     panorama?.setActive(false);
     el('pointTitle').textContent = point.title; el('pointDate').textContent = point.date;
+    el('missingImage').dataset.illustration = point.id === 'corte' ? 'corte' : 'savoir';
     el('pointQuestion').textContent = point.question; el('pointText').textContent = point.text;
     el('pointTranscript').textContent = point.transcript;
     el('pointStatus').textContent = 'Repères documentés · scène d’évocation';

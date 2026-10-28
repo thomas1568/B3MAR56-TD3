@@ -1,5 +1,6 @@
-import { createAccount, validatePhoto, validatePseudo } from './account.js';
+import { createAccount, validatePhoto, validatePseudo } from './account.js?v=16';
 import { AVATARS, renderAvatar } from './avatars.js';
+import { createTabNavigation } from './navigation.js?v=16';
 
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 export function createShell(experience, step) {
@@ -8,6 +9,9 @@ export function createShell(experience, step) {
   const account = createAccount();
   let state = account.getState(), page = 'home', inStep = false, settingUp = false, authMode = 'signup', busy = false;
   let draft = { ...state.profile }, cropImage = null, cropBefore = null, profileReturn = null, uploadGeneration = 0;
+  let tabNavigation = null;
+  const pages = ['home', 'explore', 'route', 'listen', 'profile'];
+  const scrollPositions = new Map();
   const app = document.createElement('main'); app.id = 'appView'; app.dataset.ui = '';
   app.innerHTML = `
     <header class="site-header app-header"><a class="brand" href="#accueil" data-page="home"><span class="seal">MC</span><span>Memoria <em>Corti</em><small>Des lieux. Des voix. Une mémoire.</small></span></a><div class="header-end"><span class="location-chip">${icon('pin')}Corte · Corse</span><button id="headerProfile" class="profile-shortcut" aria-label="Ouvrir mon profil" data-page="profile"><span data-profile-avatar class="avatar"></span></button></div></header>
@@ -29,7 +33,7 @@ export function createShell(experience, step) {
   dock.innerHTML = `<nav class="journey-nav app-nav" aria-label="Navigation principale">${[['home','Accueil','home'],['explore','Explorer','discover'],['route','Parcours','route'],['listen','Écouter','listen'],['profile','Profil','']].map(([id,label,symbol]) => `<button id="tab-${id}" class="journey-item" data-page="${id}" type="button">${symbol ? icon(symbol) : '<span data-profile-avatar class="avatar nav-avatar"></span>'}<span>${label}</span></button>`).join('')}</nav>`;
   root.appendChild(dock);
   const overlay = document.createElement('section'); overlay.id = 'onboarding'; overlay.className = 'onboarding'; overlay.dataset.ui = ''; overlay.hidden = true;
-  overlay.innerHTML = `<div class="onboarding-brand"><span class="seal">MC</span><span>Memoria <em>Corti</em></span></div><div id="onboardingWelcome" class="onboarding-screen"><span class="welcome-medallion">${icon('discover')}</span><p class="eyebrow">BENVENUTI IN CORTI</p><h1>Les lieux passent.<br>Les mémoires restent.</h1><p class="onboarding-lead">Bienvenue à Corte. Partez à la rencontre d’une ville, de ses voix et de ce qu’elle nous transmet.</p><div class="onboarding-actions"><button id="signupButton" class="primary">Créer un compte ${icon('arrow')}</button><button id="signinButton">J’ai déjà un compte</button><button id="guestButton" class="text-button">Continuer en invité</button></div><p class="small-note">Un compte retrouve votre profil sur vos appareils.<br>En invité, vos données restent sur cet appareil.</p></div>
+  overlay.innerHTML = `<div class="onboarding-brand"><span class="seal">MC</span><span>Memoria <em>Corti</em></span></div><div id="onboardingWelcome" class="onboarding-screen"><span class="welcome-medallion">${icon('discover')}</span><p class="eyebrow">BENVENUTI IN CORTI</p><h1>Les lieux passent.<br>Les mémoires restent.</h1><p class="onboarding-lead">Bienvenue à Corte. Partez à la rencontre d’une ville, de ses voix et de ce qu’elle nous transmet.</p><div class="onboarding-actions"><button id="signupButton" class="primary">Créer mon profil ${icon('arrow')}</button><button id="createAccountButton" hidden>Créer un compte connecté</button><button id="signinButton">J’ai déjà un compte</button><button id="guestButton" class="text-button">Continuer en invité</button></div><p class="small-note">Un pseudo, une image, et votre découverte peut commencer.<br>Le profil invité est conservé sur cet appareil.</p></div>
     <div id="onboardingAuth" class="onboarding-screen" hidden><button id="authBack" class="text-button">← Retour</button><p class="eyebrow">01 / VOTRE CONNEXION</p><h1 id="authTitle">Créer mon compte</h1><p id="authDescription" class="onboarding-lead"></p><form id="authForm" novalidate><label for="emailInput">Adresse e-mail</label><input id="emailInput" name="email" type="email" autocomplete="email" required aria-describedby="authMessage" placeholder="vous@exemple.fr"><label for="passwordInput">Mot de passe</label><input id="passwordInput" name="password" type="password" autocomplete="new-password" required aria-describedby="authMessage"><p class="small-note" id="passwordHelp">Au moins 8 caractères.</p><p id="authMessage" class="form-message" role="status" aria-live="polite"></p><button id="authSubmit" class="primary" type="submit">Créer mon compte</button></form><button id="authSwitch" class="text-button">J’ai déjà un compte</button><button id="authGuest" class="text-button">Découvrir en invité</button></div>
     <div id="onboardingSetup" class="onboarding-screen setup-screen" hidden><p class="eyebrow">02 / UN PROFIL QUI VOUS RESSEMBLE</p><h1>Et vous,<br>comment vous appelez-vous ?</h1><p id="setupModeNote" class="small-note"></p><div id="setupEditorHome"></div></div><p id="onboardingStatus" class="form-message" role="status" aria-live="polite"></p>`;
   root.appendChild(overlay);
@@ -44,6 +48,7 @@ export function createShell(experience, step) {
   root.appendChild(upcoming);
   const back = document.createElement('button'); back.id = 'backToApp'; back.type = 'button'; back.className = 'text-button'; back.textContent = '← Accueil';
   el('homeView').querySelector('.site-header').appendChild(back); back.addEventListener('click', () => showPage('home'));
+  el('homeView').querySelector('.brand').addEventListener('click', event => { event.preventDefault(); showPage('home'); });
 
   const places = [
     { id: 'iut', title: 'Corte, une ville de savoir', description: 'De Pasquale Paoli aux étudiants d’aujourd’hui. Première étape : l’IUT de Corse.', image: 'savoir', status: 'Étape 01 · Disponible', action: 'Découvrir l’IUT', available: true },
@@ -72,20 +77,25 @@ export function createShell(experience, step) {
   for (const id of ['homeStories', 'listenStories']) el(id).replaceChildren(...stories.map(storyCard));
 
   function showPage(next, { focus = true } = {}) {
-    if (experience.getState().activeAR) return;
+    if (experience.getState().activeAR || !pages.includes(next)) return;
+    const previousPage = page, wasInStep = inStep;
+    if (!inStep && !app.hidden) scrollPositions.set(page, app.scrollTop);
     page = next; inStep = false; experience.closeStories(); experience.closePoint(); experience.closePanorama();
     el('homeView').hidden = true; app.hidden = false; el('experienceDock').hidden = true; dock.hidden = false;
     for (const section of app.querySelectorAll('.app-page')) section.hidden = section.id !== 'page-' + next;
     for (const button of dock.querySelectorAll('button')) {
       if (button.dataset.page === next) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
     }
-    app.scrollTop = 0;
+    app.scrollTo({ top: scrollPositions.get(next) || 0, behavior: 'instant' });
     if (next === 'profile') { settingUp = false; el('profileEditorHome').appendChild(form); draft = { ...state.profile }; fillEditor(); }
     if (focus) { const title = el('page-' + next).querySelector('h1'); title.tabIndex = -1; title.focus({ preventScroll: true }); }
+    tabNavigation?.sync();
+    if (previousPage !== next || wasInStep) tabNavigation?.animate(el('page-' + next), pages.indexOf(next) >= pages.indexOf(previousPage) ? 1 : -1);
   }
   function stepVisibility() { inStep = true; app.hidden = true; dock.hidden = true; el('homeView').hidden = false; el('experienceDock').hidden = false; }
   function startStep(resume = false) {
-    stepVisibility(); experience.prepareVisit();
+    stepVisibility(); experience.prepareVisit({ scroll: false }); el('homeView').scrollTo({ top: 0, behavior: 'instant' });
+    const title = el('stepTitle'); title.tabIndex = -1; title.focus({ preventScroll: true });
     if (resume && state.profile.progress.lastPoint) experience.openPoint(state.profile.progress.lastPoint);
   }
   function report(error) { experience.showMessage(error.message || 'Une erreur est survenue. Réessayez.'); }
@@ -141,7 +151,7 @@ export function createShell(experience, step) {
     try {
       const oldPath = state.profile.photo_path;
       await account.saveProfile({ ...state.profile, ...changes });
-      draft = { ...draft, ...state.profile }; renderDraft(); message('profileMessage', 'Votre image est enregistrée.');
+      draft = { ...state.profile, pseudo: el('pseudoInput').value }; renderDraft(); message('profileMessage', 'Votre image est enregistrée.');
       if (oldPath && oldPath !== changes.photo_path) account.removePhoto(oldPath).catch(() => {});
     } catch (error) { draft = previous; renderDraft(); message('profileMessage', error.message, true); }
     finally { busy = false; setBusy(false); }
@@ -172,6 +182,8 @@ export function createShell(experience, step) {
   function openWelcome() {
     settingUp = false; overlay.hidden = false; app.inert = true; el('homeView').inert = true; dock.hidden = true; el('experienceDock').hidden = true;
     for (const id of ['onboardingWelcome','onboardingAuth','onboardingSetup']) el(id).hidden = id !== 'onboardingWelcome';
+    el('createAccountButton').hidden = !state.configured;
+    el('signinButton').textContent = state.configured ? 'J’ai déjà un compte' : 'À propos des comptes connectés';
     message('onboardingStatus', ''); el('signupButton').focus();
   }
   function openAuth(mode) {
@@ -180,6 +192,9 @@ export function createShell(experience, step) {
     const signup = mode === 'signup'; el('authTitle').textContent = signup ? 'Créer mon compte' : 'Heureux de vous retrouver.';
     el('authSubmit').textContent = signup ? 'Créer mon compte' : 'Se connecter'; el('authSwitch').textContent = signup ? 'J’ai déjà un compte' : 'Créer un compte';
     el('authDescription').textContent = state.configured ? 'Retrouvez votre profil et votre parcours lors de vos prochaines connexions.' : 'La connexion sera bientôt disponible. Vous pouvez déjà découvrir Corte en invité sur cet appareil.';
+    el('authForm').hidden = !state.configured; el('authSwitch').hidden = !state.configured;
+    if (!state.configured) { el('authTitle').textContent = 'Votre découverte commence ici.'; el('authGuest').textContent = state.profile.pseudo ? 'Retrouver mon profil' : 'Créer mon profil sur cet appareil'; }
+    else el('authGuest').textContent = 'Découvrir en invité';
     el('authSubmit').disabled = !state.configured; el('emailInput').disabled = !state.configured; el('passwordInput').disabled = !state.configured;
     el('passwordInput').autocomplete = signup ? 'new-password' : 'current-password'; el('passwordInput').value = ''; el('passwordHelp').hidden = !signup;
     message('authMessage', ''); (state.configured ? el('emailInput') : el('authGuest')).focus();
@@ -192,10 +207,12 @@ export function createShell(experience, step) {
     el('pseudoInput').focus();
   }
   function completeOnboarding() {
-    settingUp = false; overlay.hidden = true; app.inert = false; el('homeView').inert = false; el('profileEditorHome').appendChild(form);
+    settingUp = false; profileReturn = null; overlay.hidden = true; app.inert = false; el('homeView').inert = false; el('profileEditorHome').appendChild(form);
     showPage('home'); renderProfile();
   }
-  el('signupButton').addEventListener('click', () => openAuth('signup')); el('signinButton').addEventListener('click', () => openAuth('signin'));
+  el('signupButton').addEventListener('click', openSetup);
+  el('createAccountButton').addEventListener('click', () => openAuth('signup'));
+  el('signinButton').addEventListener('click', () => openAuth('signin'));
   el('authSwitch').addEventListener('click', () => openAuth(authMode === 'signup' ? 'signin' : 'signup')); el('authBack').addEventListener('click', openWelcome);
   for (const id of ['guestButton','authGuest']) el(id).addEventListener('click', () => { if (state.guest && state.profile.pseudo) completeOnboarding(); else openSetup(); });
   el('connectFromProfile').addEventListener('click', () => { profileReturn = page; openAuth('signin'); });
@@ -227,18 +244,29 @@ export function createShell(experience, step) {
     context.fillStyle = '#F4F0E8'; context.fillRect(0, 0, 640, 640); context.drawImage(cropImage, x, y, width, height);
   }
   function closeCrop() {
-    uploadGeneration++; crop.hidden = true; cropImage?.close(); cropImage = null; el('photoInput').value = '';
+    uploadGeneration++; crop.hidden = true; cropImage?.close?.(); cropImage = null; el('photoInput').value = '';
     app.inert = !overlay.hidden; overlay.inert = false; dock.inert = false; (cropBefore || el('photoInput')).focus();
+  }
+  async function decodePhoto(file) {
+    if (globalThis.createImageBitmap) {
+      try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch { /* Use the native image decoder on older phones. */ }
+    }
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file), image = new Image();
+      image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+      image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Cette photo ne peut pas être lue. Choisissez un autre fichier JPEG, PNG ou WebP.')); };
+      image.src = url;
+    });
   }
   el('photoInput').addEventListener('change', async event => {
     const file = event.target.files?.[0]; if (!file) return;
     const generation = ++uploadGeneration;
     try {
       validatePhoto(file); message('profileMessage', 'Préparation de la photo…');
-      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-      if (generation !== uploadGeneration) { bitmap.close(); return; }
-      if (bitmap.width * bitmap.height > 40000000) { bitmap.close(); throw new Error('Cette image est trop grande. Choisissez une version de moins de 40 mégapixels.'); }
-      cropImage?.close(); cropImage = bitmap; cropBefore = el('photoInput');
+      const bitmap = await decodePhoto(file);
+      if (generation !== uploadGeneration) { bitmap.close?.(); return; }
+      if (bitmap.width * bitmap.height > 40000000) { bitmap.close?.(); throw new Error('Cette image est trop grande. Choisissez une version de moins de 40 mégapixels.'); }
+      cropImage?.close?.(); cropImage = bitmap; cropBefore = el('photoInput');
       for (const id of ['cropZoom','cropX','cropY']) el(id).value = id === 'cropZoom' ? 1 : 0;
       message('profileMessage', ''); message('cropMessage', ''); crop.hidden = false; app.inert = true; overlay.inert = true; dock.inert = true; drawCrop(); el('cancelCrop').focus();
     } catch (error) { message('profileMessage', error.message || 'Cette image ne peut pas être lue. Essayez un autre fichier.', true); el('photoInput').value = ''; }
@@ -280,6 +308,8 @@ export function createShell(experience, step) {
       else if (!event.shiftKey && document.activeElement === controls.at(-1)) { event.preventDefault(); controls[0]?.focus(); }
     }
   });
+  tabNavigation = createTabNavigation({ nav: dock.querySelector('nav'), view: app, pages, getPage: () => page, navigate: showPage,
+    canNavigate: () => overlay.hidden && crop.hidden && upcoming.hidden && !experience.getState().activeAR && !busy && el('poiModal').hidden && el('storiesModal').hidden && el('panoramaPanel').hidden });
   showPage('home', { focus: false }); renderProfile();
   overlay.hidden = false; app.inert = true; dock.hidden = true; message('onboardingStatus', 'Préparation de votre découverte…');
   account.restore().then(restored => {
