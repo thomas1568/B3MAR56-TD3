@@ -7,15 +7,19 @@ export function createPanorama(container, step, onPoint) {
   renderer.domElement.className = 'panorama-canvas';
   renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 2));
   container.appendChild(renderer.domElement);
+  renderer.domElement.tabIndex = 0;
+  renderer.domElement.setAttribute('role', 'region');
+  renderer.domElement.setAttribute('aria-label', 'Panorama illustré de Corte. Flèches pour regarder autour de vous, Début pour recentrer.');
+  container.dataset.state = 'loading';
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x153b3b);
+  scene.background = new THREE.Color(0x273b31);
   const camera = new THREE.PerspectiveCamera(70, 1, 0.001, 30);
   camera.position.set(0, 0, 0.01);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enablePan = false; controls.enableZoom = false;
   controls.minDistance = controls.maxDistance = 0.01;
   controls.rotateSpeed = 0.5;
-  const sphere = new THREE.Mesh(new THREE.SphereGeometry(10, 48, 24), new THREE.MeshBasicMaterial({ color: 0x244747, side: THREE.BackSide }));
+  const sphere = new THREE.Mesh(new THREE.SphereGeometry(10, 48, 24), new THREE.MeshBasicMaterial({ color: 0x273b31, side: THREE.BackSide }));
   scene.add(sphere);
   // This grid is a neutral consultation space, never a fabricated photograph.
   const grid = new THREE.Mesh(new THREE.SphereGeometry(9.95, 24, 12), new THREE.MeshBasicMaterial({ color: 0x46605d, wireframe: true, side: THREE.BackSide, transparent: true, opacity: 0.35 }));
@@ -25,7 +29,7 @@ export function createPanorama(container, step, onPoint) {
   const buttons = [], points = [];
   for (const poi of step.points) {
     const yaw = THREE.MathUtils.degToRad(poi.panorama.yaw), pitch = THREE.MathUtils.degToRad(poi.panorama.pitch);
-    const object = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 8), new THREE.MeshBasicMaterial({ color: 0xd8bd83 }));
+    const object = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8), new THREE.MeshBasicMaterial({ color: 0xb86d4e }));
     object.position.set(Math.sin(yaw) * Math.cos(pitch) * 8.5, Math.sin(pitch) * 8.5, -Math.cos(yaw) * Math.cos(pitch) * 8.5);
     object.userData.poiId = poi.id; scene.add(object); points.push(object);
     const button = document.createElement('button'); button.className = 'world-hotspot'; button.textContent = poi.shortTitle;
@@ -40,8 +44,21 @@ export function createPanorama(container, step, onPoint) {
       if (disposed) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace; sphere.material.map = texture;
       sphere.material.color.set(0xffffff); sphere.material.needsUpdate = true; grid.visible = false;
-    }, undefined, () => { container.dispatchEvent(new CustomEvent('panoramaerror')); });
+      container.dataset.state = 'ready'; container.dispatchEvent(new CustomEvent('panoramaready'));
+    }, undefined, () => { if (!disposed) { container.dataset.state = 'error'; container.dispatchEvent(new CustomEvent('panoramaerror')); } });
   }
+  const resetView = () => { camera.position.set(0, 0, .01); controls.target.set(0, 0, 0); controls.update(); };
+  renderer.domElement.addEventListener('keydown', event => {
+    if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === 'Home') { resetView(); return; }
+    const spherical = new THREE.Spherical().setFromVector3(camera.position);
+    if (event.key === 'ArrowLeft') spherical.theta += .15;
+    if (event.key === 'ArrowRight') spherical.theta -= .15;
+    if (event.key === 'ArrowUp') spherical.phi = Math.max(.15, spherical.phi - .15);
+    if (event.key === 'ArrowDown') spherical.phi = Math.min(Math.PI - .15, spherical.phi + .15);
+    camera.position.setFromSpherical(spherical); controls.update();
+  });
   const resize = () => {
     const { width, height } = container.getBoundingClientRect(); if (!width || !height) return;
     camera.aspect = width / height; camera.updateProjectionMatrix(); renderer.setSize(width, height, false);
@@ -83,6 +100,7 @@ export function createPanorama(container, step, onPoint) {
   });
   frame();
   return {
+    resetView,
     setActive(value) { active = value; cancelAnimationFrame(frameId); if (active) { resize(); frame(); } },
     dispose() {
       disposed = true; active = false; cancelAnimationFrame(frameId); observer.disconnect(); controls.dispose();

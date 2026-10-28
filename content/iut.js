@@ -56,12 +56,12 @@ export const IUT_STEP = {
       position: [0.3, 0.77, 0.08], panorama: { yaw: 65, pitch: -5 }, image: missingImage('Carte de Corte à fournir', 'Carte du parcours, avec échelle, crédits et points géographiques vérifiés'), sources: [sources.history, sources.iut],
       next: { id: 'palazzu-naziunale', title: 'Le Palazzu Naziunale', status: 'etape-a-preparer' } })
   ],
-  panorama: { src: null, status: 'ressource-a-fournir', title: 'Panorama à fournir', credit: null, rights: { status: 'a-verifier' }, calibrated: false },
+  panorama: { src: 'assets/panoramas/corte-evocation.jpg', status: 'illustration', title: 'Corte, entre pierre et savoir', credit: 'Illustration panoramique créée avec IA pour Memoria Corti. Évocation de Corte, sans restitution historique ni localisation des repères dans le paysage.', rights: { status: 'autorise', label: 'Création pour Memoria Corti' }, calibrated: false },
   ambiences: [
     { id: 'ancien', title: 'Pages, écriture et murmures', src: null, credit: null, rights: { status: 'a-verifier' } },
     { id: 'campus', title: 'Ambiance contemporaine du campus', src: null, credit: null, rights: { status: 'a-verifier' } }
   ],
-  music: { entry: { src: null, rights: { status: 'a-verifier' } }, exit: { src: null, rights: { status: 'a-verifier' } } },
+  music: { entry: { kind: 'original-score', title: 'Petra · Memoria Corti', credit: 'Composition instrumentale originale · synthèse de cordes douces', rights: { status: 'autorise' } }, exit: { src: null, rights: { status: 'a-verifier' } } },
   beforeAfter: null,
   designReference: { title: 'Archistoire — référence d’expérience', url: 'https://archistoire.com/' }
 };

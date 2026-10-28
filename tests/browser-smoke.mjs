@@ -52,7 +52,7 @@ window.__memoriaCheck={
  start:startFixture,enable:()=>{nativeARButton.onclick=startFixture;experience.setAvailability(true,'AR de test : poses simulées');},availability:value=>experience.setAvailability(value,value?'AR de test : poses simulées':'AR indisponible : consultation 360° accessible.'),frame:checkFrame,point:checkPoint,
  scan:x=>{checkMatrix.makeTranslation(x,0,-1.8);checkFrame();},
  pose:id=>{const o=typeof id==='number'?placed_objects[id]:memoriaScene.byPoint.get(id);return {p:o.position.toArray(),q:o.quaternion.toArray(),s:o.scale.toArray(),visible:o.visible,parent:o.parent?.uuid};},
- state:()=>({count:placed_objects.length,mode:experienceMode,interaction:interactionMode,selected:selectedObject?.userData.layoutId||selectedObject?.uuid||null,circle:reticle.visible,error:lastError,cancelled:checkCancellations,gesture:!!drag,loaded:!!current_object&&!modelLoading,placed:memoriaPlaced,...experience.getState()}),
+ state:()=>({count:placed_objects.length,mode:experienceMode,interaction:interactionMode,selected:selectedObject?.userData.layoutId||selectedObject?.uuid||null,circle:reticle.visible,error:lastError,cancelled:checkCancellations,gesture:!!drag,loaded:!!current_object&&!modelLoading,placed:memoriaPlaced,audio:experience.audio.getState(),clearAlpha:renderer.getClearAlpha(),sceneBackground:scene.background,...experience.getState()}),
  movePhone:()=>{checkViewer.position.x+=.4;checkViewer.lookAt(0,.65,-1.8);checkViewer.updateMatrixWorld(true);checkFrame();},
  lost:()=>{updatePlacement({getHitTestResults:()=>[]},activeSession,{},100);updateARStatus();}
 };
@@ -131,12 +131,29 @@ try{
  await button('stopAudioButton');
  await ev('document.getElementById("audioDock").hidden=true');
  await button('openPanoramaButton',{scroll:true});
- assert.match(await ev('document.getElementById("panoramaMissing").textContent'),/Panorama à fournir/);
+ assert.match(await ev('document.getElementById("panoramaMissing").textContent'),/Corte, entre pierre et savoir/);
+ await until('document.getElementById("panoramaScene").dataset.state === "ready"');
+ assert.match(await ev('document.getElementById("panoramaCredit").textContent'),/Illustration.*IA/);
+ await ev('document.querySelector(".panorama-canvas").focus()');
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight'});
+ await button('panoramaResetButton');
+ const panoramaShot=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(profile,'panorama-360.png'),Buffer.from(panoramaShot.data,'base64'));
  assert.equal(await ev('document.querySelectorAll("#panoramaScene button").length'),5);
  await ev('document.querySelector("#fallbackPointList button").click()');assert.equal(await ev('__memoriaCheck.state().activePoint'),'iut');
  await button('closePointButton');await button('closePanoramaButton');
  // Begin fixture XR through the actual UI; actual Three renderer and native touch.
  await ev('__memoriaCheck.enable()');await button('startARButton',{scroll:true});assert.equal(await ev('__memoriaCheck.state().circle'),true);
+ await until('__memoriaCheck.state().audio.musicPlaying');
+ assert.equal(await ev('__memoriaCheck.state().clearAlpha'),0);
+ assert.equal(await ev('__memoriaCheck.state().sceneBackground'),null);
+ for (const id of ['appView','homeView','onboarding','panoramaPanel']) assert.equal(await ev('document.getElementById('+JSON.stringify(id)+').getClientRects().length'),0);
+ for (const expression of ['document.documentElement','document.body','document.getElementById("content")']) assert.equal(await ev('getComputedStyle('+expression+').backgroundColor'),'rgba(0, 0, 0, 0)');
+ await button('arMusicButton');assert.equal(await ev('__memoriaCheck.state().audio.musicPlaying'),false);
+ assert.equal(await ev('localStorage.getItem("memoria-corti:ar-music")'),'off');
+ await button('arMusicButton');await until('__memoriaCheck.state().audio.musicPlaying');
+ // This backdrop is a test pattern, not a camera feed. Transparent AR layers
+ // must allow it to show through. Hardware passthrough still requires a phone.
+ await ev(`(()=>{const b=document.createElement('div');b.id='cameraFixture';b.style='position:fixed;inset:0;z-index:-1;background:repeating-linear-gradient(45deg,#738874 0 40px,#899c8a 40px 80px);display:grid;place-items:center;color:#273b31;font:14px Arial';b.textContent='Fond simulé · caméra non testée';document.body.appendChild(b);})()`);
  assert.equal(await ev('document.getElementById("navPlace").getAttribute("aria-current")'),'step');
  assert.equal(await ev('document.getElementById("navDiscover").getAttribute("aria-disabled")'),'true');
  await button('navPrepare');assert.equal(await ev('document.getElementById("prepareModal").hidden'),false);
@@ -146,6 +163,14 @@ try{
  assert.equal(await ev('__memoriaCheck.state().count'),7);
  assert.equal(await ev('document.getElementById("navDiscover").getAttribute("aria-current")'),'step');
  const arShot=await send('Page.captureScreenshot',{format:'png'});const arPath=path.join(profile,'ar-visit.png');fs.writeFileSync(arPath,Buffer.from(arShot.data,'base64'));console.log('AR screenshot: '+arPath);
+ for(const [width,height] of [[320,740],[768,1024],[1440,1000],[844,390]]){
+  await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<1000});
+  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
+  const geometry=await ev(`(()=>{const t=document.getElementById('arToolbar').getBoundingClientRect(),n=document.getElementById('journeyNav').getBoundingClientRect(),s=document.getElementById('sceneControls').getBoundingClientRect();return {toolbarFits:t.left>=0&&t.right<=innerWidth&&t.top>=0&&t.bottom<innerHeight,controlsFit:s.left>=0&&s.right<=innerWidth&&s.bottom<=n.top,overlap:t.left<s.right&&t.right>s.left&&t.top<s.bottom&&t.bottom>s.top,targets:[...document.querySelectorAll('#arToolbar button,#journeyNav button,#sceneControls button:not([hidden])')].every(b=>{const r=b.getBoundingClientRect();return r.width>=44&&r.height>=44;})};})()`);
+  assert.deepEqual(geometry,{toolbarFits:true,controlsFit:true,overlap:false,targets:true},JSON.stringify({width,height,geometry}));
+ }
+ await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+ await ev('__memoriaCheck.frame()');
  assert.equal(await ev('__memoriaCheck.state().mode'),'visit');
  await button('arListenButton');assert.equal(await ev('document.getElementById("storiesModal").hidden'),false);
  await button('welcomeAudioButton',{scroll:true});assert.match(await ev('document.getElementById("playerMessage").textContent'),/Audio à fournir/);
@@ -196,6 +221,8 @@ try{
  assert.equal(await ev('__memoriaCheck.state().error'),'');assert.equal(await ev('__memoriaCheck.state().gesture'),false);
  await button('visitModeButton');assert.equal(await ev('__memoriaCheck.state().selected'),null);
  await button('stopARButton');assert.equal(await ev('__memoriaCheck.state().count'),0);
+ assert.equal(await ev('__memoriaCheck.state().audio.musicPlaying'),false);
+ assert.equal(await ev('document.body.classList.contains("ar-session")'),false);
  assert.equal(await ev('document.getElementById("homeView").hidden'),false);
  assert.notEqual(await ev('getComputedStyle(document.getElementById("content")).display'),'none');
  await button('startARButton',{scroll:true});assert.equal(await ev('__memoriaCheck.state().placed'),false);
@@ -244,7 +271,7 @@ try{
  assert.equal(await ev('document.activeElement.id'),'tab-explore');
  assert.notEqual(await ev('getComputedStyle(document.activeElement).outlineStyle'),'none');
  assert.equal(errors.length,0,JSON.stringify(errors));
- console.log('PASS: mobile UI, five POIs, placeholders/transcripts, 360 fallback, real WebGL and touch, visit protection, editing, repeat add/delete, relative persistence, exit/restart. XR tracking is simulated.');
+ console.log('PASS: mobile UI, five POIs, illustrated 360 texture, transparent AR layers, original music toggle and exit cleanup, real WebGL and touch, visit protection, editing, repeat add/delete, relative persistence, exit/restart. XR tracking/camera are simulated.');
 }catch(error){
  if(inspect)console.error('Browser state',await inspect('({state:__memoriaCheck.state(),diagnostic:document.getElementById("diagnosticText").textContent,touch:window.__touchTrace.slice(-15)})'));
  if(capture){const shot=await capture('Page.captureScreenshot',{format:'png'});const file=path.join(profile,'failure.png');fs.writeFileSync(file,Buffer.from(shot.data,'base64'));console.error('Failure screenshot: '+file);}

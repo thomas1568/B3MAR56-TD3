@@ -1,0 +1,78 @@
+/* WebXR supplies the camera. Never paint an opaque full-screen DOM layer over it.
+   Keep :xr-overlay separate: unsupported selectors must not invalidate fallback rules. */
+html.ar-session, body.ar-session { background: transparent !important; }
+#content.ar-active { background: transparent !important; background-image: none !important; }
+#content:xr-overlay { background: transparent !important; }
+#content::backdrop { background: transparent !important; }
+.ar-active > :is(#appView, #homeView, #appDock, #onboarding, #panoramaPanel) { display: none !important; }
+
+/* The same ivory cards, copper accents and forest green as the main application. */
+#arToolbar {
+  display: flex; flex-direction: column; gap: 10px; padding: 15px;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  left: max(14px, env(safe-area-inset-left, 0px), calc((100% - 560px)/2));
+  right: max(14px, env(safe-area-inset-right, 0px), calc((100% - 560px)/2));
+  color: var(--ink); background: #f4f0e8f5; border: 1px solid #ffffffc9;
+  border-radius: 25px; box-shadow: inset 0 1px 1px #ffffff, 0 8px 30px #14271e26;
+}
+.ar-heading { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+#arToolbar .brand-mini { font: 23px/1.2 Georgia, serif; color: var(--green); }
+#arToolbar .brand-mini small { font: 8px/1.5 Arial, sans-serif; letter-spacing: .13em; color: var(--muted); margin: 0 0 5px; }
+.brand-mini em { color: var(--copper); font-weight: 400; }
+.ar-quick-actions { display: flex; gap: 7px; align-items: center; }
+#arToolbar button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; color: var(--green); background: #ebe5d9cc; border: 1px solid #d3d7c9; font: 12px Arial, sans-serif; }
+#arToolbar button:hover { background: #dfdfd0; }
+#arToolbar button .icon { width: 18px; height: 18px; }
+#arToolbar #stopARButton { padding: 10px 12px; border-radius: 22px; }
+#arToolbar #arMusicButton { position: relative; width: 44px; padding: 0; border-radius: 50%; }
+#arToolbar #arMusicButton[aria-pressed=true] { background: var(--green) !important; border-color: var(--green) !important; color: var(--paper); }
+.ar-sound-dot { width: 5px; height: 5px; position: absolute; right: 8px; top: 7px; border-radius: 50%; background: var(--copper); }
+[aria-pressed=false] > .ar-sound-dot { display: none; }
+#arToolbar #modeSwitch { gap: 5px; padding: 4px; background: #ebe5d9; border: 1px solid #d5d6c8; border-radius: 17px; }
+#arToolbar #modeSwitch button { min-width: 0; flex: 1; padding: 8px; border: 1px solid transparent; background: transparent; border-radius: 12px; }
+#arToolbar #modeSwitch button[aria-pressed=true] { background: var(--green) !important; color: var(--paper); border-color: #ffffff40 !important; box-shadow: 0 2px 5px #273b3126; }
+.ar-active #arStatus { position: static; max-width: none; padding: 9px 12px; background: #e0e6d9; color: #354a38; margin: 0; border: 1px solid #c8d2bc; font: 11px/1.5 Arial, sans-serif; border-radius: 13px; }
+#arTools { margin: 0; max-height: 28dvh; overflow: auto; border-top: 1px solid #d5d6c8; }
+#arTools > summary { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 10px; padding: 4px 2px 0; min-height: 44px; }
+#arTools > summary::after { content: '+'; order: -1; color: var(--copper); font-size: 18px; }
+#arTools[open] > summary::after { content: '−'; }
+#arMusicStatus { margin-left: auto; font-size: 9px; color: #5c6658; text-align: right; }
+#arToolbar #modeDescription, .ar-camera-note { font: 11px/1.65 Arial,sans-serif; color: #52604f; margin: 12px 0; }
+.ar-active #arDiagnostics { position: static; max-width: 100%; background: #ebe5d9; color: var(--ink); padding: 0 10px; font-size: 10px; border-radius: 12px; }
+#arDiagnostics summary { min-height: 44px; }
+#diagnosticText { max-height: 18dvh; }
+.ar-active .journey-hint { display: none; }
+.ar-active .journey-dock { z-index: 12; }
+.ar-active #sceneControls { bottom: calc(102px + env(safe-area-inset-bottom, 0px)); left: max(14px,calc((100% - 560px)/2)); right: max(14px,calc((100% - 560px)/2)); }
+.ar-active #sceneControls button { padding: 13px 18px; font-size: 12px; border-radius: 18px; background: #f4f0e8f5; color: var(--green); border-color: #ffffffb3; }
+.ar-active #sceneControls #placeSceneButton { font-weight: 600; box-shadow: 0 4px 18px #14271e33; }
+.ar-active #placeSceneButton:disabled { opacity: .75; }
+#content.ar-active[data-mode=edit] #sceneControls { bottom: calc(243px + env(safe-area-inset-bottom,0px)); }
+.ar-active #actionButtons { bottom: calc(102px + env(safe-area-inset-bottom,0px)); left: max(14px,calc((100% - 560px)/2)); right: max(14px,calc((100% - 560px)/2)); border: 1px solid #ffffff80; background: #273b31ed; border-radius: 19px; padding: 9px; }
+.ar-active #actionButtons button { font-size: 11px; padding: 10px; border-radius: 13px; }
+.ar-active #selectionActions { justify-content: center; }
+.ar-active #menuButton { bottom: calc(191px + env(safe-area-inset-bottom,0px)); left: max(14px,calc((100% - 560px)/2)); }
+.ar-active .notice { top: auto; bottom: calc(310px + env(safe-area-inset-bottom,0px)); }
+.ar-active #audioDock { bottom: calc(170px + env(safe-area-inset-bottom,0px)); }
+.ar-active .world-hotspot { background: #273b31ed; border-color: #e8b293; font: 11px/1.4 Arial,sans-serif; max-width: 170px; }
+
+.panorama-stage { position: relative; margin: 25px 0 15px; }
+#panoramaScene { height: min(60dvh,620px); margin: 0; border: 0; min-height: 300px; }
+.panorama-caption { position: absolute; inset: 12px 12px auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; pointer-events: none; }
+.panorama-caption span, .panorama-caption button { color: var(--green); background: #f4f0e8ed; border: 1px solid #ffffff99; border-radius: 20px; font: 10px Arial,sans-serif; padding: 10px 13px; box-shadow: 0 3px 12px #14271e1a; }
+.panorama-caption button { pointer-events: auto; min-height: 44px; }
+canvas.panorama-canvas:focus-visible { outline: 3px solid var(--copper); outline-offset: -4px; }
+#panoramaPanel { padding-inline: max(22px,calc((100vw - 1180px)/2)); }
+#panoramaPanel > header { position: sticky; top: -1px; z-index: 5; background: var(--paper); }
+#panoramaCredit { max-width: 780px; color: var(--muted); font-size: 12px; }
+
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
+  #arToolbar { background: #f4f0e8e8; backdrop-filter: blur(20px) saturate(120%); -webkit-backdrop-filter: blur(20px) saturate(120%); }
+}
+@media(max-width:359px) { #arToolbar { padding: 12px; gap: 8px; }.ar-quick-actions { gap: 4px; }#arToolbar .brand-mini { font-size: 21px; }#arToolbar #stopARButton { padding-inline: 9px; }#arToolbar #modeSwitch button { font-size: 11px; }.panorama-caption span { max-width: 155px; line-height: 1.4; } }
+@media(max-height:600px) and (min-width:600px) {
+  #arToolbar { width: 300px; right: auto; left: max(12px,env(safe-area-inset-left,0px)); top: max(8px,env(safe-area-inset-top,0px)); padding: 12px; }
+  #arTools { max-height: 22dvh; }.ar-active #sceneControls, #content.ar-active[data-mode=edit] #sceneControls { bottom: calc(105px + env(safe-area-inset-bottom,0px)); left: 330px; right: 12px; }
+  .ar-active #actionButtons { left: 330px; bottom: calc(170px + env(safe-area-inset-bottom,0px)); }.ar-active #menuButton { left: 330px; bottom: calc(270px + env(safe-area-inset-bottom,0px)); }
+}
+@media(prefers-reduced-transparency:reduce) { #arToolbar { background: var(--paper); backdrop-filter: none; -webkit-backdrop-filter: none; } }

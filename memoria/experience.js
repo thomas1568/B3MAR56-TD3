@@ -1,12 +1,14 @@
-import { findPoint, mediaReady } from '../content/iut.js';
-import { createAudioController } from './audio.js';
-import { createPanorama } from './panorama.js';
+import { findPoint, mediaReady } from '../content/iut.js?v=18';
+import { createAudioController } from './audio.js?v=18';
+import { createPanorama } from './panorama.js?v=18';
 import { layoutHotspots } from './hotspots.js';
 
 export function createExperience(step, api) {
   const el = id => document.getElementById(id);
   let activePoint = null, activeAR = false, mode = 'visit', availableAR = false, panorama = null, focusBefore = null, toastTimer = null;
   let prepared = false, scenePlaced = false, currentStage = 'prepare', storiesFocus = null, panoramaFocus = null;
+  let musicEnabled = true;
+  try { musicEnabled = localStorage.getItem('memoria-corti:ar-music') !== 'off'; } catch {}
   const audioDockHome = el('audioDock').parentNode;
   const scrollBehavior = () => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
   function updateJourney() {
@@ -90,7 +92,16 @@ export function createExperience(step, api) {
     el('pauseAudioButton').disabled = !state.playing || state.paused;
     el('resumeAudioButton').disabled = !state.paused;
     el('ambienceStatus').textContent = state.ambience;
+    el('arMusicButton').setAttribute('aria-pressed', String(state.musicPlaying));
+    el('arMusicButton').setAttribute('aria-label', state.musicPlaying ? 'Couper la musique' : 'Activer la musique');
+    el('arMusicButton').title = state.musicPlaying ? 'Couper la musique' : 'Activer la musique';
+    el('arMusicStatus').textContent = state.musicPlaying ? 'Petra · musique douce' : state.musicMessage || 'Musique arrêtée';
   } });
+  el('arMusicButton').addEventListener('click', () => {
+    musicEnabled = !audio.getState().musicPlaying;
+    try { localStorage.setItem('memoria-corti:ar-music', musicEnabled ? 'on' : 'off'); } catch {}
+    if (musicEnabled) audio.playMusic(step.music.entry); else audio.stopMusic();
+  });
   if (!audio.supportsSpeech) {
     el('voiceChoice').value = 'recording'; el('speechOption').disabled = true;
   }
@@ -146,12 +157,13 @@ export function createExperience(step, api) {
   el('startARButton').addEventListener('click', () => { prepared = true; closePanorama(); api.startAR(); });
   el('openPanoramaButton').addEventListener('click', openPanorama);
   el('closePanoramaButton').addEventListener('click', closePanorama);
+  el('panoramaResetButton').addEventListener('click', () => panorama?.resetView());
   el('visitModeButton').addEventListener('click', () => api.setMode('visit'));
   el('editModeButton').addEventListener('click', () => api.setMode('edit'));
   el('placeSceneButton').addEventListener('click', () => api.placeScene());
   el('saveLayoutButton').addEventListener('click', () => api.saveLayout());
   el('resetLayoutButton').addEventListener('click', () => api.resetLayout());
-  el('welcomeAudioButton').addEventListener('click', () => { play(step.narrations.welcome); audio.playMusic(step.music.entry); });
+  el('welcomeAudioButton').addEventListener('click', () => play(step.narrations.welcome));
   el('mainAudioButton').addEventListener('click', () => play(step.narrations.main));
   el('listenPointButton').addEventListener('click', () => { if (activePoint) play({id:activePoint.id,title:activePoint.title,text:activePoint.transcript,audio:activePoint.audio}); });
   el('pauseAudioButton').addEventListener('click', () => audio.pause());
@@ -238,14 +250,16 @@ export function createExperience(step, api) {
     panoramaFocus = document.activeElement; prepared = true; closeStories(); closePoint(); el('panoramaPanel').hidden = false;
     el('homeView').inert = true;
     currentStage = 'discover'; updateJourney(); el('closePanoramaButton').focus();
-    el('panoramaMissing').textContent = mediaReady(step.panorama) ? 'Consultation 360°' : 'Panorama à fournir — repères dans un espace de consultation neutre.';
+    el('panoramaMissing').textContent = mediaReady(step.panorama) ? step.panorama.title : 'Panorama à fournir — repères dans un espace de consultation neutre.';
     el('panoramaCredit').textContent = mediaReady(step.panorama) ? step.panorama.credit || 'Crédit à renseigner' : 'Aucune photographie du lieu n’est simulée. Le calage des points sur la future photographie reste à faire.';
+    el('panoramaLoadStatus').textContent = 'Chargement du panorama…';
     if (!panorama) {
       try { panorama = createPanorama(el('panoramaScene'), step, openPoint); }
-      catch (error) { showMessage('Vue 3D indisponible. Les cinq fiches restent accessibles ci-dessous.'); console.error('Consultation 360°', error); }
-    } else panorama.setActive(true);
+      catch (error) { el('panoramaLoadStatus').textContent = 'Vue 3D indisponible. Retrouvez les cinq fiches ci-dessous.'; showMessage('Vue 3D indisponible. Les cinq fiches restent accessibles ci-dessous.'); console.error('Consultation 360°', error); }
+    } else { panorama.setActive(true); el('panoramaLoadStatus').textContent = el('panoramaScene').dataset.state === 'ready' ? 'Panorama prêt · glissez pour explorer' : el('panoramaScene').dataset.state === 'error' ? 'Image indisponible · les fiches restent accessibles' : 'Chargement du panorama…'; }
   }
-  el('panoramaScene').addEventListener('panoramaerror', () => { el('panoramaMissing').textContent = 'Panorama indisponible — consultation des repères'; });
+  el('panoramaScene').addEventListener('panoramaready', () => { el('panoramaLoadStatus').textContent = 'Panorama prêt · glissez pour explorer'; });
+  el('panoramaScene').addEventListener('panoramaerror', () => { el('panoramaLoadStatus').textContent = 'Image indisponible · les cinq fiches restent accessibles'; });
   function closePanorama() {
     const wasOpen = !el('panoramaPanel').hidden;
     panorama?.setActive(false); el('panoramaPanel').hidden = true;
@@ -264,6 +278,8 @@ export function createExperience(step, api) {
     if (value) prepared = true;
     currentStage = value ? 'place' : 'prepare'; updateJourney();
     el('arToolbar').hidden = !value; el('sceneControls').hidden = !value;
+    el('arTools').open = false;
+    if (value && musicEnabled) audio.playMusic(step.music.entry);
     if (!value) { audio.stopAll(); el('audioDock').hidden = true; el('routeModal').hidden = true; el('ambienceChoice').value = ''; }
     el('mySidenav').classList.remove('open');
     document.dispatchEvent(new CustomEvent('memoria:ar', { detail: { active: value } }));
@@ -275,6 +291,7 @@ export function createExperience(step, api) {
   }
   return {
     openPoint, closePoint, openPanorama, closePanorama, openStories, closeStories, prepareVisit, showMessage, setMode, setARState, setAvailability,
+    unlockARAudio: () => { if (musicEnabled) audio.unlockMusic().catch(() => {}); },
     stopSounds: () => audio.stopAll(),
     setScenePlaced(placed) { scenePlaced = placed; el('placeSceneButton').textContent = placed ? 'Recaler la scène' : 'Placer la scène'; if (activeAR) currentStage = placed ? 'discover' : 'place'; updateJourney(); },
     setPlacementReady(ready) { el('placeSceneButton').disabled = !ready; },
@@ -287,7 +304,7 @@ export function createExperience(step, api) {
       });
       const positions = layoutHotspots(measured, {
         width: el('content').clientWidth,
-        top: el('arStatus').getBoundingClientRect().bottom + 12,
+        top: el('arToolbar').getBoundingClientRect().bottom + 12,
         bottom: el('sceneControls').getBoundingClientRect().top - 12
       });
       for (const [id,button] of hotspotButtons) {

@@ -2,11 +2,11 @@ import * as THREE from 'three';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 import { GLTFLoader } from 'three/addons/webxr/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/webxr/OrbitControls.js';
-import { IUT_STEP } from './content/iut.js';
-import { createMemoriaScene } from './memoria/scene.js';
+import { IUT_STEP } from './content/iut.js?v=18';
+import { createMemoriaScene } from './memoria/scene.js?v=18';
 import { loadLayout, saveLayout, LAYOUT_KEY } from './memoria/layout.js';
-import { createExperience } from './memoria/experience.js?v=17';
-import { createShell } from './memoria/shell.js?v=17';
+import { createExperience } from './memoria/experience.js?v=18';
+import { createShell } from './memoria/shell.js?v=18';
 
 let scene;
 let camera;
@@ -39,7 +39,7 @@ let diagnosticText;
 const selectionRaycaster = new THREE.Raycaster();
 const rayMatrix = new THREE.Matrix4();
 const dragPoint = new THREE.Vector3();
-const APP_VERSION = '13';
+const APP_VERSION = '18';
 const MAX_PLACED_OBJECTS = 16;
 let experience = null;
 let experienceMode = 'visit';
@@ -112,6 +112,10 @@ function init() {
         return;
     }
     renderer.domElement.className = 'ar-canvas';
+    // The real camera is composited by WebXR, not a <video> element. Both this
+    // framebuffer and the DOM overlay must leave its pixels transparent.
+    renderer.setClearColor(0x000000, 0);
+    scene.background = null;
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -200,6 +204,7 @@ function init() {
     nativeARButton = ARButton.createButton(renderer, options);
     nativeARButton.hidden = true;
     nativeARButton.addEventListener('arerror', event => {
+        experience.stopSounds();
         reportARError('Démarrage AR', event.detail);
         experience.showMessage('Impossible de démarrer l’AR : ' + event.detail.message + '. La consultation 360° reste accessible.');
     });
@@ -260,6 +265,10 @@ function init() {
 
             cleanupSessionObjects();
             activeSession = renderer.xr.getSession();
+            renderer.setClearColor(0x000000, 0);
+            scene.background = null;
+            document.documentElement.classList.add('ar-session');
+            document.body.classList.add('ar-session');
             experienceMode = 'visit';
             experience.setMode('visit');
             experience.setARState(true);
@@ -317,6 +326,8 @@ function init() {
                 activeSession.removeEventListener('visibilitychange', onXRVisibilityChange);
             }
             activeSession = null;
+            document.documentElement.classList.remove('ar-session');
+            document.body.classList.remove('ar-session');
             cancelPlacementSource();
             hitTestSourceRequested = false;
             hitTestState = 'inactif';
@@ -763,6 +774,8 @@ function updateARStatus() {
     if (arStatus.textContent !== status) arStatus.textContent = status;
     const diagnostic = 'Version : ' + APP_VERSION + '\nEntree : ' + lastInput + '\nRaycast : ' + lastRaycast + '\nHit-test : ' + hitTestState + '\nPose : ' + placementPoseValid +
         '\nDOM Overlay : ' + !!activeSession?.domOverlayState +
+        '\nComposition caméra : ' + (activeSession?.environmentBlendMode || 'inconnue') +
+        '\nAlpha WebGL : ' + (renderer.getClearAlpha?.() ?? 'inconnu') +
         '\nObjets : ' + placed_objects.length + '\nSelection : ' +
         (selectedObject?.uuid || 'aucune') + '\nMode : ' + interactionMode +
         '\nExpérience : ' + experienceMode + '\nScène : ' + (memoriaPlaced ? 'calage manuel' : 'à placer') +
@@ -844,7 +857,7 @@ function selectObject(object) {
     selectedObject = object;
     if (object) lastInspectedObject = object;
     if (object) {
-        selectionHelper = new THREE.BoxHelper(object, 0x80d8ff);
+        selectionHelper = new THREE.BoxHelper(object, 0xb86d4e);
         selectionHelper.material.transparent = true;
         selectionHelper.material.opacity = 0.65;
         selectionHelper.material.depthWrite = false;
@@ -1086,6 +1099,7 @@ function startAR() {
         return;
     }
     // Keep requestSession within the original user activation.
+    experience.unlockARAudio();
     nativeARButton.click();
 }
 

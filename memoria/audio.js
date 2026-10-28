@@ -1,14 +1,17 @@
-// One narration at a time. Every playback method is called from a user action.
-// No fabricated archive recording, commercial music or synthesized ambience.
-export function createAudioController({ speech = globalThis.speechSynthesis, Utterance = globalThis.SpeechSynthesisUtterance, AudioClass = globalThis.Audio, onChange = () => {} } = {}) {
+import { createHeritageMusic } from './music.js?v=18';
+
+// One narration at a time. The original instrumental score is distinct from archives.
+export function createAudioController({ speech = globalThis.speechSynthesis, Utterance = globalThis.SpeechSynthesisUtterance, AudioClass = globalThis.Audio, MusicFactory = createHeritageMusic, onChange = () => {} } = {}) {
   let generation = 0, narration = null, utterance = null, ambience = null, music = null;
   let volume = 0.8;
-  const state = { title: '', text: '', playing: false, paused: false, source: '', message: 'Audio à fournir', ambience: 'Ambiances à fournir' };
+  const state = { title: '', text: '', playing: false, paused: false, source: '', message: 'Audio à fournir', ambience: 'Ambiances à fournir', musicPlaying: false, musicMessage: '' };
   const ready = asset => !!asset?.src && asset.rights?.status === 'autorise';
   const emit = () => { duck(); onChange({ ...state, volume }); };
+  const score = MusicFactory({ onChange: value => { state.musicPlaying = value.playing; emit(); } });
   function duck() {
     if (ambience) ambience.volume = volume * (state.playing && !state.paused ? 0.08 : 0.3);
     if (music) music.volume = volume * (state.playing && !state.paused ? 0.08 : 0.25);
+    score?.setVolume(volume * (state.playing && !state.paused ? 0.05 : 0.22));
   }
   function stopNarration() {
     generation++;
@@ -68,11 +71,17 @@ export function createAudioController({ speech = globalThis.speechSynthesis, Utt
   }
   async function playMusic(asset) {
     music?.pause(); music = null;
+    score.stop(); state.musicMessage = '';
+    if (asset?.kind === 'original-score') {
+      try { const started = await score.start(); if (started) state.musicMessage = asset.title; emit(); return started; }
+      catch { state.musicMessage = 'Son indisponible. Touchez Musique pour réessayer.'; emit(); return false; }
+    }
     if (!ready(asset) || !AudioClass) return false;
     const audio = new AudioClass(asset.src); music = audio; duck();
     try { await audio.play(); if (music !== audio) { audio.pause(); return false; } return true; }
     catch (error) { if (music === audio) { music = null; state.message = 'Musique indisponible : ' + error.message; emit(); } return false; }
   }
-  function stopAll() { stopNarration(); ambience?.pause(); ambience = null; music?.pause(); music = null; state.ambience = 'Ambiance arrêtée'; emit(); }
-  return { play, pause, resume, setVolume, setAmbience, playMusic, stopNarration, stopAll, getState: () => ({ ...state, volume }), supportsSpeech: !!speech && !!Utterance };
+  function stopMusic() { music?.pause(); music = null; score.stop(); state.musicMessage = ''; emit(); }
+  function stopAll() { stopNarration(); ambience?.pause(); ambience = null; stopMusic(); state.ambience = 'Ambiance arrêtée'; emit(); }
+  return { play, pause, resume, setVolume, setAmbience, playMusic, stopMusic, unlockMusic: () => score.unlock(), stopNarration, stopAll, getState: () => ({ ...state, volume }), supportsSpeech: !!speech && !!Utterance };
 }

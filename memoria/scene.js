@@ -2,22 +2,22 @@ import * as THREE from 'three';
 
 // The generated geometry is an evocation. Nothing here is a reconstructed facade,
 // a historical portrait or a facsimile of an archive.
-export function makeLabel(text, width = 0.48, color = '#e2c789') {
+export function makeLabel(text, width = 0.48, color = '#B86D4E') {
   let texture = null;
   if (typeof document !== 'undefined') {
     const canvas = document.createElement('canvas');
     canvas.width = 768; canvas.height = 160;
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.fillStyle = '#173a39'; ctx.fillRect(0, 0, 768, 160);
+      ctx.fillStyle = '#273B31'; ctx.fillRect(0, 0, 768, 160);
       ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.strokeRect(4, 4, 760, 152);
-      ctx.fillStyle = '#fff9ed'; ctx.font = 'bold 38px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#F4F0E8'; ctx.font = '38px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(text, 384, 80, 728);
       texture = new THREE.CanvasTexture(canvas);
       texture.colorSpace = THREE.SRGBColorSpace;
     }
   }
-  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, color: texture ? 0xffffff : 0xd9c58e, depthWrite: false }));
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, color: texture ? 0xffffff : 0xb86d4e, depthWrite: false }));
   label.scale.set(width, width * 160 / 768, 1);
   label.userData.ownedLabel = true;
   return label;
@@ -31,9 +31,9 @@ export function createMemoriaScene(step, { onAssetError = () => {} } = {}) {
   const objects = [];
   const byPoint = new Map();
   const wood = new THREE.MeshStandardMaterial({ color: 0x795541, roughness: 0.85 });
-  const paper = new THREE.MeshStandardMaterial({ color: 0xeadbb8, roughness: 0.95 });
-  const green = new THREE.MeshStandardMaterial({ color: 0x245957, roughness: 0.8 });
-  const brass = new THREE.MeshStandardMaterial({ color: 0xc4a36d, roughness: 0.5, metalness: 0.25 });
+  const paper = new THREE.MeshStandardMaterial({ color: 0xf4f0e8, roughness: 0.95 });
+  const green = new THREE.MeshStandardMaterial({ color: 0x273b31, roughness: 0.8 });
+  const brass = new THREE.MeshStandardMaterial({ color: 0xb86d4e, roughness: 0.5, metalness: 0.25 });
 
   const block = (parent, x, y, z, w, h, d, material) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);

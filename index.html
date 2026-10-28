@@ -5,16 +5,18 @@
 <title>Memoria Corti — Des lieux, des voix, une mémoire</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#273B31">
-<link rel="stylesheet" href="main.css?v=17">
-<link rel="stylesheet" href="memoria/shell.css?v=17">
-<link rel="stylesheet" href="memoria/experience.css?v=17">
-<link rel="stylesheet" href="memoria/city.css?v=17">
+<link rel="stylesheet" href="main.css?v=18">
+<link rel="stylesheet" href="memoria/shell.css?v=18">
+<link rel="stylesheet" href="memoria/experience.css?v=18">
+<link rel="stylesheet" href="memoria/city.css?v=18">
+<link rel="stylesheet" href="memoria/ar.css?v=18">
 <script type="importmap">
 {"imports":{"three":"./build/three.module.js","three/addons/":"./jsm/"}}
 </script>
 </head>
 <body>
 <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+  <symbol id="icon-music" viewBox="0 0 24 24"><path d="M9 18V5l12-3v13M9 8l12-3"/><ellipse cx="6" cy="18" rx="3" ry="3"/><ellipse cx="18" cy="15" rx="3" ry="3"/></symbol>
   <symbol id="icon-prepare" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 4V2h6v2M9 10l1 1 2-2m2 1h2M9 16l1 1 2-2m2 1h2"/></symbol>
   <symbol id="icon-place" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3M7 9l5-3 5 3v6l-5 3-5-3Zm0 0 5 3 5-3m-5 3v6"/></symbol>
   <symbol id="icon-discover" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m16 8-2.5 5.5L8 16l2.5-5.5Z"/></symbol>
@@ -47,16 +49,19 @@
   <footer class="site-footer"><span>Memoria Corti · La mémoire en mouvement</span><span>Première étape — IUT de Corse</span></footer>
 </main>
 
-<header id="arToolbar" data-ui hidden><span class="brand-mini">Memoria Corti <small>IUT · Placement manuel</small></span><button id="stopARButton" type="button">Quitter AR</button><div id="modeSwitch" role="group" aria-label="Mode de l’expérience"><button id="visitModeButton" type="button" aria-pressed="true">Visite</button><button id="editModeButton" type="button" aria-pressed="false">Édition</button><button id="arListenButton" type="button">Récits</button></div><p id="modeDescription">Touchez les repères. La scène reste en place.</p></header>
-<p id="arStatus" role="status" aria-live="polite"></p>
-<details id="arDiagnostics" data-ui><summary>Diagnostic AR</summary><pre id="diagnosticText"></pre></details>
+<header id="arToolbar" data-ui hidden>
+  <div class="ar-heading"><span class="brand-mini"><small>01 · IUT DE CORSE</small>Memoria <em>Corti</em></span><div class="ar-quick-actions"><button id="arMusicButton" type="button" aria-label="Couper la musique" aria-pressed="false" title="Activer la musique"><svg class="icon" aria-hidden="true"><use href="#icon-music"/></svg><span class="ar-sound-dot" aria-hidden="true"></span></button><button id="stopARButton" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-exit"/></svg><span>Quitter</span></button></div></div>
+  <div id="modeSwitch" role="group" aria-label="Mode de l’expérience"><button id="visitModeButton" type="button" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#icon-discover"/></svg>Visite</button><button id="editModeButton" type="button" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#icon-place"/></svg>Édition</button><button id="arListenButton" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-listen"/></svg>Récits</button></div>
+  <p id="arStatus" role="status" aria-live="polite"></p>
+  <details id="arTools"><summary>Conseils & détails <span id="arMusicStatus" role="status">Musique arrêtée</span></summary><p id="modeDescription">Touchez les repères. La scène reste en place.</p><p class="ar-camera-note">Votre environnement reste visible derrière les objets. Le placement se fait sur une surface détectée.</p><p class="ar-camera-note">Musique originale : Petra · Memoria Corti. Son atténué pendant les récits.</p><details id="arDiagnostics" data-ui><summary>Diagnostic AR</summary><pre id="diagnosticText"></pre></details></details>
+</header>
 <div id="poiHotspots" aria-label="Repères de la scène AR"></div>
 <div id="sceneControls" data-ui hidden><button id="placeSceneButton" type="button" disabled>Placer la scène</button><button id="saveLayoutButton" type="button" hidden>Enregistrer l’agencement</button><button id="resetLayoutButton" type="button" hidden>Réinitialiser la composition</button></div>
 <div id="mySidenav" class="sidenav" data-ui><button class="closebtn" type="button" onclick="closeNav()" aria-label="Fermer les modèles">×</button><h3>Modèles du projet</h3><p>Éléments d’essai, sans identification historique.</p><a class="ar-object" id="1" href="#">Modèle 1</a><a class="ar-object" id="2" href="#">Modèle 2</a><a class="ar-object" id="3" href="#">Modèle 3</a><a class="ar-object" id="4" href="#">Modèle 4</a></div>
 <button id="menuButton" type="button" data-ui onclick="openNav()">Modèles</button>
 <div id="actionButtons" data-ui><button id="placeButton" type="button" disabled>Ajouter un modèle</button><div id="selectionActions" hidden><button id="moveButton" type="button" aria-pressed="true">Déplacer</button><button id="rotateButton" type="button" aria-pressed="false">Tourner</button><button id="clearButton" type="button" disabled>Supprimer</button></div></div>
 
-<section id="panoramaPanel" class="full-panel" data-ui hidden><header><div><p class="eyebrow">Consultation 360°</p><h2 id="panoramaMissing">Panorama à fournir</h2></div><button id="closePanoramaButton" type="button">Fermer</button></header><p id="panoramaCredit"></p><p class="small-note">Glissez pour regarder autour de vous, puis touchez un repère. Toutes les fiches restent accessibles sous la vue.</p><div id="panoramaScene"></div><div id="fallbackPointList" class="button-row"></div></section>
+<section id="panoramaPanel" class="full-panel" data-ui hidden><header><div><p class="eyebrow">Évocation immersive · 360°</p><h2 id="panoramaMissing">Corte, entre pierre et savoir</h2></div><button id="closePanoramaButton" type="button">Fermer</button></header><p id="panoramaCredit"></p><div class="panorama-stage"><div id="panoramaScene"></div><div class="panorama-caption"><span>Illustration de Corte · 360°</span><button id="panoramaResetButton" type="button">Recentrer</button></div></div><p id="panoramaLoadStatus" class="small-note" role="status"></p><p class="small-note">Glissez pour regarder autour de vous ou utilisez les flèches du clavier dans la vue. Les repères racontent le parcours ; leur position dans l’illustration est symbolique.</p><div class="section-heading"><h3>Les histoires du parcours</h3><span class="eyebrow">5 repères à explorer</span></div><div id="fallbackPointList" class="button-row"></div></section>
 
 <div id="poiModal" class="modal-backdrop" data-ui hidden><article class="content-card" role="dialog" aria-modal="true" aria-labelledby="pointTitle"><header><div><span id="pointDate" class="eyebrow"></span><h2 id="pointTitle"></h2></div><button id="closePointButton" type="button" aria-label="Fermer la fiche">×</button></header><div class="card-scroll"><p id="pointStatus" class="status-tag"></p><h3 id="pointQuestion"></h3><p id="pointText"></p><figure><div id="missingImage" class="media-placeholder"></div><img id="pointImage" hidden loading="lazy" alt=""><figcaption id="pointCaption"></figcaption></figure><button id="enlargeImageButton" type="button" disabled>Agrandir l’archive</button><div class="button-row"><button id="listenPointButton" type="button">Écouter</button><button id="viewARButton" type="button">Voir en AR</button></div><p id="pointAudioStatus" class="small-note"></p><details open><summary>Transcription</summary><p id="pointTranscript"></p></details><section id="comparison" hidden><h3>Avant / après · même lieu</h3><figure><img id="beforeImage" alt=""><figcaption id="beforeCaption"></figcaption></figure><figure><img id="afterImage" alt=""><figcaption id="afterCaption"></figcaption></figure></section><h3>Sources et ressources</h3><div id="pointSources" class="source-list"></div><button id="nextStageButton" type="button" hidden>Découvrir la suite du parcours</button></div></article></div>
 <div id="archiveModal" class="modal-backdrop archive-modal" data-ui hidden><article class="content-card" role="dialog" aria-modal="true" aria-label="Archive agrandie"><header><h2>Explorer l’archive</h2><button id="closeArchiveButton" type="button">Fermer</button></header><label>Zoom <input id="archiveZoom" type="range" min="1" max="3" step=".1" value="1"></label><div class="archive-scroll"><img id="archiveImage" alt=""></div><p id="archiveCaption"></p></article></div>
@@ -76,7 +81,7 @@
   </nav>
 </div>
 </div>
-<script type="module" src="./main.js?v=17"></script>
+<script type="module" src="./main.js?v=18"></script>
 <script>
 function openNav(){document.getElementById('mySidenav').classList.add('open');}
 function closeNav(){document.getElementById('mySidenav').classList.remove('open');}
