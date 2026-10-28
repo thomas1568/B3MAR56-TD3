@@ -90,12 +90,16 @@ try{
  await send('Page.navigate',{url:'http://127.0.0.1:'+server.address().port+'/'});
  async function until(expression){for(let i=0;i<150;i++){if(await ev(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+expression);}
  await until('!!window.__memoriaCheck');await until('document.getElementById("arAvailability").textContent.indexOf("Vérification")<0');assert.equal(errors.length,0,JSON.stringify(errors));
+ await until('!document.getElementById("onboarding").hidden && !document.getElementById("onboardingWelcome").hidden && !document.getElementById("onboardingStatus").textContent');
+ await ev('document.getElementById("guestButton").click();document.getElementById("pseudoInput").value="Visiteur";document.getElementById("profileForm").requestSubmit()');
+ await until('document.getElementById("onboarding").hidden');
  const screenshot=await send('Page.captureScreenshot',{format:'png'});
  const screenshotPath=path.join(profile,'home-mobile.png');fs.writeFileSync(screenshotPath,Buffer.from(screenshot.data,'base64'));console.log('Screenshot: '+screenshotPath);
  async function touch(point,type='touchStart'){await send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x:point.x,y:point.y}]});}
  async function tap(point){await touch(point);await touch(point,'touchEnd');await ev('new Promise(resolve=>setTimeout(resolve,100))');}
  async function button(id,{scroll=false}={}){
-  if(scroll)await ev('document.getElementById('+JSON.stringify(id)+').scrollIntoView({block:"center"})');
+  if(scroll)await ev('document.getElementById('+JSON.stringify(id)+').scrollIntoView({block:"center",behavior:"instant"})');
+  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
   const point=await ev('(()=>{const e=document.getElementById('+JSON.stringify(id)+');if(e.disabled||e.hidden)throw Error("Button unavailable: "+e.id);const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
   assert.ok(point.x>0&&point.x<390&&point.y>0&&point.y<844,'offscreen button '+id+JSON.stringify(point));await tap(point);
  }
@@ -104,12 +108,11 @@ try{
   await touch(p);for(let n=1;n<=4;n++){await touch({x:p.x+dx*n/4,y:p.y},'touchMove');await ev('new Promise(r=>setTimeout(r,20))');}
   await touch(p,'touchEnd');await ev('new Promise(r=>setTimeout(r,100))');await ev('__memoriaCheck.frame()');
  }
- // The capsule explains prerequisites and cannot start an unavailable stage.
- assert.equal(await ev('document.getElementById("navDiscover").getAttribute("aria-disabled")'),'true');
- await button('navDiscover');assert.equal(await ev('document.getElementById("panoramaPanel").hidden'),true);
- assert.match(await ev('document.getElementById("experienceNotice").textContent'),/Préparez/);
- await ev('document.getElementById("experienceNotice").hidden=true');
- await button('openStepButton');await ev('new Promise(r=>setTimeout(r,600))');
+ // Global navigation opens the first stage; AR controls are contextual.
+ assert.equal(await ev('document.getElementById("experienceDock").hidden'),true);
+ assert.equal(await ev('document.getElementById("tab-home").getAttribute("aria-current")'),'page');
+ await button('tab-route');await button('routeStartButton',{scroll:true});
+ await ev('new Promise(r=>setTimeout(r,600))');
  assert.equal(await ev('document.getElementById("stepSection").hidden'),false);
  assert.equal(await ev('document.querySelectorAll("#pointList button").length'),5);
  // All offline cards and resource placeholders.
@@ -202,7 +205,8 @@ try{
  await button('stopARButton');
  // Exercise each new navigation action, including a full exit with audio pending.
  await button('navExit');assert.equal(await ev('document.getElementById("stepSection").hidden'),true);
- await button('navPrepare');assert.equal(await ev('document.getElementById("stepSection").hidden'),false);
+ await button('tab-route');await button('routeStartButton',{scroll:true});assert.equal(await ev('document.getElementById("stepSection").hidden'),false);
+ if(!await ev('document.getElementById("poiModal").hidden'))await button('closePointButton');
  await ev('__memoriaCheck.availability(false)');
  assert.equal(await ev('document.getElementById("navPlace").getAttribute("aria-disabled")'),'true');
  await button('navPlace');assert.match(await ev('document.getElementById("experienceNotice").textContent'),/AR indisponible/);
@@ -215,7 +219,9 @@ try{
  await button('navListen');await button('welcomeAudioButton',{scroll:true});await button('closeStoriesButton');
  await button('navExit');assert.equal(await ev('document.getElementById("audioDock").hidden'),true);
  assert.equal(await ev('document.getElementById("navDiscover").getAttribute("aria-disabled")'),'true');
- await button('navPrepare');await ev('__memoriaCheck.enable()');await button('navPlace');
+ await button('tab-route');await button('routeStartButton',{scroll:true});
+ if(!await ev('document.getElementById("poiModal").hidden'))await button('closePointButton');
+ await ev('__memoriaCheck.enable()');await button('navPlace');
  assert.equal(await ev('__memoriaCheck.state().activeAR'),true);
  await button('navPlace');await button('navDiscover');
  assert.equal(await ev('__memoriaCheck.state().mode'),'visit');
@@ -225,7 +231,7 @@ try{
  for(const [width,height] of [[320,740],[768,1024],[1440,1000]]){
   await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<1000});
   await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
-  const geometry=await ev(`(()=>{const nav=document.getElementById('journeyNav'),r=nav.getBoundingClientRect();return {left:r.left,right:r.right,bottom:r.bottom,overflow:document.getElementById('homeView').scrollWidth>innerWidth,targets:[...nav.querySelectorAll('button')].every(b=>{const t=b.getBoundingClientRect();return t.width>=44&&t.height>=44;})};})()`);
+  const geometry=await ev(`(()=>{const nav=document.querySelector('#appDock nav'),r=nav.getBoundingClientRect();return {left:r.left,right:r.right,bottom:r.bottom,overflow:document.getElementById('appView').scrollWidth>innerWidth,targets:[...nav.querySelectorAll('button')].every(b=>{const t=b.getBoundingClientRect();return t.width>=44&&t.height>=44;})};})()`);
   assert.ok(geometry.left>=10&&geometry.right<=width-10&&geometry.bottom<=height-10,JSON.stringify(geometry));
   assert.equal(geometry.targets,true);assert.equal(geometry.overflow,false);
   const shot=await send('Page.captureScreenshot',{format:'png'});const file=path.join(profile,'home-'+width+'.png');fs.writeFileSync(file,Buffer.from(shot.data,'base64'));console.log('Responsive screenshot: '+file);
@@ -233,9 +239,9 @@ try{
  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'},{name:'prefers-reduced-transparency',value:'reduce'}]});
  assert.equal(await ev('getComputedStyle(document.getElementById("homeView")).scrollBehavior'),'auto');
  assert.equal(await ev('getComputedStyle(document.getElementById("journeyNav")).backdropFilter'),'none');
- await ev('document.getElementById("navPrepare").focus()');
+ await ev('document.getElementById("tab-home").focus()');
  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
- assert.equal(await ev('document.activeElement.id'),'navPlace');
+ assert.equal(await ev('document.activeElement.id'),'tab-explore');
  assert.notEqual(await ev('getComputedStyle(document.activeElement).outlineStyle'),'none');
  assert.equal(errors.length,0,JSON.stringify(errors));
  console.log('PASS: mobile UI, five POIs, placeholders/transcripts, 360 fallback, real WebGL and touch, visit protection, editing, repeat add/delete, relative persistence, exit/restart. XR tracking is simulated.');

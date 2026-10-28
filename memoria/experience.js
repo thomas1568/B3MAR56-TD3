@@ -33,6 +33,7 @@ export function createExperience(step, api) {
     if (activeAR) { el('prepareModal').hidden = false; el('closePrepareButton').focus(); }
     else { el('stepSection').hidden = false; el('stepSection').scrollIntoView({behavior:scrollBehavior(), block:'start'}); }
     updateJourney();
+    document.dispatchEvent(new CustomEvent('memoria:prepare'));
   }
   function closePrepare() { el('prepareModal').hidden = true; el('navPrepare').focus(); }
   el('closePrepareButton').addEventListener('click', closePrepare);
@@ -190,6 +191,7 @@ export function createExperience(step, api) {
   }
   function openPoint(id) {
     const point = findPoint(id, step); if (!point || activePoint?.id === id && !el('poiModal').hidden) return;
+    document.dispatchEvent(new CustomEvent('memoria:point', { detail: { id } }));
     closeStories(); api.onCardOpen(); audio.stopNarration(); focusBefore = document.activeElement; activePoint = point;
     panorama?.setActive(false);
     el('pointTitle').textContent = point.title; el('pointDate').textContent = point.date;
@@ -260,6 +262,7 @@ export function createExperience(step, api) {
     el('arToolbar').hidden = !value; el('sceneControls').hidden = !value;
     if (!value) { audio.stopAll(); el('audioDock').hidden = true; el('routeModal').hidden = true; el('ambienceChoice').value = ''; }
     el('mySidenav').classList.remove('open');
+    document.dispatchEvent(new CustomEvent('memoria:ar', { detail: { active: value } }));
   }
   function setAvailability(available, message) {
     availableAR = available; el('arAvailability').textContent = message;
@@ -267,7 +270,7 @@ export function createExperience(step, api) {
     updateJourney();
   }
   return {
-    openPoint, closePoint, openPanorama, showMessage, setMode, setARState, setAvailability,
+    openPoint, closePoint, openPanorama, closePanorama, openStories, closeStories, prepareVisit, showMessage, setMode, setARState, setAvailability,
     stopSounds: () => audio.stopAll(),
     setScenePlaced(placed) { scenePlaced = placed; el('placeSceneButton').textContent = placed ? 'Recaler la scène' : 'Placer la scène'; if (activeAR) currentStage = placed ? 'discover' : 'place'; updateJourney(); },
     setPlacementReady(ready) { el('placeSceneButton').disabled = !ready; },
@@ -294,7 +297,7 @@ export function createExperience(step, api) {
         }
       }
     },
-    leave() { setARState(false); prepared = false; scenePlaced = false; updateJourney(); el('stepSection').hidden = true; el('homeView').scrollTop = 0; panorama?.dispose(); panorama = null; clearTimeout(toastTimer); el('experienceNotice').hidden = true; el('navPrepare').focus({preventScroll:true}); },
+    leave() { setARState(false); prepared = false; scenePlaced = false; updateJourney(); el('stepSection').hidden = true; el('homeView').scrollTop = 0; panorama?.dispose(); panorama = null; clearTimeout(toastTimer); el('experienceNotice').hidden = true; document.dispatchEvent(new CustomEvent('memoria:leave')); },
     getState: () => ({ activeAR, mode, activePoint: activePoint?.id || null, availableAR }),
     audio
   };

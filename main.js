@@ -6,6 +6,7 @@ import { IUT_STEP } from './content/iut.js';
 import { createMemoriaScene } from './memoria/scene.js';
 import { loadLayout, saveLayout, LAYOUT_KEY } from './memoria/layout.js';
 import { createExperience } from './memoria/experience.js';
+import { createShell } from './memoria/shell.js';
 
 let scene;
 let camera;
@@ -76,6 +77,7 @@ function init() {
         placeScene: placeMemoriaScene, saveLayout: saveMemoriaLayout, resetLayout: resetMemoriaLayout,
         onPointAction, viewInAR: viewPointInAR, onCardOpen: () => stopDrag()
     });
+    createShell(experience, IUT_STEP);
     experience.setMode('visit');
     experience.setAvailability(false, 'Vérification de la disponibilité AR…');
 

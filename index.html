@@ -2,10 +2,11 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>Memoria Corti — Corte, une ville de savoir</title>
+<title>Memoria Corti — Des lieux, des voix, une mémoire</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#273B31">
-<link rel="stylesheet" href="main.css?v=14">
+<link rel="stylesheet" href="main.css?v=15">
+<link rel="stylesheet" href="memoria/shell.css?v=15">
 <script type="importmap">
 {"imports":{"three":"./build/three.module.js","three/addons/":"./jsm/"}}
 </script>
@@ -19,9 +20,11 @@
   <symbol id="icon-exit" viewBox="0 0 24 24"><path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5m5-13 5 5-5 5M9 12h11"/></symbol>
   <symbol id="icon-pin" viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2"/></symbol>
   <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+  <symbol id="icon-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10H3Zm6 10v-7h6v7"/></symbol>
+  <symbol id="icon-route" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M8 5h8a4 4 0 0 1 0 8H8a3 3 0 0 0 0 6h8"/></symbol>
 </defs></svg>
 <div id="content" data-mode="visit">
-<main id="homeView" data-ui>
+<main id="homeView" data-ui hidden>
   <header class="site-header"><a class="brand" href="#homeView"><span class="seal">MC</span><span>Memoria <em>Corti</em><small>Des lieux. Des voix. Une mémoire.</small></span></a><span class="location-chip"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg>Corte · Corse</span></header>
   <section class="hero">
     <div class="hero-copy"><p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>Le parcours commence ici · Étape 01</p><h1 id="stepTitle">Corte, une ville de savoir</h1><p class="hero-subtitle" id="stepSubtitle"></p><p class="location-line">IUT de Corse <span>—</span> Campus Grimaldi</p><p id="stepIntroduction" class="intro"></p>
@@ -79,7 +82,7 @@
 <section id="audioDock"  data-ui hidden><details open><summary id="playerTitle">Écoute</summary><p id="playerSource"></p><p id="playerMessage" role="status"></p><div class="button-row"><button id="pauseAudioButton" type="button" disabled>Pause</button><button id="resumeAudioButton" type="button" disabled>Reprendre</button><button id="stopAudioButton" type="button">Arrêter</button><label>Volume <input id="volumeControl" type="range" min="0" max="1" step=".05" value=".8"></label></div><details><summary>Transcription</summary><p id="playerTranscript"></p></details></details></section>
 <p id="experienceNotice" data-ui class="notice" role="status" hidden></p>
 <section id="prepareModal" class="modal-backdrop" data-ui hidden><article class="content-card" role="dialog" aria-modal="true" aria-labelledby="prepareTitle"><header><div><p class="eyebrow">Votre première étape</p><h2 id="prepareTitle">Prendre le temps de regarder</h2></div><button id="closePrepareButton" type="button" aria-label="Fermer la préparation">Fermer</button></header><div class="card-scroll"><ol class="preparation-list"><li><strong>Autour de vous</strong><p>Installez-vous dans un espace dégagé et restez attentif au lieu qui vous entoure.</p></li><li><strong>Une surface, une scène</strong><p>Scannez doucement une surface plane. Lorsque le cercle apparaît, touchez « Placer la scène ».</p></li><li><strong>À votre rythme</strong><p>Touchez les cinq repères pour lire les fiches. Retrouvez les récits dans « Écouter » et fermez l’expérience avec « Quitter ».</p></li></ol><p class="historical-note">Placement manuel : un recalage est nécessaire à chaque session. La scène est une évocation du savoir, pas une restitution historique du campus.</p></div></article></section>
-<div class="journey-dock" data-ui>
+<div id="experienceDock" class="journey-dock" data-ui hidden>
   <p id="journeyHint" class="journey-hint">Commencez par préparer votre découverte.</p>
   <nav id="journeyNav" class="journey-nav" aria-label="Étapes de l’expérience">
     <button id="navPrepare" class="journey-item" type="button" data-stage="prepare" aria-current="step" aria-describedby="journeyHint"><svg class="icon" aria-hidden="true"><use href="#icon-prepare"/></svg><span>Préparer</span></button>
@@ -90,7 +93,7 @@
   </nav>
 </div>
 </div>
-<script type="module" src="./main.js?v=14"></script>
+<script type="module" src="./main.js?v=15"></script>
 <script>
 function openNav(){document.getElementById('mySidenav').classList.add('open');}
 function closeNav(){document.getElementById('mySidenav').classList.remove('open');}

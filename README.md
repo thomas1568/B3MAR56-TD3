@@ -2,11 +2,42 @@
 
 Application statique ES modules : Three.js r180, WebXR (`immersive-ar`), hit-test, DOM Overlay, GLTFLoader et OrbitControls déjà présents. Aucune dépendance ajoutée. Le chargement de jQuery a été retiré ; les commandes utilisent les événements DOM natifs.
 
+## Accueil personnalisé et profil
+
+L’application propose désormais un accueil « Bonghjornu, [pseudo] », une reprise du dernier repère consulté, les sections **Explorer Corte** et **À écouter**, un parcours et un profil. La navigation principale est **Accueil, Explorer, Parcours, Écouter, Profil**. La préparation de l’IUT ouvre la navigation contextuelle existante **Préparer, Placer, Découvrir, Écouter, Quitter** ; « Accueil » dans l’en-tête revient à l’application hors AR. L’IUT est la seule étape disponible ; le Palazzu Naziunale est annoncé en préparation, avec une fiche d’information et un accès à la première étape.
+
+Le projet ne contient toujours aucune photographie du territoire. Les trois nouveaux visuels SVG de `assets/` sont des illustrations originales, clairement étiquetées ; ils ne représentent pas des archives ni une restitution fidèle d’un bâtiment. Les cards n’affichent pas de durées inventées. La progression correspond précisément au nombre de fiches distinctes consultées parmi les cinq repères de l’IUT.
+
+Sept avatars SVG sont proposés : citadelle, livre, voix, montagne, rivière, boussole et initiales. Une photo JPEG, PNG ou WebP de 5 Mo maximum peut être importée, déplacée ou ajustée avec les curseurs, puis recadrée en carré de 640 px et affichée en cercle. L’export JPEG retire les métadonnées du fichier original. Une modification d’image est immédiatement visible dans le profil, l’en-tête et l’onglet Profil ; hors première utilisation, le choix d’image est enregistré automatiquement. Le pseudo est enregistré avec le bouton du formulaire.
+
+### Activer les véritables comptes Supabase
+
+**Par défaut, aucun compte distant n’est activé.** Le mode invité fonctionne et s’annonce comme local à cet appareil. Il conserve le pseudo, l’avatar ou la photo et la progression dans le navigateur. Il ne prétend jamais être une session connectée et n’est pas synchronisé entre appareils. Le formulaire de connexion explique son indisponibilité tant que la configuration n’est pas fournie.
+
+1. Créer un projet Supabase. Exécuter `supabase/setup.sql` dans son éditeur SQL : les tables de profils et de progression sont protégées par RLS, et le bucket privé `avatars` limite les accès au dossier de l’utilisateur authentifié.
+2. Renseigner uniquement l’URL du projet et sa **clé publique publiable** (ou ancienne clé `anon`) dans `memoria/config.js`. Ne jamais ajouter de clé `service_role` ni de clé secrète. Aucun serveur applicatif ou outil de compilation n’est nécessaire ; le client utilise les API Auth, PostgREST et Storage de Supabase.
+3. Activer l’authentification e-mail/mot de passe. Configurer la Site URL et les Redirect URLs avec `https://thomas1568.github.io/B3MAR56-TD3/` et l’origine de développement utilisée. La confirmation e-mail est prise en charge : sans jetons de session, l’application affiche un message de confirmation et attend la connexion. Les liens de confirmation reviennent vers le site, et leurs jetons sont retirés de l’URL avant chargement du profil.
+4. Configurer un service SMTP adapté à la production et vérifier l’envoi des e-mails, les quotas et les politiques du projet Supabase. Tester l’inscription et la connexion avec un véritable compte, puis la restauration sur un autre appareil et l’isolation entre deux utilisateurs.
+
+Avec Supabase configuré, le pseudo et la référence d’avatar sont enregistrés dans `memoria_profiles`, les fiches consultées dans `memoria_progress`, et les photos dans le bucket privé. Le navigateur conserve la session Auth pour retrouver le compte ; les jetons expirés sont renouvelés avant les requêtes. Les photos utilisent des URL signées. La déconnexion révoque la session courante côté service avant d’effacer la session locale. Le profil invité reste distinct du compte : aucune fusion implicite de ses données avec un compte distant n’est réalisée.
+
+Références : [authentification par mot de passe](https://supabase.com/docs/guides/auth/passwords), [gestion des sessions](https://supabase.com/docs/guides/auth/sessions), [politiques Storage](https://supabase.com/docs/guides/storage/security/access-control).
+
+### Vérifications de la nouvelle interface
+
+```powershell
+node --test --test-isolation=none tests/ar-interactions.mjs tests/memoria.mjs tests/accounts.mjs
+node tests/shell-browser.mjs
+node tests/browser-smoke.mjs
+```
+
+Les tests du profil couvrent les validations, le mode invité, la persistance après rechargement, les sept avatars, le recadrage et l’import, l’image dans la navigation, la progression et la reprise. Le test Chrome exécute aussi une inscription avec confirmation e-mail, une connexion refusée puis réussie, le stockage de photo et la reconnexion **contre un serveur HTTP simulant Supabase**. Il ne crée aucun compte réel. Les contrôles des politiques RLS, de SMTP et des e-mails réels nécessitent la configuration du projet et restent à effectuer. Les vues mobiles, tablette et ordinateur sont contrôlées à 320, 390, 768 et 1440 px. Les tests AR utilisent toujours des poses simulées ; le suivi et les permissions sur téléphone restent à confirmer.
+
 ## Interface et navigation
 
 L’interface utilise le vert profond `#273B31`, le cuivre `#B86D4E`, l’ivoire `#F4F0E8`, le beige `#EBE5D9` et le texte `#202823`, avec Georgia pour les titres et Arial pour les textes et les commandes. Les pictogrammes partagent une même famille SVG locale, sans dépendance ni chargement externe.
 
-La capsule flottante reste accessible à l’accueil, en consultation 360° et dans le DOM Overlay AR :
+La capsule contextuelle de l’étape reste accessible pendant sa préparation, en consultation 360° et dans le DOM Overlay AR :
 
 - **Préparer** ouvre l’étape et ses indications ; pendant l’AR, affiche les conseils sans interrompre la session.
 - **Placer** démarre l’AR après préparation, puis utilise la pose détectée pour placer ou recaler la scène. Sans surface détectée, explique le geste de scan. Sans WebXR, annonce l’indisponibilité et oriente vers le 360°.
