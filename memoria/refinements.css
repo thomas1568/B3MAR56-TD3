@@ -1,0 +1,21 @@
+.app-intro { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; flex-direction: column; background: radial-gradient(ellipse at 50% 35%,#e3e8dc,transparent 65%), linear-gradient(150deg,#F4F0E8,#EBE5D9); color: var(--green); padding: max(24px,env(safe-area-inset-top,0px)) 24px max(24px,env(safe-area-inset-bottom,0px)); opacity: 1; transition: opacity .3s ease; }
+.app-intro:focus { outline: none; }.app-intro.is-leaving { opacity: 0; pointer-events: none; }
+.intro-emblem { width: 100px; height: 100px; display: grid; place-items: center; position: relative; border: 1px solid #273b3140; border-radius: 50%; margin-bottom: 29px; animation: intro-emblem .8s cubic-bezier(.2,.7,.2,1) both; }
+.intro-emblem::before { content: ''; position: absolute; inset: 8px; border: 1px solid #b86d4e80; border-radius: 50%; }
+.intro-emblem svg { width: 50px; height: 50px; fill: none; stroke: var(--green); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
+.intro-name { margin: 0; font: 44px/1.2 Georgia,serif; letter-spacing: -.035em; animation: intro-copy .7s .1s both; }.intro-name em { color: var(--copper); font-weight: 400; }
+.intro-tagline { margin: 15px 0 0; font: 11px/1.6 Arial,sans-serif; letter-spacing: .07em; color: var(--muted); animation: intro-copy .7s .2s both; }
+.intro-line { width: 70px; height: 2px; border-radius: 2px; background: var(--copper); margin-top: 29px; transform-origin: left; animation: intro-line 1s ease both; }
+#skipIntro { position: absolute; bottom: max(30px,env(safe-area-inset-bottom,0px)); min-height: 44px; font-size: 11px; padding: 10px 16px; background: #f4f0e8b3; color: var(--green); border-color: #c6cbbb; border-radius: 24px; }
+@keyframes intro-emblem { from { opacity: 0; transform: translateY(10px) scale(.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes intro-copy { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes intro-line { from { transform: scaleX(0); opacity: .3; } to { transform: scaleX(1); opacity: 1; } }
+
+/* The large panorama heading scrolls normally. Only this compact exit remains. */
+#panoramaPanel > header { position: static; background: transparent; padding-right: 60px; }
+#panoramaPanel #closePanoramaButton { position: fixed; top: max(18px,env(safe-area-inset-top,0px)); right: max(20px,env(safe-area-inset-right,0px)); z-index: 7; min-height: 46px; width: 46px; min-width: 46px; padding: 0; border-radius: 50%; background: #f4f0e8f5; border: 1px solid #d4d8c9; color: var(--green); font: 27px Arial,sans-serif; box-shadow: 0 4px 16px #273b3126; }
+#pointList .point-card > .point-photo-credit { font-size: 9px; color: #62695f; line-height: 1.5; margin-top: 12px; padding-right: 42px; }
+#pointList .point-card > .point-visual-label { max-width: calc(100% - 24px); font-size: 9px; line-height: 1.4; }
+.voice-settings { padding: 17px; border: 1px solid var(--line); border-radius: 17px; background: #ebe5d966; margin: 20px 0; }.voice-settings label { margin: 0 0 13px; font-size: 12px; }.voice-settings label:last-child { margin-bottom: 0; }.voice-settings select { font: 16px Arial,sans-serif; border-radius: 12px; background: #faf8f2; padding: 10px; }
+.voice-note { font-size: 11px !important; color: var(--muted); }
+@media(prefers-reduced-motion:reduce) { .app-intro { transition: none; }.intro-emblem,.intro-name,.intro-tagline,.intro-line { animation: none; } }

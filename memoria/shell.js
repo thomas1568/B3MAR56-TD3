@@ -28,7 +28,7 @@ export function createShell(experience, step) {
     </section>
     <section id="page-explore" class="app-page" hidden aria-labelledby="exploreTitle"><p class="eyebrow">LES MÉMOIRES D’UN TERRITOIRE</p><h1 id="exploreTitle">Explorer Corte</h1><p class="page-subtitle">Des lieux à observer, des histoires à rencontrer.</p><div class="filter-row" role="group" aria-label="Filtrer les lieux"><button id="filterAll" aria-pressed="true">Tous les lieux</button><button id="filterAvailable" aria-pressed="false">Disponibles</button><button id="filterComing" aria-pressed="false">À venir</button></div><div id="explorePlaces" class="editorial-grid"></div><p class="small-note">Les visuels sont des illustrations originales. Les photographies documentées du parcours restent à fournir.</p></section>
     <section id="page-route" class="app-page" hidden aria-labelledby="routeTitle"><p class="eyebrow">UN FIL ENTRE LES LIEUX</p><h1 id="routeTitle">Mon parcours</h1><p class="page-subtitle">Une première étape à découvrir. D’autres mémoires à venir.</p><div class="route-summary"><div><span id="routeCount" class="large-number">0 / 5</span><p>repères consultés à l’IUT</p></div><div><h2>Corte, une ville de savoir</h2><p id="routeDescription">Votre découverte commence sur le campus Grimaldi.</p><progress id="routeProgress" max="5" value="0" aria-label="Progression de l’étape IUT"></progress></div></div><ol class="route-steps"><li><span class="route-marker">01</span><div><span class="status-pill">Disponible</span><h2>L’IUT de Corse</h2><p>Apprendre, transmettre et relier les mémoires de l’université.</p><button id="routeStartButton" class="primary">Découvrir l’étape ${icon('arrow')}</button></div></li><li><span class="route-marker muted-marker">02</span><div><span class="status-pill coming">À venir</span><h2>Le Palazzu Naziunale</h2><p>L’université historique, un autre lieu de savoir. Cette étape est en préparation.</p><button data-coming="Le Palazzu Naziunale">En savoir plus</button></div></li></ol></section>
-    <section id="page-listen" class="app-page" hidden aria-labelledby="listenTitle"><p class="eyebrow">LES HISTOIRES PRENNENT VOIX</p><h1 id="listenTitle">À écouter</h1><p class="page-subtitle">Choisissez un récit, ou prenez le temps de le lire.</p><div class="listen-intro">${icon('listen')}<p>Les transcriptions sont disponibles. La synthèse vocale lit les textes ; les enregistrements originaux restent à fournir.</p></div><div id="listenStories" class="story-grid"></div><div class="section-heading"><h2>Les voix de demain</h2></div><article class="empty-card">${icon('listen')}<div><span class="status-pill coming">À venir</span><h3>Des mémoires à partager</h3><p>De futurs récits et témoignages enrichiront la découverte de Corte.</p></div></article></section>
+    <section id="page-listen" class="app-page" hidden aria-labelledby="listenTitle"><p class="eyebrow">LES HISTOIRES PRENNENT VOIX</p><h1 id="listenTitle">À écouter</h1><p class="page-subtitle">Choisissez un récit, ou prenez le temps de le lire.</p><div class="listen-intro">${icon('listen')}<p>Retrouvez les histoires dans une narration française à voix IA naturelle. Les transcriptions restent accessibles à tout moment.</p></div><div id="listenStories" class="story-grid"></div><div class="section-heading"><h2>Les voix de demain</h2></div><article class="empty-card">${icon('listen')}<div><span class="status-pill coming">À venir</span><h3>Des mémoires à partager</h3><p>De futurs récits et témoignages enrichiront la découverte de Corte.</p></div></article></section>
     <section id="page-profile" class="app-page" hidden aria-labelledby="profileTitle"><p class="eyebrow">VOTRE REGARD SUR CORTE</p><h1 id="profileTitle">Mon profil</h1><div class="profile-layout"><div><div class="profile-identity"><span class="avatar avatar-large" data-profile-avatar></span><div><h2 id="profileName"></h2><p id="profileConnection" class="small-note"></p></div></div><div id="profileEditorHome"></div></div><aside class="profile-aside"><p class="eyebrow">VOTRE DÉCOUVERTE</p><h2 id="profileProgressTitle">Le premier pas vous attend.</h2><p id="profileProgressText"></p><button id="profileResume">Retrouver mon parcours ${icon('arrow')}</button><div class="profile-account"><p id="profileStorageNote" class="small-note"></p><button id="connectFromProfile">Créer un compte ou se connecter</button><button id="logoutButton">Se déconnecter ${icon('exit')}</button></div></aside></div></section>
     <footer class="site-footer"><span>Memoria Corti · La mémoire en mouvement</span><span>Corte, des lieux à rencontrer</span></footer>`;
   root.prepend(app);
@@ -93,7 +93,7 @@ export function createShell(experience, step) {
   ];
   function storyCard(item) {
     const article = document.createElement('article'); article.className = 'story-card';
-    article.innerHTML = `<div class="story-visual"><img src="assets/voix-illustration.svg" alt="Illustration d’ondes sonores" width="1000" height="600" loading="lazy">${icon('listen')}</div><div><span class="eyebrow">TEXTE & SYNTHÈSE VOCALE</span><h3></h3><p></p><button class="text-button"></button></div>`;
+    article.innerHTML = `<div class="story-visual"><img src="assets/voix-illustration.svg" alt="Illustration d’ondes sonores" width="1000" height="600" loading="lazy">${icon('listen')}</div><div><span class="eyebrow">RÉCITS & VOIX NATURELLE IA</span><h3></h3><p></p><button class="text-button"></button></div>`;
     article.querySelector('h3').textContent = item.title; article.querySelector('p').textContent = item.description; const button = article.querySelector('button'); button.textContent = item.action;
     button.addEventListener('click', () => { experience.openStories(); el('welcomeAudioButton').focus(); if (item.id === 'main') el('mainAudioButton').focus(); }); return article;
   }
@@ -231,6 +231,7 @@ export function createShell(experience, step) {
     el('pseudoInput').focus();
   }
   function completeOnboarding() {
+    message('onboardingStatus', '');
     settingUp = false; profileReturn = null; overlay.hidden = true; app.inert = false; el('homeView').inert = false; el('profileEditorHome').appendChild(form);
     showPage('home'); renderProfile();
   }
@@ -359,6 +360,7 @@ export function createShell(experience, step) {
   account.restore().then(restored => {
     state = restored;
     if (state.profile.pseudo && (state.guest || state.connected)) completeOnboarding(); else if (state.connected) openSetup(); else openWelcome();
-  }).catch(error => { openWelcome(); message('onboardingStatus', error.message, true); });
+  }).catch(error => { openWelcome(); message('onboardingStatus', error.message, true); })
+    .finally(() => document.dispatchEvent(new CustomEvent('memoria:ready')));
   return { account, showPage, startStep };
 }

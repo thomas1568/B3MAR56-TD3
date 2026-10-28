@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" role="img" aria-label="Évocation d’un campus contemporain et de ses étudiants">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#e0e7d8"/><stop offset="1" stop-color="#F4F0E8"/></linearGradient></defs>
+<path fill="url(#sky)" d="M0 0h1000v600H0z"/><circle cx="785" cy="132" r="54" fill="#F4F0E8"/>
+<path d="m0 340 160-157 153 165 135-162 177 174 140-120 235 147v213H0Z" fill="#bbc8af"/><path d="m0 430 218-105 195 115 205-80 172 60 210-83v263H0Z" fill="#94a58b"/>
+<path d="M170 245h660v220H170Z" fill="#EBE5D9" stroke="#273B31" stroke-width="4"/><path d="M150 231h700v26H150Z" fill="#273B31"/><path d="M425 260h150v205H425Z" fill="#273B31"/>
+<path d="M457 311h86v154h-86Z" fill="#78917c"/><path d="M500 311v154" stroke="#F4F0E8" stroke-width="4"/>
+<g fill="#526c59" stroke="#273B31" stroke-width="3"><path d="M210 290h68v65h-68Zm110 0h68v65h-68Zm295 0h68v65h-68Zm110 0h68v65h-68Z"/><path d="M210 389h68v48h-68Zm110 0h68v48h-68Zm295 0h68v48h-68Zm110 0h68v48h-68Z"/></g>
+<path d="M0 465h1000v135H0Z" fill="#273B31"/><path d="m442 465 108 0 152 135H300Z" fill="#EBE5D9" opacity=".65"/>
+<g fill="#B86D4E"><circle cx="340" cy="445" r="13"/><path d="M322 466q18-15 36 0l7 58h-50Z"/><circle cx="656" cy="463" r="13"/><path d="M638 484q18-15 36 0l7 57h-50Z"/></g><g stroke="#EBE5D9" stroke-width="7" stroke-linecap="round"><path d="m330 522-4 43m22-43 4 43m296-25-3 35m20-35 3 35"/></g>
+<path d="M94 455V300m-30 43 30 30 31-41" fill="none" stroke="#526c59" stroke-width="15" stroke-linecap="round"/>
+</svg>

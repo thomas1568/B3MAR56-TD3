@@ -1,0 +1,80 @@
+{
+  "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
+  "voice": "ff_siwis",
+  "type": "ai-narration",
+  "language": "fr-FR",
+  "sampleRate": 24000,
+  "license": "Apache-2.0",
+  "tracks": {
+    "accueil": {
+      "title": "Bienvenue à l’IUT",
+      "src": "assets/audio/accueil.mp3",
+      "duration": 24.37,
+      "textHash": "52b2dd9938852d992c2dda4cdcdcead148805ff83918d8ebf8482dd0d9e107fe",
+      "sha256": "9eff2e205478e9248098dab2c5abda638b7c7ecf5f0f143d681463a32161d981",
+      "bytes": 195456,
+      "peak": 0.7349192500114441,
+      "rms": 0.09416088630247532
+    },
+    "recit": {
+      "title": "Trois dates, une histoire de savoir",
+      "src": "assets/audio/recit.mp3",
+      "duration": 80.24,
+      "textHash": "6dfe5095e0b8fec12dafa0a1dc435ee12667ac6e2b0b1e1cd711cd818a3f0aa4",
+      "sha256": "b5d00936d8990af6084198a7c82583bdb7e75af6acd1a5f235e02203889bce69",
+      "bytes": 642432,
+      "peak": 0.8759558200836182,
+      "rms": 0.09730733505683027
+    },
+    "iut": {
+      "title": "L’IUT aujourd’hui",
+      "src": "assets/audio/iut.mp3",
+      "duration": 30.11,
+      "textHash": "2faef9dc6c82f812d0e1c8205a68025f4dae2f1bcd86e49085a6819b8e12825a",
+      "sha256": "63f6eec14ddb4e878d82a7e16c727097e056ebe7dc29fbc8d42794a0dfac38bb",
+      "bytes": 241344,
+      "peak": 0.7315559983253479,
+      "rms": 0.0953765979614927
+    },
+    "naissance": {
+      "title": "1765 — La naissance de l’université",
+      "src": "assets/audio/naissance.mp3",
+      "duration": 25.81,
+      "textHash": "dbb48ae977004ae4d48bebdaba6fb5060f4f1613f5df825c6a989f07abb24d24",
+      "sha256": "fce791d78ffce52d7b205a860d3dbc27c24565614db63170184e043a6d454459",
+      "bytes": 206976,
+      "peak": 0.8273264765739441,
+      "rms": 0.09724704165389858
+    },
+    "paoli": {
+      "title": "Pasquale Paoli",
+      "src": "assets/audio/paoli.mp3",
+      "duration": 30.76,
+      "textHash": "0b7891a37820163ebf3ecb324272025470287bd1838d6784a1ac368eca08977f",
+      "sha256": "0dab31a0cef2484c0893ac5254658c1ee04581b16e7b364f049e14b1423639b1",
+      "bytes": 246528,
+      "peak": 0.8449569344520569,
+      "rms": 0.09433987581044394
+    },
+    "reouverture": {
+      "title": "1981 — La réouverture",
+      "src": "assets/audio/reouverture.mp3",
+      "duration": 31.23,
+      "textHash": "3fa1c12f9c4ddd6777aacba539b3b70d5a551c5d477b4f23dc16901969390df3",
+      "sha256": "37ede4283c8906d8090256d3dbbf0d8dc47c5a6a75655b4c7c7f75e6b5835a06",
+      "bytes": 250368,
+      "peak": 0.6747348308563232,
+      "rms": 0.09289749585585885
+    },
+    "corte": {
+      "title": "Corte, ville universitaire",
+      "src": "assets/audio/corte.mp3",
+      "duration": 27.06,
+      "textHash": "9fcf6c87c8d110f55bfb61e6bf53bffb40c2614bf2c07ae53f4c4dd4d809cbaf",
+      "sha256": "90458cf127c8abe57ad3f3a85b3577dd8eb5a2558f944640dc762d3a5940c03e",
+      "bytes": 216960,
+      "peak": 0.8240010142326355,
+      "rms": 0.09738717756782202
+    }
+  }
+}

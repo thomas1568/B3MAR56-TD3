@@ -3,6 +3,7 @@
 
 # Local tooling and generated artifacts.
 node_modules/
+.tools/
 coverage/
 playwright-report/
 test-results/

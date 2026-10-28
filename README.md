@@ -1,6 +1,6 @@
 # Memoria Corti — première étape IUT
 
-Application statique ES modules : Three.js r180, WebXR (`immersive-ar`), hit-test, DOM Overlay, GLTFLoader et OrbitControls déjà présents. Aucune dépendance ajoutée. Le chargement de jQuery a été retiré ; les commandes utilisent les événements DOM natifs.
+Application statique ES modules : Three.js r180, WebXR (`immersive-ar`), hit-test, DOM Overlay, GLTFLoader et OrbitControls déjà présents. Aucune dépendance d’exécution ajoutée au site. Les outils de génération vocale restent dans un dossier local ignoré par Git. Le chargement de jQuery a été retiré ; les commandes utilisent les événements DOM natifs.
 
 ## Accueil personnalisé et profil
 
@@ -40,7 +40,7 @@ Références : [authentification par mot de passe](https://supabase.com/docs/gui
 ### Vérifications de la nouvelle interface
 
 ```powershell
-node --test --test-isolation=none tests/ar-interactions.mjs tests/memoria.mjs tests/accounts.mjs tests/city-and-crop.mjs tests/music.mjs
+node --test --test-isolation=none tests/ar-interactions.mjs tests/memoria.mjs tests/accounts.mjs tests/city-and-crop.mjs tests/music.mjs tests/narration-and-entry.mjs
 node tests/shell-browser.mjs
 node tests/browser-smoke.mjs
 ```
@@ -48,6 +48,16 @@ node tests/browser-smoke.mjs
 Les tests du profil couvrent les validations, le mode invité, la persistance après rechargement, les sept avatars, le déplacement, le pincement, le recentrage et l’import de photo, l’image dans la navigation, la progression et la reprise. La carte est contrôlée pour le chargement de données locales, la liaison entre les lieux, le zoom, le déplacement sans changement d’onglet et la sélection disponible/à venir. Le test Chrome exécute aussi une inscription avec confirmation e-mail, une connexion refusée puis réussie, le stockage de photo et la reconnexion **contre un serveur HTTP simulant Supabase**. Il ne crée aucun compte réel. Les contrôles des politiques RLS, de SMTP et des e-mails réels nécessitent la configuration du projet et restent à effectuer. Les vues mobiles, tablette et ordinateur sont contrôlées à 320, 390, 768 et 1440 px. Les tests AR utilisent toujours des poses simulées ; le suivi et les permissions sur téléphone restent à confirmer. Le rendu réel du clavier et du zoom Safari nécessite un contrôle sur iPhone.
 
 ## Interface et navigation
+
+À chaque ouverture ou rechargement, une introduction courte présente l’emblème et le nom Memoria Corti sur un dégradé ivoire/beige/vert. Elle se ferme après la restauration du profil et environ une seconde, avec un fondu bref. « Passer l’introduction » et Échap permettent de la passer. La préférence de réduction des animations supprime le mouvement et l’attente esthétique. Le contenu est inactif pendant l’introduction, puis le focus rejoint l’accueil ou l’entrée du profil. Des délais de secours empêchent qu’un échec de démarrage laisse cette couche bloquée.
+
+Dans **Préparer**, les cinq cartes ont des visuels distincts : illustration de campus contemporain, livre, photographie actuelle de la statue de Paoli, dossiers d’archives illustrés autour de 1981, et photographie de la citadelle. Le statut photo/illustration et les crédits des photographies sont visibles. Ces visuels ne remplacent pas les archives historiques encore manquantes. Dans **Découvrir**, le grand en-tête défile avec la page ; seule une petite commande de fermeture reste disponible en haut.
+
+## Voix des récits
+
+Les sept textes existants disposent de fichiers MP3 locaux avec une voix française **IA naturelle** : accueil, récit principal et cinq repères. La voix Kokoro `ff_siwis` remplace la voix par défaut du navigateur. Le lecteur indique sa provenance IA, la durée réelle et les états de chargement/erreur ; pause, reprise, volume, transcription et trois rythmes de lecture sont disponibles. Les préférences de rythme et de source sont conservées localement. La voix de l’appareil reste une option de secours, avec priorité aux voix françaises et choix explicite parmi celles installées.
+
+Le modèle est utilisé uniquement pendant la génération, et ne figure pas dans le site déployé. Aucune clé API ni configuration de service vocal n’est nécessaire. Les crédits, limites de prononciation et instructions de régénération sont dans [assets/audio/README.md](assets/audio/README.md). Les enregistrements de véritables narrateurs humains restent une autre possibilité ; les fichiers intégrés sont clairement identifiés comme synthétiques.
 
 L’interface utilise le vert profond `#273B31`, le cuivre `#B86D4E`, l’ivoire `#F4F0E8`, le beige `#EBE5D9` et le texte `#202823`, avec Georgia pour les titres et Arial pour les textes et les commandes. Les pictogrammes partagent une même famille SVG locale, sans dépendance ni chargement externe.
 
@@ -128,7 +138,7 @@ Le projet intègre quatre photographies de Corte documentées dans `assets/photo
 
 - Photographie actuelle de l’IUT, document lié à 1765, portrait historique identifié de Paoli et archive de 1981. La carte géographique 2D du parcours est désormais intégrée ; le support AR de Corte reste un schéma d’évocation.
 - Photographie équirectangulaire 360° du lieu si une capture documentaire est souhaitée, puis calage des angles des POI. Le panorama actuel est une illustration d’évocation identifiée comme telle ; les fiches restent accessibles si WebGL échoue.
-- Enregistrements de l’accueil (texte prévu pour 15–20 s), du récit (environ une minute) et des cinq points ; les durées réelles doivent être mesurées après enregistrement.
+- Enregistrements de narrateurs humains si souhaités pour remplacer la narration IA intégrée. Les sept MP3 actuels disposent de durées calculées et de transcriptions identiques aux textes du parcours.
 - Ambiances pages/écriture/murmures et campus ; une musique de fin facultative avec réutilisation autorisée. La partition instrumentale d’entrée AR est intégrée et originale.
 - Deux images du **même lieu** uniquement si une comparaison avant/après pertinente est possible.
 

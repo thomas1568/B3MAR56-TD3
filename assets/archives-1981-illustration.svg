@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" role="img" aria-label="Évocation de dossiers d’archives autour de la réouverture de 1981">
+<path fill="#273B31" d="M0 0h1000v600H0z"/><g fill="none" stroke="#b9c3a6" opacity=".35"><circle cx="510" cy="300" r="215"/><circle cx="510" cy="300" r="175" stroke-dasharray="4 12"/></g>
+<path d="m160 433 390 119 319-122-355-100Z" fill="#192e23"/>
+<path d="m240 243 342-56 158 76-340 69Z" fill="#c0ad8f"/><path d="m240 243 160 89v153l-160-98Z" fill="#ab9374"/><path d="m400 332 340-69v150l-340 72Z" fill="#EBE5D9"/>
+<path d="m426 361 249-50v58l-249 52Z" fill="#273B31"/><path d="m453 372 191-38m-191 60 120-24" stroke="#EBE5D9" stroke-width="4" opacity=".75"/>
+<path d="m316 194 135-36 141 72-139 39Z" fill="#F4F0E8"/><path d="m355 205 71-19m-39 42 71-19" stroke="#B86D4E" stroke-width="4"/>
+<g transform="translate(600 133) rotate(8)"><rect width="192" height="106" rx="12" fill="#B86D4E"/><text x="96" y="72" fill="#F4F0E8" font-family="Georgia,serif" font-size="63" text-anchor="middle">1981</text></g>
+<path d="m615 443 118-26 35 17-119 28Z" fill="#B86D4E"/>
+</svg>

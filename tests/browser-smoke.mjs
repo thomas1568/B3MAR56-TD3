@@ -90,6 +90,10 @@ try{
  await send('Page.navigate',{url:'http://127.0.0.1:'+server.address().port+'/'});
  async function until(expression){for(let i=0;i<150;i++){if(await ev(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+expression);}
  await until('!!window.__memoriaCheck');await until('document.getElementById("arAvailability").textContent.indexOf("Vérification")<0');assert.equal(errors.length,0,JSON.stringify(errors));
+ await until('document.getElementById("appIntro").hidden');
+ const decodedNarrations=await ev(`(async()=>{const manifest=await(await fetch('assets/audio/narrations.json')).json(),context=new OfflineAudioContext(1,1,24000),result=[];for(const [id,track] of Object.entries(manifest.tracks)){const data=await(await fetch(track.src)).arrayBuffer(),audio=await context.decodeAudioData(data);result.push({id,duration:audio.duration,expected:track.duration,channels:audio.numberOfChannels});}return result;})()`);
+ assert.equal(decodedNarrations.length,7);
+ for(const track of decodedNarrations){assert.equal(track.channels,1);assert.ok(Math.abs(track.duration-track.expected)<.2,JSON.stringify(track));}
  await until('!document.getElementById("onboarding").hidden && !document.getElementById("onboardingWelcome").hidden && !document.getElementById("onboardingStatus").textContent');
  await ev('document.getElementById("guestButton").click();document.getElementById("pseudoInput").value="Visiteur";document.getElementById("profileForm").requestSubmit()');
  await until('document.getElementById("onboarding").hidden');
@@ -122,12 +126,19 @@ try{
   assert.equal(await ev('document.getElementById("missingImage").hidden'),false);
   assert.equal(await ev('document.getElementById("enlargeImageButton").disabled'),true);
   assert.ok(await ev('document.getElementById("pointTranscript").textContent.length>40'));
+  await button('listenPointButton',{scroll:true});await until('__memoriaCheck.state().audio.playing');
+  assert.match(await ev('document.getElementById("playerSource").textContent'),/Voix IA naturelle/);
+  await button('stopAudioButton');
   await button('closePointButton');
  }
- // Missing audio path uses an explicit user command; transcript stays readable.
+ // Default narration is a real local MP3 with an explicit AI source.
  await ev('document.getElementById("voiceChoice").value="recording"');
  await button('welcomeAudioButton',{scroll:true});
- assert.match(await ev('document.getElementById("playerMessage").textContent'),/Audio à fournir/);
+ await until('__memoriaCheck.state().audio.playing');
+ assert.match(await ev('document.getElementById("playerSource").textContent'),/Voix IA naturelle/);
+ assert.ok(await ev('__memoriaCheck.state().audio.duration>20'));
+ await button('pauseAudioButton');assert.equal(await ev('__memoriaCheck.state().audio.paused'),true);
+ await button('resumeAudioButton');await until('!__memoriaCheck.state().audio.paused');
  await button('stopAudioButton');
  await ev('document.getElementById("audioDock").hidden=true');
  await button('openPanoramaButton',{scroll:true});
@@ -140,7 +151,10 @@ try{
  const panoramaShot=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(profile,'panorama-360.png'),Buffer.from(panoramaShot.data,'base64'));
  assert.equal(await ev('document.querySelectorAll("#panoramaScene button").length'),5);
  await ev('document.querySelector("#fallbackPointList button").click()');assert.equal(await ev('__memoriaCheck.state().activePoint'),'iut');
- await button('closePointButton');await button('closePanoramaButton');
+ await button('closePointButton');
+ await ev('document.getElementById("panoramaPanel").scrollTop=1000');
+ assert.equal(await ev('getComputedStyle(document.querySelector("#panoramaPanel > header")).position'),'static');
+ await button('closePanoramaButton');
  // Begin fixture XR through the actual UI; actual Three renderer and native touch.
  await ev('__memoriaCheck.enable()');await button('startARButton',{scroll:true});assert.equal(await ev('__memoriaCheck.state().circle'),true);
  await until('__memoriaCheck.state().audio.musicPlaying');
@@ -173,7 +187,7 @@ try{
  await ev('__memoriaCheck.frame()');
  assert.equal(await ev('__memoriaCheck.state().mode'),'visit');
  await button('arListenButton');assert.equal(await ev('document.getElementById("storiesModal").hidden'),false);
- await button('welcomeAudioButton',{scroll:true});assert.match(await ev('document.getElementById("playerMessage").textContent'),/Audio à fournir/);
+ await button('welcomeAudioButton',{scroll:true});await until('__memoriaCheck.state().audio.playing');assert.match(await ev('document.getElementById("playerSource").textContent'),/Voix IA naturelle/);
  assert.equal(await ev('document.getElementById("audioDock").closest("[role=dialog]")?.getAttribute("aria-label")'),'Récits et ambiances');
  await ev('document.getElementById("volumeControl").focus()');
  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});

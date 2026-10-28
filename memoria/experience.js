@@ -1,7 +1,8 @@
-import { findPoint, mediaReady } from '../content/iut.js?v=18';
-import { createAudioController } from './audio.js?v=18';
-import { createPanorama } from './panorama.js?v=18';
+import { findPoint, mediaReady } from '../content/iut.js?v=19';
+import { createAudioController } from './audio.js?v=19';
+import { createPanorama } from './panorama.js?v=19';
 import { layoutHotspots } from './hotspots.js';
+import { POINT_VISUALS } from '../content/point-visuals.js?v=19';
 
 export function createExperience(step, api) {
   const el = id => document.getElementById(id);
@@ -87,6 +88,9 @@ export function createExperience(step, api) {
     el('audioDock').hidden = !state.text && !state.message.startsWith('Lecture');
     el('playerTitle').textContent = state.title || 'Écoute';
     el('playerSource').textContent = state.source;
+    const clock = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds) % 60).padStart(2,'0')}`;
+    el('playerTime').textContent = state.duration ? `${clock(state.currentTime)} / ${clock(state.duration)}` : '';
+    el('audioDock').setAttribute('aria-busy', String(state.loading));
     el('playerMessage').textContent = state.message;
     el('playerTranscript').textContent = state.text;
     el('pauseAudioButton').disabled = !state.playing || state.paused;
@@ -105,9 +109,25 @@ export function createExperience(step, api) {
   if (!audio.supportsSpeech) {
     el('voiceChoice').value = 'recording'; el('speechOption').disabled = true;
   }
+  function fillDeviceVoices() {
+    const selected = el('deviceVoiceChoice').value;
+    const auto = new Option('Automatique · voix française', '');
+    el('deviceVoiceChoice').replaceChildren(auto, ...audio.getSpeechVoices().map(voice => new Option(`${voice.name} · ${voice.lang}`, voice.voiceURI)));
+    try { el('deviceVoiceChoice').value = selected || localStorage.getItem('memoria-corti:device-voice') || ''; } catch {}
+  }
+  fillDeviceVoices(); globalThis.speechSynthesis?.addEventListener('voiceschanged', fillDeviceVoices);
+  try { el('voiceChoice').value = audio.supportsSpeech && localStorage.getItem('memoria-corti:voice-source') === 'speech' ? 'speech' : 'recording'; el('playbackSpeed').value = ['.85','1','1.15'].includes(localStorage.getItem('memoria-corti:voice-speed')) ? localStorage.getItem('memoria-corti:voice-speed') : '1'; } catch {}
+  el('deviceVoiceLabel').hidden = el('voiceChoice').value !== 'speech'; audio.setRate(el('playbackSpeed').value);
+  el('voiceChoice').addEventListener('change', () => {
+    audio.stopNarration(); el('deviceVoiceLabel').hidden = el('voiceChoice').value !== 'speech';
+    try { localStorage.setItem('memoria-corti:voice-source', el('voiceChoice').value); } catch {}
+    if (activePoint) el('listenPointButton').textContent = el('voiceChoice').value === 'speech' ? 'Écouter · voix de l’appareil' : 'Écouter · voix naturelle';
+  });
+  el('deviceVoiceChoice').addEventListener('change', () => { audio.stopNarration(); try { localStorage.setItem('memoria-corti:device-voice', el('deviceVoiceChoice').value); } catch {} });
+  el('playbackSpeed').addEventListener('change', () => { audio.setRate(el('playbackSpeed').value); try { localStorage.setItem('memoria-corti:voice-speed', el('playbackSpeed').value); } catch {} });
   const play = track => {
     el('audioDock').firstElementChild.open = true;
-    return audio.play(track, { synthetic: el('voiceChoice').value === 'speech' });
+    return audio.play(track, { synthetic: el('voiceChoice').value === 'speech', voiceURI: el('deviceVoiceChoice').value });
   };
   el('stepTitle').textContent = step.title;
   el('stepSubtitle').textContent = step.subtitle;
@@ -117,6 +137,9 @@ export function createExperience(step, api) {
   el('stepInstructions').textContent = step.instructions;
   el('welcomeTranscript').textContent = step.narrations.welcome.text;
   el('mainTranscript').textContent = step.narrations.main.text;
+  for (const [id, track] of [['welcomeAudioButton',step.narrations.welcome],['mainAudioButton',step.narrations.main]]) {
+    if (track.audio?.duration) el(id).querySelector('small').textContent = `${Math.round(track.audio.duration)} s`;
+  }
   function makePointButton(point, className = '') {
     const button = document.createElement('button'); button.type = 'button'; button.className = className;
     const title = document.createElement('strong'); title.textContent = point.shortTitle; button.appendChild(title);
@@ -124,9 +147,13 @@ export function createExperience(step, api) {
       const date = document.createElement('span'); date.textContent = point.date;
       const question = document.createElement('small'); question.textContent = point.question;
       button.prepend(date); button.appendChild(question);
-      const visual = document.createElement('img'); visual.className = 'point-card-visual'; visual.src = point.id === 'corte' ? 'assets/corte-illustration.svg' : 'assets/savoir-illustration.svg';
-      visual.alt = ''; visual.loading = 'lazy'; visual.width = 1000; visual.height = 600; button.prepend(visual);
-      const visualLabel = document.createElement('span'); visualLabel.className = 'point-visual-label'; visualLabel.textContent = 'Illustration'; button.appendChild(visualLabel);
+      const asset = POINT_VISUALS[point.id];
+      const visual = document.createElement('img'); visual.className = 'point-card-visual'; visual.src = asset.src;
+      visual.alt = asset.alt; visual.loading = 'lazy'; visual.width = 1000; visual.height = 600;
+      if (asset.position) visual.style.objectPosition = asset.position;
+      button.prepend(visual);
+      const visualLabel = document.createElement('span'); visualLabel.className = 'point-visual-label'; visualLabel.textContent = asset.label; button.appendChild(visualLabel);
+      if (asset.author) { const credit = document.createElement('small'); credit.className = 'point-photo-credit'; credit.textContent = `${asset.author} · ${asset.license} · Wikimedia Commons`; button.appendChild(credit); }
       const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       arrow.classList.add('icon', 'point-arrow'); arrow.setAttribute('aria-hidden', 'true');
       const use = document.createElementNS('http://www.w3.org/2000/svg', 'use'); use.setAttribute('href', '#icon-arrow'); arrow.appendChild(use); button.appendChild(arrow);
@@ -214,8 +241,8 @@ export function createExperience(step, api) {
     el('pointQuestion').textContent = point.question; el('pointText').textContent = point.text;
     el('pointTranscript').textContent = point.transcript;
     el('pointStatus').textContent = 'Repères documentés · scène d’évocation';
-    el('pointAudioStatus').textContent = mediaReady(point.audio) ? 'Enregistrement disponible' : 'Audio à fournir · synthèse vocale facultative';
-    el('listenPointButton').textContent = el('voiceChoice').value === 'speech' ? 'Écouter · synthèse vocale' : 'Écouter';
+    el('pointAudioStatus').textContent = mediaReady(point.audio) ? 'Narration française disponible · voix IA naturelle' : 'Audio à fournir · synthèse vocale facultative';
+    el('listenPointButton').textContent = el('voiceChoice').value === 'speech' ? 'Écouter · voix de l’appareil' : 'Écouter · voix naturelle';
     el('pointImage').hidden = !mediaReady(point.image); el('missingImage').hidden = mediaReady(point.image);
     el('missingImage').textContent = point.image.label;
     el('enlargeImageButton').disabled = !mediaReady(point.image);

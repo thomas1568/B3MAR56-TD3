@@ -63,7 +63,7 @@ html.ar-session, body.ar-session { background: transparent !important; }
 .panorama-caption button { pointer-events: auto; min-height: 44px; }
 canvas.panorama-canvas:focus-visible { outline: 3px solid var(--copper); outline-offset: -4px; }
 #panoramaPanel { padding-inline: max(22px,calc((100vw - 1180px)/2)); }
-#panoramaPanel > header { position: sticky; top: -1px; z-index: 5; background: var(--paper); }
+#panoramaPanel > header { position: static; }
 #panoramaCredit { max-width: 780px; color: var(--muted); font-size: 12px; }
 
 @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {

@@ -12,12 +12,13 @@ const sceneSource = readFileSync(new URL('../memoria/scene.js', import.meta.url)
   .replace("'three'", JSON.stringify(new URL('../build/three.core.js', import.meta.url).href));
 const { createMemoriaScene } = await import('data:text/javascript;base64,' + Buffer.from(sceneSource).toString('base64'));
 
-test('five sourced POIs and missing assets never pretend to be reusable archives', () => {
+test('five sourced POIs distinguish missing archives from available AI narration', () => {
   assert.equal(IUT_STEP.points.length, 5);
   assert.deepEqual(IUT_STEP.dates.map(date => date.year), ['1765','1981','1983']);
   for (const point of IUT_STEP.points) {
     assert.ok(point.text && point.transcript && point.sources.length && point.image.label);
-    assert.equal(mediaReady(point.image), false); assert.equal(mediaReady(point.audio), false);
+    assert.equal(mediaReady(point.image), false); assert.equal(mediaReady(point.audio), true);
+    assert.equal(point.audio.kind, 'ai-narration');
   }
   assert.equal(mediaReady({src:'public-photo.jpg',rights:{status:'a-verifier'}}),false);
   assert.equal(mediaReady({src:'approved.jpg',rights:{status:'autorise'}}),true);
@@ -107,7 +108,7 @@ function audioFixture() {
 test('no autoplay, missing recordings remain explicit, synthesis is distinguished', async () => {
   const {audio,files,speech}=audioFixture();
   assert.equal(files.length,0);assert.equal(speech.spoken.length,0);
-  await audio.play(IUT_STEP.narrations.welcome);
+  await audio.play({ ...IUT_STEP.narrations.welcome, audio: null });
   assert.equal(audio.getState().playing,false); assert.match(audio.getState().message,/Audio à fournir/);
   assert.ok(audio.getState().text);
   await audio.play(IUT_STEP.narrations.welcome,{synthetic:true});

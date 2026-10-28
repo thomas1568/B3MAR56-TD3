@@ -1,5 +1,6 @@
 // Historical content is independent from the renderer. No remote media is loaded
 // until a file and explicit reuse permission are supplied.
+import { NARRATION_ASSETS } from './narrations.js?v=19';
 const sources = {
   iut: { title: 'IUT de Corse', url: 'https://iut.universita.corsica/', checked: '2026-10-05' },
   history: { title: 'Historique de l’Université de Corse', url: 'https://www.universita.corsica/fr/universita/historique/', checked: '2026-10-05' },
@@ -9,7 +10,7 @@ const sources = {
 };
 const missingImage = (label, caption) => ({ src: null, label, caption, date: null, credit: null, rights: { status: 'a-verifier', label: 'Autorisation de réutilisation à fournir' } });
 const missingAudio = { src: null, credit: null, rights: { status: 'a-verifier', label: 'Enregistrement et droits à fournir' } };
-const point = (data) => ({ ...data, transcript: data.text, audio: { ...missingAudio }, status: 'documente', visualStatus: 'evocation', orientation: [0, 0, 0], model: { kind: data.id, src: null, status: 'evocation', credit: 'Formes originales du projet Memoria Corti' } });
+const point = (data) => ({ ...data, transcript: data.text, audio: NARRATION_ASSETS[data.id] || { ...missingAudio }, status: 'documente', visualStatus: 'evocation', orientation: [0, 0, 0], model: { kind: data.id, src: null, status: 'evocation', credit: 'Formes originales du projet Memoria Corti' } });
 
 export const IUT_STEP = {
   id: 'iut-grimaldi',
@@ -30,12 +31,12 @@ export const IUT_STEP = {
     welcome: {
       id: 'accueil', title: 'Bienvenue à l’IUT', duration: '15–20 s',
       text: 'Bienvenue dans Memoria Corti. Ici, sur le campus Grimaldi, l’IUT ouvre notre visite de Corte. Prenez un instant pour observer le lieu. Touchez les repères pour découvrir trois dates, des objets d’évocation et une histoire de transmission, de Pasquale Paoli aux étudiants d’aujourd’hui.',
-      audio: { ...missingAudio }
+      audio: NARRATION_ASSETS.accueil || { ...missingAudio }
     },
     main: {
       id: 'recit', title: 'Trois dates, une histoire de savoir', duration: 'environ 1 min',
       text: 'Notre parcours commence devant l’IUT de Corse, sur le campus Grimaldi. Le lieu actuel nous invite à remonter le temps, sans confondre les bâtiments. En 1765, Pasquale Paoli fonde l’Université de Corse. Elle ouvre à Corte, au Palazzu Naziunale. Le livre et le document de notre scène évoquent cette transmission du savoir ; ils ne reproduisent pas une salle historique. Après une longue interruption, l’université rouvre à Corte en 1981. Deux ans plus tard, en 1983, l’IUT de Corse est créé. Aujourd’hui, ce campus accueille des formations qui relient apprentissage et pratique. Pourquoi créer une université ? Pourquoi choisir Corte ? Comment cette histoire continue-t-elle ? Ces questions accompagnent votre exploration. Touchez un repère, lisez les sources et observez à nouveau le lieu qui vous entoure. La suite du parcours nous conduira vers les lieux de l’université historique.',
-      audio: { ...missingAudio }
+      audio: NARRATION_ASSETS.recit || { ...missingAudio }
     }
   },
   points: [

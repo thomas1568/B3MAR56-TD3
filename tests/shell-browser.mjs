@@ -68,7 +68,10 @@ try {
     await ev('new Promise(r=>setTimeout(r,70))');
   };
   const shot = async name => { const result = await send('Page.captureScreenshot',{format:'png'}); const file = path.join(profileDir,name+'.png'); fs.writeFileSync(file,Buffer.from(result.data,'base64')); console.log('Screenshot: '+file); };
-  const nav = async () => { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/?run=${Date.now()}`}); await loaded; await until('!!document.getElementById("guestButton")'); await until('!document.getElementById("onboardingStatus").textContent.includes("Préparation")'); };
+  let firstNavigation = true;
+  const nav = async () => { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/?run=${Date.now()}`}); await loaded; await until('!!document.getElementById("guestButton")');
+    if (firstNavigation) { firstNavigation = false; assert.equal(await ev('document.getElementById("appIntro").hidden'),false); assert.equal(await ev('document.getElementById("content").inert'),true); await shot('entry-animation'); }
+    await until('!document.getElementById("onboardingStatus").textContent.includes("Préparation")'); await until('document.getElementById("appIntro").hidden'); };
   await send('Runtime.enable'); await send('Page.enable');
   await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true}); await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});
   await nav(); await shot('welcome-mobile');
@@ -131,7 +134,7 @@ try {
   await importPhoto();
   await until('!!document.querySelector("#tab-profile img")');
   assert.equal(await ev('document.querySelector("#tab-profile img").src'),await ev('document.querySelector("#headerProfile img").src'));
-  { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.reload'); await loaded; } await until('document.getElementById("onboarding")?.hidden');
+  { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.reload'); await loaded; } await until('document.getElementById("onboarding")?.hidden && document.getElementById("appIntro").hidden');
   assert.match(await ev('document.getElementById("greeting").textContent'),/Lisandra Corti/);
   assert.ok(await ev('!!document.querySelector("#tab-profile img")'));
   await click('tab-route');
@@ -150,6 +153,7 @@ try {
   await click('map-stop-iut');assert.match(await ev('document.querySelector(".map-stop-status").textContent'),/Disponible/);
   await click('routeStartButton');
   await shot('step-mobile');
+  assert.equal(await ev('new Set([...document.querySelectorAll("#pointList .point-card-visual")].map(image=>image.getAttribute("src"))).size'),5);
   assert.equal(await ev('!!document.querySelector("#homeView .hero")'),false);
   assert.equal(await ev('!!document.querySelector("#homeView .step-cover img")'),true);
   await ev('document.querySelector("#pointList button").click()'); await until('!document.getElementById("poiModal").hidden');
@@ -162,6 +166,12 @@ try {
   await click('tab-route'); await click('routeStartButton');
   if(!await ev('document.getElementById("poiModal").hidden'))await click('closePointButton');
   await click('openPanoramaButton'); await until('!document.getElementById("panoramaPanel").hidden'); await shot('panorama-mobile');
+  await ev('document.getElementById("panoramaPanel").scrollTop=1000');
+  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
+  assert.equal(await ev('getComputedStyle(document.querySelector("#panoramaPanel > header")).position'),'static');
+  assert.ok(await ev('document.querySelector("#panoramaPanel > header").getBoundingClientRect().bottom<0'));
+  assert.ok(await ev('(()=>{const r=document.getElementById("closePanoramaButton").getBoundingClientRect();return r.top>=0&&r.bottom<innerHeight&&r.width>=44&&r.height>=44;})()'));
+  await shot('panorama-scrolled');
   await click('closePanoramaButton'); await click('backToApp');
   for (const [width,height] of [[320,740],[768,1024],[1440,1000]]) {
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<1000});
@@ -204,6 +214,9 @@ try {
   await send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowLeft',code:'ArrowLeft'});
   assert.equal(await ev('document.getElementById("tab-listen").getAttribute("aria-current")'),'page');
   assert.equal(await ev('document.getElementById("page-listen").getAnimations().length'),0);
+  await nav();
+  assert.equal(await ev('document.getElementById("content").inert'),false);
+  assert.equal(await ev('document.querySelector(".intro-emblem").getAnimations().length'),0);
   assert.equal(errors.length,0,JSON.stringify(errors));
   console.log('PASS: onboarding, explicit guest mode, validation, seven avatars, crop/import, reactive nav image, persistence/reload, resume, responsive layouts, real HTTP auth/profile/storage/progress against a Supabase fixture.');
 } catch (error) {
