@@ -1,0 +1,14 @@
+# Original nested copy; the maintained application is at the repository root.
+/B3MAR56-TD3-main/
+
+# Local tooling and generated artifacts.
+node_modules/
+coverage/
+playwright-report/
+test-results/
+*.log
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example

@@ -49,7 +49,7 @@ function startFixture(){
 nativeARButton.onclick=startFixture;
 experience.setAvailability(true,'AR de test : poses simulées');
 window.__memoriaCheck={
- start:startFixture,enable:()=>{nativeARButton.onclick=startFixture;experience.setAvailability(true,'AR de test : poses simulées');},frame:checkFrame,point:checkPoint,
+ start:startFixture,enable:()=>{nativeARButton.onclick=startFixture;experience.setAvailability(true,'AR de test : poses simulées');},availability:value=>experience.setAvailability(value,value?'AR de test : poses simulées':'AR indisponible : consultation 360° accessible.'),frame:checkFrame,point:checkPoint,
  scan:x=>{checkMatrix.makeTranslation(x,0,-1.8);checkFrame();},
  pose:id=>{const o=typeof id==='number'?placed_objects[id]:memoriaScene.byPoint.get(id);return {p:o.position.toArray(),q:o.quaternion.toArray(),s:o.scale.toArray(),visible:o.visible,parent:o.parent?.uuid};},
  state:()=>({count:placed_objects.length,mode:experienceMode,interaction:interactionMode,selected:selectedObject?.userData.layoutId||selectedObject?.uuid||null,circle:reticle.visible,error:lastError,cancelled:checkCancellations,gesture:!!drag,loaded:!!current_object&&!modelLoading,placed:memoriaPlaced,...experience.getState()}),
@@ -104,6 +104,11 @@ try{
   await touch(p);for(let n=1;n<=4;n++){await touch({x:p.x+dx*n/4,y:p.y},'touchMove');await ev('new Promise(r=>setTimeout(r,20))');}
   await touch(p,'touchEnd');await ev('new Promise(r=>setTimeout(r,100))');await ev('__memoriaCheck.frame()');
  }
+ // The capsule explains prerequisites and cannot start an unavailable stage.
+ assert.equal(await ev('document.getElementById("navDiscover").getAttribute("aria-disabled")'),'true');
+ await button('navDiscover');assert.equal(await ev('document.getElementById("panoramaPanel").hidden'),true);
+ assert.match(await ev('document.getElementById("experienceNotice").textContent'),/Préparez/);
+ await ev('document.getElementById("experienceNotice").hidden=true');
  await button('openStepButton');await ev('new Promise(r=>setTimeout(r,600))');
  assert.equal(await ev('document.getElementById("stepSection").hidden'),false);
  assert.equal(await ev('document.querySelectorAll("#pointList button").length'),5);
@@ -129,12 +134,25 @@ try{
  await button('closePointButton');await button('closePanoramaButton');
  // Begin fixture XR through the actual UI; actual Three renderer and native touch.
  await ev('__memoriaCheck.enable()');await button('startARButton',{scroll:true});assert.equal(await ev('__memoriaCheck.state().circle'),true);
+ assert.equal(await ev('document.getElementById("navPlace").getAttribute("aria-current")'),'step');
+ assert.equal(await ev('document.getElementById("navDiscover").getAttribute("aria-disabled")'),'true');
+ await button('navPrepare');assert.equal(await ev('document.getElementById("prepareModal").hidden'),false);
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});
+ assert.equal(await ev('document.getElementById("prepareModal").hidden'),true);
  await button('placeSceneButton');await ev('__memoriaCheck.frame()');
  assert.equal(await ev('__memoriaCheck.state().count'),7);
+ assert.equal(await ev('document.getElementById("navDiscover").getAttribute("aria-current")'),'step');
  const arShot=await send('Page.captureScreenshot',{format:'png'});const arPath=path.join(profile,'ar-visit.png');fs.writeFileSync(arPath,Buffer.from(arShot.data,'base64'));console.log('AR screenshot: '+arPath);
  assert.equal(await ev('__memoriaCheck.state().mode'),'visit');
  await button('arListenButton');assert.equal(await ev('document.getElementById("storiesModal").hidden'),false);
  await button('welcomeAudioButton',{scroll:true});assert.match(await ev('document.getElementById("playerMessage").textContent'),/Audio à fournir/);
+ assert.equal(await ev('document.getElementById("audioDock").closest("[role=dialog]")?.getAttribute("aria-label")'),'Récits et ambiances');
+ await ev('document.getElementById("volumeControl").focus()');
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+ assert.equal(await ev('document.activeElement.tagName'),'SUMMARY');
+ assert.equal(await ev('document.activeElement.textContent'),'Transcription');
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+ assert.equal(await ev('document.activeElement.id'),'closeStoriesButton');
  await button('stopAudioButton');await button('closeStoriesButton');assert.equal(await ev('document.getElementById("storiesModal").hidden'),true);
  const initial=await ev('__memoriaCheck.pose("naissance")'),other=await ev('__memoriaCheck.pose("iut")');
  for(const id of ['iut','naissance','paoli','reouverture','corte']){
@@ -182,6 +200,43 @@ try{
  const restored=await ev('__memoriaCheck.pose("naissance")');
  assert.deepEqual(restored.p,rotated.p);assert.deepEqual(restored.q,rotated.q);
  await button('stopARButton');
+ // Exercise each new navigation action, including a full exit with audio pending.
+ await button('navExit');assert.equal(await ev('document.getElementById("stepSection").hidden'),true);
+ await button('navPrepare');assert.equal(await ev('document.getElementById("stepSection").hidden'),false);
+ await ev('__memoriaCheck.availability(false)');
+ assert.equal(await ev('document.getElementById("navPlace").getAttribute("aria-disabled")'),'true');
+ await button('navPlace');assert.match(await ev('document.getElementById("experienceNotice").textContent'),/AR indisponible/);
+ await ev('document.getElementById("experienceNotice").hidden=true');
+ await button('navDiscover');assert.equal(await ev('document.getElementById("panoramaPanel").hidden'),false);
+ await button('navListen');assert.equal(await ev('document.getElementById("storiesModal").hidden'),false);
+ await button('closeStoriesButton');assert.equal(await ev('document.activeElement.id'),'navListen');
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});
+ assert.equal(await ev('document.getElementById("panoramaPanel").hidden'),true);
+ await button('navListen');await button('welcomeAudioButton',{scroll:true});await button('closeStoriesButton');
+ await button('navExit');assert.equal(await ev('document.getElementById("audioDock").hidden'),true);
+ assert.equal(await ev('document.getElementById("navDiscover").getAttribute("aria-disabled")'),'true');
+ await button('navPrepare');await ev('__memoriaCheck.enable()');await button('navPlace');
+ assert.equal(await ev('__memoriaCheck.state().activeAR'),true);
+ await button('navPlace');await button('navDiscover');
+ assert.equal(await ev('__memoriaCheck.state().mode'),'visit');
+ await button('navExit');assert.equal(await ev('__memoriaCheck.state().count'),0);
+ assert.equal(await ev('__memoriaCheck.state().activeAR'),false);
+ // Responsive geometry, keyboard focus, reduced motion and opaque glass fallback.
+ for(const [width,height] of [[320,740],[768,1024],[1440,1000]]){
+  await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<1000});
+  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
+  const geometry=await ev(`(()=>{const nav=document.getElementById('journeyNav'),r=nav.getBoundingClientRect();return {left:r.left,right:r.right,bottom:r.bottom,overflow:document.getElementById('homeView').scrollWidth>innerWidth,targets:[...nav.querySelectorAll('button')].every(b=>{const t=b.getBoundingClientRect();return t.width>=44&&t.height>=44;})};})()`);
+  assert.ok(geometry.left>=10&&geometry.right<=width-10&&geometry.bottom<=height-10,JSON.stringify(geometry));
+  assert.equal(geometry.targets,true);assert.equal(geometry.overflow,false);
+  const shot=await send('Page.captureScreenshot',{format:'png'});const file=path.join(profile,'home-'+width+'.png');fs.writeFileSync(file,Buffer.from(shot.data,'base64'));console.log('Responsive screenshot: '+file);
+ }
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'},{name:'prefers-reduced-transparency',value:'reduce'}]});
+ assert.equal(await ev('getComputedStyle(document.getElementById("homeView")).scrollBehavior'),'auto');
+ assert.equal(await ev('getComputedStyle(document.getElementById("journeyNav")).backdropFilter'),'none');
+ await ev('document.getElementById("navPrepare").focus()');
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+ assert.equal(await ev('document.activeElement.id'),'navPlace');
+ assert.notEqual(await ev('getComputedStyle(document.activeElement).outlineStyle'),'none');
  assert.equal(errors.length,0,JSON.stringify(errors));
  console.log('PASS: mobile UI, five POIs, placeholders/transcripts, 360 fallback, real WebGL and touch, visit protection, editing, repeat add/delete, relative persistence, exit/restart. XR tracking is simulated.');
 }catch(error){

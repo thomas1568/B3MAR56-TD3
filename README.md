@@ -2,6 +2,22 @@
 
 Application statique ES modules : Three.js r180, WebXR (`immersive-ar`), hit-test, DOM Overlay, GLTFLoader et OrbitControls déjà présents. Aucune dépendance ajoutée. Le chargement de jQuery a été retiré ; les commandes utilisent les événements DOM natifs.
 
+## Interface et navigation
+
+L’interface utilise le vert profond `#273B31`, le cuivre `#B86D4E`, l’ivoire `#F4F0E8`, le beige `#EBE5D9` et le texte `#202823`, avec Georgia pour les titres et Arial pour les textes et les commandes. Les pictogrammes partagent une même famille SVG locale, sans dépendance ni chargement externe.
+
+La capsule flottante reste accessible à l’accueil, en consultation 360° et dans le DOM Overlay AR :
+
+- **Préparer** ouvre l’étape et ses indications ; pendant l’AR, affiche les conseils sans interrompre la session.
+- **Placer** démarre l’AR après préparation, puis utilise la pose détectée pour placer ou recaler la scène. Sans surface détectée, explique le geste de scan. Sans WebXR, annonce l’indisponibilité et oriente vers le 360°.
+- **Découvrir** ouvre le 360° hors AR, ou revient au mode Visite après placement dans l’AR.
+- **Écouter** ouvre les récits, ambiances et transcriptions.
+- **Quitter** arrête tous les sons, termine la session XR et libère la scène et le panorama, puis réinitialise le parcours.
+
+Les prérequis sont exposés par `aria-disabled`, un indicateur sur les pictogrammes, des descriptions au survol et un message lors de l’activation. L’étape sélectionnée utilise `aria-current="step"`. Le verre associe transparence teintée, flou, reflet et bordure ; un fond opaque prend le relais sans prise en charge du flou ou avec une préférence de réduction de transparence. Les zones de sécurité, l’espace sous les contenus, les cibles tactiles de 44 px minimum et la préférence de réduction des animations sont pris en compte. Les boîtes de dialogue conservent le focus clavier et se ferment avec Échap ; le 360° rend l’accueil inactif et se ferme aussi avec Échap.
+
+Les tests navigateur couvrent également les cinq commandes de la capsule, les prérequis, le retour du focus, la sortie complète et les géométries à 320, 390, 768 et 1440 px. Ils produisent des captures dans le dossier temporaire indiqué dans leur sortie. Sans autorisation de création de processus enfants, les tests Node peuvent s’exécuter avec `node --test --test-isolation=none tests/ar-interactions.mjs tests/memoria.mjs` ; le test navigateur nécessite le lancement de Chrome.
+
 ## Utilisation
 
 Servir ce dossier par HTTP pour consulter les fiches et le 360°. Sur téléphone, utiliser une origine HTTPS et un navigateur/appareil prenant en charge WebXR AR, hit-test et DOM Overlay. L’ouverture directe de `index.html` en `file://` ne convient pas aux modules ni à WebXR.
