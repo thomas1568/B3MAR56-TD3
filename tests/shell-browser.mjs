@@ -85,6 +85,8 @@ try {
   await ev('document.querySelector("[data-avatar=livre]").click()'); await click('saveProfileButton');
   await until('document.getElementById("onboarding").hidden');
   assert.match(await ev('document.getElementById("greeting").textContent'),/Lisandra/);
+  await ev('document.getElementById("greeting").tabIndex=-1;document.getElementById("greeting").focus({preventScroll:true})');
+  assert.equal(await ev('getComputedStyle(document.getElementById("greeting")).outlineStyle'),'none');
   assert.equal(await ev('document.getElementById("sessionBadge").textContent'),'Mode invité');
   await until('document.querySelector(".feature-card > img").complete && document.querySelector(".feature-card > img").naturalWidth>100');
   assert.match(await ev('document.querySelector(".feature-card > img").getAttribute("src")'),/photos\/corte-citadelle/);
@@ -136,6 +138,8 @@ try {
   assert.equal(await ev('document.querySelector("#tab-profile img").src'),await ev('document.querySelector("#headerProfile img").src'));
   { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.reload'); await loaded; } await until('document.getElementById("onboarding")?.hidden && document.getElementById("appIntro").hidden');
   assert.match(await ev('document.getElementById("greeting").textContent'),/Lisandra Corti/);
+  assert.equal(await ev('document.activeElement.id'),'greeting');
+  assert.equal(await ev('getComputedStyle(document.getElementById("greeting")).outlineStyle'),'none');
   assert.ok(await ev('!!document.querySelector("#tab-profile img")'));
   await click('tab-route');
   await until('document.querySelectorAll(".map-roads path").length>100');
@@ -214,6 +218,8 @@ try {
   await send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowLeft',code:'ArrowLeft'});
   assert.equal(await ev('document.getElementById("tab-listen").getAttribute("aria-current")'),'page');
   assert.equal(await ev('document.getElementById("page-listen").getAnimations().length'),0);
+  await ev('document.getElementById("tab-listen").focus()');
+  assert.notEqual(await ev('getComputedStyle(document.getElementById("tab-listen")).outlineStyle'),'none');
   await nav();
   assert.equal(await ev('document.getElementById("content").inert'),false);
   assert.equal(await ev('document.querySelector(".intro-emblem").getAnimations().length'),0);

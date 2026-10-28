@@ -136,7 +136,7 @@ try{
  await button('welcomeAudioButton',{scroll:true});
  await until('__memoriaCheck.state().audio.playing');
  assert.match(await ev('document.getElementById("playerSource").textContent'),/Voix IA naturelle/);
- assert.ok(await ev('__memoriaCheck.state().audio.duration>20'));
+ assert.ok(await ev('__memoriaCheck.state().audio.duration>15'));
  await button('pauseAudioButton');assert.equal(await ev('__memoriaCheck.state().audio.paused'),true);
  await button('resumeAudioButton');await until('!__memoriaCheck.state().audio.paused');
  await button('stopAudioButton');

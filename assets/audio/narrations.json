@@ -5,76 +5,263 @@
   "language": "fr-FR",
   "sampleRate": 24000,
   "license": "Apache-2.0",
+  "phonemeVersion": "fr-utf8-2",
   "tracks": {
     "accueil": {
       "title": "Bienvenue à l’IUT",
-      "src": "assets/audio/accueil.mp3",
-      "duration": 24.37,
+      "src": "assets/audio/accueil.mp3?v=f520f9c43d54",
+      "file": "assets/audio/accueil.mp3",
+      "duration": 19.31,
       "textHash": "52b2dd9938852d992c2dda4cdcdcead148805ff83918d8ebf8482dd0d9e107fe",
-      "sha256": "9eff2e205478e9248098dab2c5abda638b7c7ecf5f0f143d681463a32161d981",
-      "bytes": 195456,
+      "sha256": "f520f9c43d547013986dc39138e437a4a5494c799b40ff64087ea1dcd3fad6a8",
+      "bytes": 154944,
       "peak": 0.7349192500114441,
-      "rms": 0.09416088630247532
+      "rms": 0.09649585373921224,
+      "phonemes": [
+        {
+          "text": "Bienvenue dans Memoria Corti.",
+          "spoken": "Bienvenue dans Memoria Corti.",
+          "phonemes": "bjɛ̃vnˈy dɑ̃ məmoʁjˈa kɔʁtˈi."
+        },
+        {
+          "text": "Ici, sur le campus Grimaldi, l’IUT ouvre notre visite de Corte.",
+          "spoken": "Ici, sur le campus Grimaldi, l'I U T ouvre notre visite de Corte.",
+          "phonemes": "isˈi, syʁ lə kɑ̃pˈys ɡʁimaldˈi, lˈi ˈy tˈe ˈuvʁ notʁ vizˈit də kˈɔʁt."
+        },
+        {
+          "text": "Prenez un instant pour observer le lieu.",
+          "spoken": "Prenez un instant pour observer le lieu.",
+          "phonemes": "pʁənˈez œ̃n ɛ̃stˈɑ̃ puʁ ɔbsɛʁvˈe lə ljˈø."
+        },
+        {
+          "text": "Touchez les repères pour découvrir trois dates, des objets d’évocation et une histoire de transmission, de Pasquale Paoli aux étudiants d’aujourd’hui.",
+          "spoken": "Touchez les repères pour découvrir trois dates, des objets d'évocation et une histoire de transmission, de Pasquale Paoli aux étudiants d'aujourdui.",
+          "phonemes": "tuʃˈe le ʁəpˈɛʁ puʁ dekuvʁˈiʁ tʁwˈa dˈat, dez ɔbʒˈɛ devokasjˈɔ̃ e yn istwˈaʁ də tʁɑ̃smisjˈɔ̃, də paskˈal paolˈi oz etydjˈɑ̃ doʒuʁdyˈi."
+        }
+      ]
     },
     "recit": {
       "title": "Trois dates, une histoire de savoir",
-      "src": "assets/audio/recit.mp3",
-      "duration": 80.24,
+      "src": "assets/audio/recit.mp3?v=f83c4bcb9102",
+      "file": "assets/audio/recit.mp3",
+      "duration": 63.16,
       "textHash": "6dfe5095e0b8fec12dafa0a1dc435ee12667ac6e2b0b1e1cd711cd818a3f0aa4",
-      "sha256": "b5d00936d8990af6084198a7c82583bdb7e75af6acd1a5f235e02203889bce69",
-      "bytes": 642432,
-      "peak": 0.8759558200836182,
-      "rms": 0.09730733505683027
+      "sha256": "f83c4bcb910268d85f2e6f669738875a1f81fd58590bc7dfae3c554344895933",
+      "bytes": 505728,
+      "peak": 0.9863388538360596,
+      "rms": 0.09867378682118617,
+      "phonemes": [
+        {
+          "text": "Notre parcours commence devant l’IUT de Corse, sur le campus Grimaldi.",
+          "spoken": "Notre parcours commence devant l'I U T de Corse, sur le campus Grimaldi.",
+          "phonemes": "notʁ paʁkˈuʁ kɔmˈɑ̃s dəvˈɑ̃ lˈi ˈy tˈe də kˈɔʁs, syʁ lə kɑ̃pˈys ɡʁimaldˈi."
+        },
+        {
+          "text": "Le lieu actuel nous invite à remonter le temps, sans confondre les bâtiments.",
+          "spoken": "Le lieu actuel nous invite à remonter le temps, sans confondre les bâtiments.",
+          "phonemes": "lə ljˈø aktyˈɛl nuz ɛ̃vˈit a ʁəmɔ̃tˈe lə tˈɑ̃, sɑ̃ kɔ̃fˈɔ̃dʁ le batimˈɑ̃."
+        },
+        {
+          "text": "En 1765, Pasquale Paoli fonde l’Université de Corse.",
+          "spoken": "En 1765, Pasquale Paoli fonde l'Université de Corse.",
+          "phonemes": "ɑ̃ mil sɛtsɑ̃ swasɑ̃tsˈɛ̃k, paskˈal paolˈi fˈɔ̃d lynivɛʁsitˈe də kˈɔʁs."
+        },
+        {
+          "text": "Elle ouvre à Corte, au Palazzu Naziunale.",
+          "spoken": "Elle ouvre à Corte, au Palazzu Naziunale.",
+          "phonemes": "ɛl ˈuvʁ a kˈɔʁt, o palazzˈy nazjynˈal."
+        },
+        {
+          "text": "Le livre et le document de notre scène évoquent cette transmission du savoir ; ils ne reproduisent pas une salle historique.",
+          "spoken": "Le livre et le document de notre scène évoquent cette transmission du savoir ; ils ne reproduisent pas une salle historique.",
+          "phonemes": "lə lˈivʁ e lə dokymˈɑ̃ də notʁ sˈɛn evˈok sɛt tʁɑ̃smisjˈɔ̃ dy savwˈaʁ; il nə ʁəpʁodyˈiz paz yn sˈal istoʁˈik."
+        },
+        {
+          "text": "Après une longue interruption, l’université rouvre à Corte en 1981.",
+          "spoken": "Après une longue interruption, l'université rouvre à Corte en 1981.",
+          "phonemes": "apʁˌɛz yn lˈɔ̃ɡ ɛ̃tɛʁypsjˈɔ̃, lynivɛʁsitˈe ʁˈuvʁ a kˈɔʁt ɑ̃ mil nœfsɑ̃ katʁəvɛ̃ˈœ̃."
+        },
+        {
+          "text": "Deux ans plus tard, en 1983, l’IUT de Corse est créé.",
+          "spoken": "Deux ans plus tard, en 1983, l'I U T de Corse est créé.",
+          "phonemes": "dˈøz ˈɑ̃ ply tˈaʁ, ɑ̃ mil nœfsɑ̃ katʁəvɛ̃tʁwˈa, lˈi ˈy tˈe də kˈɔʁs ɛ kʁeˈe."
+        },
+        {
+          "text": "Aujourd’hui, ce campus accueille des formations qui relient apprentissage et pratique.",
+          "spoken": "aujourdui, ce campus accueille des formations qui relient apprentissage et pratique.",
+          "phonemes": "oʒuʁdyˈi, sə kɑ̃pˈys akˈœj de fɔʁmasjˈɔ̃ ki ʁəlˈit apʁɑ̃tisˈaʒ e pʁatˈik."
+        },
+        {
+          "text": "Pourquoi créer une université ?",
+          "spoken": "Pourquoi créer une université ?",
+          "phonemes": "puʁkwˌa kʁeˈe yn ynivɛʁsitˈe?"
+        },
+        {
+          "text": "Pourquoi choisir Corte ?",
+          "spoken": "Pourquoi choisir Corte ?",
+          "phonemes": "puʁkwˌa ʃwazˈiʁ kˈɔʁt?"
+        },
+        {
+          "text": "Comment cette histoire continue-t-elle ?",
+          "spoken": "Comment cette histoire continue-t-elle ?",
+          "phonemes": "kɔmˌɑ̃ sɛt istwˈaʁ kɔ̃tinˈytˈɛl?"
+        },
+        {
+          "text": "Ces questions accompagnent votre exploration.",
+          "spoken": "Ces questions accompagnent votre exploration.",
+          "phonemes": "se kɛstjˈɔ̃z akɔ̃pˈanj votʁ ɛksploʁasjˈɔ̃."
+        },
+        {
+          "text": "Touchez un repère, lisez les sources et observez à nouveau le lieu qui vous entoure.",
+          "spoken": "Touchez un repère, lisez les sources et observez à nouveau le lieu qui vous entoure.",
+          "phonemes": "tuʃˈez œ̃ ʁəpˈɛʁ, lizˈe le sˈuʁsz e ɔbsɛʁvˈez a nuvˈo lə ljˈø ki vuz ɑ̃tˈuʁ."
+        },
+        {
+          "text": "La suite du parcours nous conduira vers les lieux de l’université historique.",
+          "spoken": "La suite du parcours nous conduira vers les lieux de l'université historique.",
+          "phonemes": "la syˈit dy paʁkˈuʁ nu kɔ̃dyiʁˈa vɛʁ le ljˈø də lynivɛʁsitˈe istoʁˈik."
+        }
+      ]
     },
     "iut": {
       "title": "L’IUT aujourd’hui",
-      "src": "assets/audio/iut.mp3",
-      "duration": 30.11,
+      "src": "assets/audio/iut.mp3?v=4e33e46e791b",
+      "file": "assets/audio/iut.mp3",
+      "duration": 20.16,
       "textHash": "2faef9dc6c82f812d0e1c8205a68025f4dae2f1bcd86e49085a6819b8e12825a",
-      "sha256": "63f6eec14ddb4e878d82a7e16c727097e056ebe7dc29fbc8d42794a0dfac38bb",
-      "bytes": 241344,
-      "peak": 0.7315559983253479,
-      "rms": 0.0953765979614927
+      "sha256": "4e33e46e791b96525a2591783071c9696411665e52d8932dc2bb106f68bbcf25",
+      "bytes": 161664,
+      "peak": 0.7435482144355774,
+      "rms": 0.09624289876145611,
+      "phonemes": [
+        {
+          "text": "Créé en 1983, l’IUT de Corse est installé sur le campus Grimaldi, à Corte.",
+          "spoken": "Créé en 1983, l'I U T de Corse est installé sur le campus Grimaldi, à Corte.",
+          "phonemes": "kʁeˈe ɑ̃ mil nœfsɑ̃ katʁəvɛ̃tʁwˈa, lˈi ˈy tˈe də kˈɔʁs ɛt ɛ̃stalˈe syʁ lə kɑ̃pˈys ɡʁimaldˈi, a kˈɔʁt."
+        },
+        {
+          "text": "Ses formations associent savoirs et pratique dans plusieurs domaines technologiques et professionnels.",
+          "spoken": "Ses formations associent savoirs et pratique dans plusieurs domaines technologiques et professionnels.",
+          "phonemes": "se fɔʁmasjˈɔ̃z asosˈi savwˈaʁz e pʁatˈik dɑ̃ plyzjˌœʁ domˈɛn tɛknoloʒˈikz e pʁofɛsjɔnˈɛl."
+        },
+        {
+          "text": "Le bâtiment actuel est notre point de départ, pas le lieu de l’université de 1765.",
+          "spoken": "Le bâtiment actuel est notre point de départ, pas le lieu de l'université de 1765.",
+          "phonemes": "lə batimˈɑ̃ aktyˈɛl ɛ notʁ pwˈɛ̃ də depˈaʁ, pa lə ljˈø də lynivɛʁsitˈe də mil sɛtsɑ̃ swasɑ̃tsˈɛ̃k."
+        }
+      ]
     },
     "naissance": {
       "title": "1765 — La naissance de l’université",
-      "src": "assets/audio/naissance.mp3",
-      "duration": 25.81,
+      "src": "assets/audio/naissance.mp3?v=b6f9746bb99c",
+      "file": "assets/audio/naissance.mp3",
+      "duration": 19.54,
       "textHash": "dbb48ae977004ae4d48bebdaba6fb5060f4f1613f5df825c6a989f07abb24d24",
-      "sha256": "fce791d78ffce52d7b205a860d3dbc27c24565614db63170184e043a6d454459",
-      "bytes": 206976,
-      "peak": 0.8273264765739441,
-      "rms": 0.09724704165389858
+      "sha256": "b6f9746bb99c6e8b15d0a456b29b8a608e2f786bdfe790a45622cfaf0e311c04",
+      "bytes": 156672,
+      "peak": 0.7998481392860413,
+      "rms": 0.09702048348401852,
+      "phonemes": [
+        {
+          "text": "L’Université de Corse ouvre le 3 janvier 1765, à Corte, au Palazzu Naziunale, sous l’impulsion de Pasquale Paoli.",
+          "spoken": "L'Université de Corse ouvre le 3 janvier 1765, à Corte, au Palazzu Naziunale, sous l'impulsion de Pasquale Paoli.",
+          "phonemes": "lynivɛʁsitˈe də kˈɔʁs ˈuvʁ lə tʁwˈa ʒɑ̃vjˈe mil sɛtsɑ̃ swasɑ̃tsˈɛ̃k, a kˈɔʁt, o palazzˈy nazjynˈal, su lɛ̃pylsjˈɔ̃ də paskˈal paolˈi."
+        },
+        {
+          "text": "Le livre ouvert et le document de cette scène évoquent l’enseignement.",
+          "spoken": "Le livre ouvert et le document de cette scène évoquent l'enseignement.",
+          "phonemes": "lə lˈivʁ uvˈɛʁ e lə dokymˈɑ̃ də sɛt sˈɛn evˈok lɑ̃sɛɲəmˈɑ̃."
+        },
+        {
+          "text": "Ce sont des formes symboliques, sans reproduction d’un ouvrage ou d’un manuscrit identifié.",
+          "spoken": "Ce sont des formes symboliques, sans reproduction d'un ouvrage ou d'un manuscrit identifié.",
+          "phonemes": "sə sˈɔ̃ de fˈɔʁm sɛ̃bolˈik, sɑ̃ ʁəpʁodyksjˈɔ̃ dœ̃n uvʁˈaʒ u dœ̃ manyskʁˈi idɑ̃tifjˈe."
+        }
+      ]
     },
     "paoli": {
       "title": "Pasquale Paoli",
-      "src": "assets/audio/paoli.mp3",
-      "duration": 30.76,
+      "src": "assets/audio/paoli.mp3?v=97e853d79c53",
+      "file": "assets/audio/paoli.mp3",
+      "duration": 19.51,
       "textHash": "0b7891a37820163ebf3ecb324272025470287bd1838d6784a1ac368eca08977f",
-      "sha256": "0dab31a0cef2484c0893ac5254658c1ee04581b16e7b364f049e14b1423639b1",
-      "bytes": 246528,
-      "peak": 0.8449569344520569,
-      "rms": 0.09433987581044394
+      "sha256": "97e853d79c53b899291bcfc78082f856ec866f5d7453cde3f7ae7bd90adabba4",
+      "bytes": 156480,
+      "peak": 0.7988971471786499,
+      "rms": 0.09591770081920145,
+      "phonemes": [
+        {
+          "text": "Pasquale Paoli est à l’origine de la fondation de l’Université de Corse en 1765.",
+          "spoken": "Pasquale Paoli est à l'origine de la fondation de l'Université de Corse en 1765.",
+          "phonemes": "paskˈal paolˈi ɛt a loʁiʒˈin də la fɔ̃dasjˈɔ̃ də lynivɛʁsitˈe də kˈɔʁs ɑ̃ mil sɛtsɑ̃ swasɑ̃tsˈɛ̃k."
+        },
+        {
+          "text": "Son nom reste associé à l’université actuelle.",
+          "spoken": "Son nom reste associé à l'université actuelle.",
+          "phonemes": "sɔ̃ nˈɔ̃ ʁˈɛst asosjˈe a lynivɛʁsitˈe aktyˈɛl."
+        },
+        {
+          "text": "Un support de portrait marque ici son rôle : aucune ressemblance historique n’est fabriquée en l’absence d’une image identifiée et autorisée.",
+          "spoken": "Un support de portrait marque ici son rôle : aucune ressemblance historique n'est fabriquée en l'absence d'une image identifiée et autorisée.",
+          "phonemes": "œ̃ sypˈɔʁ də pɔʁtʁˈɛ mˈaʁk isˈi sɔ̃ ʁˈoːl: okˈyn ʁəsɑ̃blˈɑ̃s istoʁˈik nɛ fabʁikˈe ɑ̃ labsˈɑ̃s dyn imˈaʒ idɑ̃tifjˈe e otoʁizˈe."
+        }
+      ]
     },
     "reouverture": {
       "title": "1981 — La réouverture",
-      "src": "assets/audio/reouverture.mp3",
-      "duration": 31.23,
+      "src": "assets/audio/reouverture.mp3?v=4115b2862159",
+      "file": "assets/audio/reouverture.mp3",
+      "duration": 19.93,
       "textHash": "3fa1c12f9c4ddd6777aacba539b3b70d5a551c5d477b4f23dc16901969390df3",
-      "sha256": "37ede4283c8906d8090256d3dbbf0d8dc47c5a6a75655b4c7c7f75e6b5835a06",
-      "bytes": 250368,
-      "peak": 0.6747348308563232,
-      "rms": 0.09289749585585885
+      "sha256": "4115b286215908ec8aa557df638379682a845f5a53b89d8c756e400a66f239ce",
+      "bytes": 159936,
+      "peak": 0.7593487501144409,
+      "rms": 0.09633928362483699,
+      "phonemes": [
+        {
+          "text": "En 1981, l’Université de Corse rouvre ses portes dans la ville de Corte.",
+          "spoken": "En 1981, l'Université de Corse rouvre ses portes dans la ville de Corte.",
+          "phonemes": "ɑ̃ mil nœfsɑ̃ katʁəvɛ̃ˈœ̃, lynivɛʁsitˈe də kˈɔʁs ʁˈuvʁ se pˈɔʁt dɑ̃ la vˈil də kˈɔʁt."
+        },
+        {
+          "text": "La fenêtre d’archives invite à explorer ce retour de l’enseignement universitaire.",
+          "spoken": "La fenêtre d'archives invite à explorer ce retour de l'enseignement universitaire.",
+          "phonemes": "la fənˈɛtʁ daʁʃˈivz ɛ̃vˈit a ɛksploʁˈe sə ʁətˈuʁ də lɑ̃sɛɲəmˈɑ̃ ynivɛʁsitˈɛʁ."
+        },
+        {
+          "text": "Une photographie ou un document daté de cette période reste à sélectionner, avec son crédit et ses conditions de réutilisation.",
+          "spoken": "Une photographie ou un document daté de cette période reste à sélectionner, avec son crédit et ses conditions de réutilisation.",
+          "phonemes": "yn fotoɡʁafˈi u œ̃ dokymˈɑ̃ datˈe də sɛt peʁjˈɔd ʁˈɛst a selɛksjɔnˈe, avˌɛk sɔ̃ kʁedˈi e se kɔ̃disjˈɔ̃ də ʁeytilizasjˈɔ̃."
+        }
+      ]
     },
     "corte": {
       "title": "Corte, ville universitaire",
-      "src": "assets/audio/corte.mp3",
-      "duration": 27.06,
+      "src": "assets/audio/corte.mp3?v=61d396e78fe8",
+      "file": "assets/audio/corte.mp3",
+      "duration": 19.29,
       "textHash": "9fcf6c87c8d110f55bfb61e6bf53bffb40c2614bf2c07ae53f4c4dd4d809cbaf",
-      "sha256": "90458cf127c8abe57ad3f3a85b3577dd8eb5a2558f944640dc762d3a5940c03e",
-      "bytes": 216960,
-      "peak": 0.8240010142326355,
-      "rms": 0.09738717756782202
+      "sha256": "61d396e78fe8a6f56811e0ec3ab208876faae87777620b6f555234a752de1854",
+      "bytes": 154752,
+      "peak": 0.8640276789665222,
+      "rms": 0.09857329299279556,
+      "phonemes": [
+        {
+          "text": "Corte relie les deux moments de l’histoire universitaire : la fondation de 1765 et la réouverture de 1981.",
+          "spoken": "Corte relie les deux moments de l'histoire universitaire : la fondation de 1765 et la réouverture de 1981.",
+          "phonemes": "kˈɔʁt ʁəlˈi le dˈø momˈɑ̃ də listwˈaʁ ynivɛʁsitˈɛʁ: la fɔ̃dasjˈɔ̃ də mil sɛtsɑ̃ swasɑ̃tsˈɛ̃k e la ʁeuvɛʁtˈyʁ də mil nœfsɑ̃ katʁəvɛ̃ˈœ̃."
+        },
+        {
+          "text": "Le campus Grimaldi et le Palazzu Naziunale correspondent à des lieux distincts.",
+          "spoken": "Le campus Grimaldi et le Palazzu Naziunale correspondent à des lieux distincts.",
+          "phonemes": "lə kɑ̃pˈys ɡʁimaldˈi e lə palazzˈy nazjynˈal koʁɛspˈɔ̃dt a de ljˈø distˈɛ̃."
+        },
+        {
+          "text": "Notre carte est, pour l’instant, un schéma de parcours sans précision géographique.",
+          "spoken": "Notre carte est, pour l'instant, un schéma de parcours sans précision géographique.",
+          "phonemes": "notʁ kˈaʁt ˈɛ, puʁ lɛ̃stˈɑ̃, œ̃ ʃemˈa də paʁkˈuʁ sɑ̃ pʁesizjˈɔ̃ ʒeɔɡʁafˈik."
+        }
+      ]
     }
   }
 }

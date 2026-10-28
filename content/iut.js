@@ -1,6 +1,6 @@
 // Historical content is independent from the renderer. No remote media is loaded
 // until a file and explicit reuse permission are supplied.
-import { NARRATION_ASSETS } from './narrations.js?v=19';
+import { NARRATION_ASSETS } from './narrations.js?v=20';
 const sources = {
   iut: { title: 'IUT de Corse', url: 'https://iut.universita.corsica/', checked: '2026-10-05' },
   history: { title: 'Historique de l’Université de Corse', url: 'https://www.universita.corsica/fr/universita/historique/', checked: '2026-10-05' },

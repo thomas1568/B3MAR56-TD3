@@ -40,7 +40,7 @@ Références : [authentification par mot de passe](https://supabase.com/docs/gui
 ### Vérifications de la nouvelle interface
 
 ```powershell
-node --test --test-isolation=none tests/ar-interactions.mjs tests/memoria.mjs tests/accounts.mjs tests/city-and-crop.mjs tests/music.mjs tests/narration-and-entry.mjs
+node --test --test-isolation=none tests/ar-interactions.mjs tests/memoria.mjs tests/accounts.mjs tests/city-and-crop.mjs tests/music.mjs tests/narration-and-entry.mjs tests/french-phonemes.mjs
 node tests/shell-browser.mjs
 node tests/browser-smoke.mjs
 ```
@@ -58,6 +58,8 @@ Dans **Préparer**, les cinq cartes ont des visuels distincts : illustration de 
 Les sept textes existants disposent de fichiers MP3 locaux avec une voix française **IA naturelle** : accueil, récit principal et cinq repères. La voix Kokoro `ff_siwis` remplace la voix par défaut du navigateur. Le lecteur indique sa provenance IA, la durée réelle et les états de chargement/erreur ; pause, reprise, volume, transcription et trois rythmes de lecture sont disponibles. Les préférences de rythme et de source sont conservées localement. La voix de l’appareil reste une option de secours, avec priorité aux voix françaises et choix explicite parmi celles installées.
 
 Le modèle est utilisé uniquement pendant la génération, et ne figure pas dans le site déployé. Aucune clé API ni configuration de service vocal n’est nécessaire. Les crédits, limites de prononciation et instructions de régénération sont dans [assets/audio/README.md](assets/audio/README.md). Les enregistrements de véritables narrateurs humains restent une autre possibilité ; les fichiers intégrés sont clairement identifiés comme synthétiques.
+
+La conversion des accents est explicitement UTF-8 : l’ancienne syntaxe d’encodage faisait prononcer « copyright » à la place de certains « é ». Les récits sont régénérés avec une normalisation des élisions et des acronymes, des pauses aux virgules et un journal phonétique par phrase. Les URL des MP3 incluent leur empreinte pour renouveler le cache. Les mentions IA et les crédits restent affichés, sans être lus dans les histoires. Les titres qui reçoivent le focus de navigation, dont « Bonghjornu, [pseudo] », n’affichent plus le contour automatique du navigateur ; les boutons et liens gardent leur focus clavier visible.
 
 L’interface utilise le vert profond `#273B31`, le cuivre `#B86D4E`, l’ivoire `#F4F0E8`, le beige `#EBE5D9` et le texte `#202823`, avec Georgia pour les titres et Arial pour les textes et les commandes. Les pictogrammes partagent une même famille SVG locale, sans dépendance ni chargement externe.
 

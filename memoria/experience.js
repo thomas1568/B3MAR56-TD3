@@ -1,8 +1,8 @@
-import { findPoint, mediaReady } from '../content/iut.js?v=19';
-import { createAudioController } from './audio.js?v=19';
-import { createPanorama } from './panorama.js?v=19';
+import { findPoint, mediaReady } from '../content/iut.js?v=20';
+import { createAudioController } from './audio.js?v=20';
+import { createPanorama } from './panorama.js?v=20';
 import { layoutHotspots } from './hotspots.js';
-import { POINT_VISUALS } from '../content/point-visuals.js?v=19';
+import { POINT_VISUALS } from '../content/point-visuals.js?v=20';
 
 export function createExperience(step, api) {
   const el = id => document.getElementById(id);
@@ -116,7 +116,14 @@ export function createExperience(step, api) {
     try { el('deviceVoiceChoice').value = selected || localStorage.getItem('memoria-corti:device-voice') || ''; } catch {}
   }
   fillDeviceVoices(); globalThis.speechSynthesis?.addEventListener('voiceschanged', fillDeviceVoices);
-  try { el('voiceChoice').value = audio.supportsSpeech && localStorage.getItem('memoria-corti:voice-source') === 'speech' ? 'speech' : 'recording'; el('playbackSpeed').value = ['.85','1','1.15'].includes(localStorage.getItem('memoria-corti:voice-speed')) ? localStorage.getItem('memoria-corti:voice-speed') : '1'; } catch {}
+  try {
+    // Offer the corrected files once to visitors who tried the device fallback.
+    if (localStorage.getItem('memoria-corti:narration-version') !== 'fr-utf8-2') {
+      localStorage.setItem('memoria-corti:voice-source', 'recording'); localStorage.setItem('memoria-corti:narration-version', 'fr-utf8-2');
+    }
+    el('voiceChoice').value = audio.supportsSpeech && localStorage.getItem('memoria-corti:voice-source') === 'speech' ? 'speech' : 'recording';
+    el('playbackSpeed').value = ['.85','1','1.15'].includes(localStorage.getItem('memoria-corti:voice-speed')) ? localStorage.getItem('memoria-corti:voice-speed') : '1';
+  } catch {}
   el('deviceVoiceLabel').hidden = el('voiceChoice').value !== 'speech'; audio.setRate(el('playbackSpeed').value);
   el('voiceChoice').addEventListener('change', () => {
     audio.stopNarration(); el('deviceVoiceLabel').hidden = el('voiceChoice').value !== 'speech';

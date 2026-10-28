@@ -11,12 +11,19 @@ test('each story has a generated French audio file matching its unchanged transc
   const tracks = [...Object.values(IUT_STEP.narrations), ...IUT_STEP.points.map(point => ({ id: point.id, text: point.transcript, audio: point.audio }))];
   const hash = input => createHash('sha256').update(input).digest('hex');
   assert.equal(Object.keys(manifest.tracks).length, 7);
+  assert.equal(manifest.phonemeVersion, 'fr-utf8-2');
   for (const track of tracks) {
     const entry = manifest.tracks[track.id], bytes = fs.readFileSync(new URL('../' + entry.src, import.meta.url));
     assert.equal(entry.textHash, hash(track.text)); assert.equal(entry.sha256, hash(bytes));
     assert.equal(entry.bytes, bytes.length); assert.ok(entry.duration > 5 && entry.duration < 150);
     assert.ok(entry.rms > .005 && entry.peak <= 1); assert.equal(mediaReady(track.audio), true);
     assert.equal(track.audio.kind, 'ai-narration'); assert.equal(track.audio.duration, entry.duration);
+    assert.match(track.audio.src, /\?v=[a-f0-9]{12}$/);
+    assert.ok(entry.phonemes?.length);
+    for (const sentence of entry.phonemes) {
+      assert.doesNotMatch(sentence.phonemes.replace(/[ˈˌ]/gu,''), /kɒpɪɹaɪt|(?:^| )atild(?: |$)/u);
+      assert.doesNotMatch(sentence.spoken, /copyright|voix IA naturelle|Apache-2\.0/iu);
+    }
   }
 });
 

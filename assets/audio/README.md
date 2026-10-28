@@ -4,6 +4,10 @@ Les sept fichiers MP3 contiennent les textes existants de l’accueil, du récit
 
 La génération s’effectue localement, au moment du développement. **Aucun modèle, abonnement, compte vocal ou clé API n’est requis sur le site.** Les fichiers sont chargés uniquement lorsqu’une personne demande la lecture. Les textes des histoires ne sont pas envoyés à un service vocal lors de l’utilisation du site.
 
+Le pipeline `fr-utf8-2` force l’entrée UTF-8 avec les arguments séparés `-b`, `1`. La syntaxe précédente `-b=1` était mal interprétée par cette compilation d’eSpeak : un « é » pouvait être traité comme « Ã© », dont le symbole © était lu « copyright ». Les sept fichiers ont été régénérés ; ils conservent les accents, les élisions françaises et les pauses de ponctuation. Les acronymes et l’élision « d’aujourd’hui » ont une normalisation de prononciation séparée, sans modifier les textes affichés.
+
+Les crédits et mentions IA sont uniquement des métadonnées affichées. Ils ne sont jamais fournis comme texte à prononcer. Chaque URL audio comporte une empreinte du nouveau fichier pour éviter de réutiliser une ancienne version en cache. `narrations.json` contient aussi la transcription phonétique et le texte de lecture de chaque phrase pour contrôler la génération.
+
 Provenance :
 
 - Modèle original [Kokoro-82M, hexgrad](https://huggingface.co/hexgrad/Kokoro-82M), poids sous Apache-2.0 ; [liste officielle des voix](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md).

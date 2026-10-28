@@ -1,4 +1,7 @@
 /* The application shell shares the existing AR palette and glass controls. */
+/* Titles receive focus for screen-reader orientation, without a browser frame.
+   Interactive controls keep their visible keyboard focus indicator. */
+:is(.app-page h1, #stepTitle)[tabindex="-1"]:focus { outline: none; }
 #appView { height: 100%; overflow-y: auto; overscroll-behavior-y: contain; padding: env(safe-area-inset-top, 0px) max(26px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px), calc((100vw - 1180px)/2)) var(--dock-clearance); background: var(--paper); scroll-behavior: smooth; scroll-padding-block: 24px var(--dock-clearance); }
 #appView[inert] { pointer-events: none; }
 .app-header { position: relative; min-height: 100px; gap: 20px; }
