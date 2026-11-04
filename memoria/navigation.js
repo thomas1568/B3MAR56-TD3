@@ -5,7 +5,6 @@ export function createTabNavigation({ nav, view, pages, getPage, navigate, canNa
   const pill = document.createElement('span'); pill.className = 'nav-active-pill'; pill.setAttribute('aria-hidden', 'true'); nav.prepend(pill);
   const buttons = [...nav.querySelectorAll('[data-page]')];
   let gesture = null, suppressClickUntil = 0;
-  const reduced = () => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   function mark(page) {
     const button = buttons.find(node => node.dataset.page === page); if (!button || !nav.getClientRects().length) return;
     pill.style.width = button.offsetWidth + 'px'; pill.style.height = button.offsetHeight + 'px';
@@ -71,8 +70,8 @@ export function createTabNavigation({ nav, view, pages, getPage, navigate, canNa
   const observer = new ResizeObserver(sync); observer.observe(nav);
   sync();
   return { sync, animate(node, direction) {
-    if (reduced() || !node.animate) return;
-    for (const animation of node.getAnimations()) animation.cancel();
-    node.animate([{ opacity: .4, transform: `translateX(${direction * 18}px)` }, { opacity: 1, transform: 'translateX(0)' }], { duration: 210, easing: 'cubic-bezier(.2,.7,.25,1)' });
+    // Views stay mounted and appear immediately; only the navigation capsule moves.
+    // This avoids flashes and moving hit targets when switching tabs.
+    for (const animation of node.getAnimations?.() || []) animation.cancel();
   } };
 }

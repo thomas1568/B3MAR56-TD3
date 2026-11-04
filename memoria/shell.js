@@ -1,9 +1,9 @@
 import { createAccount, validatePhoto, validatePseudo } from './account.js?v=17';
 import { AVATARS, renderAvatar } from './avatars.js';
-import { createTabNavigation } from './navigation.js?v=17';
+import { createTabNavigation } from './navigation.js?v=22';
 import { cropGeometry, zoomCrop } from './photo-crop.js';
 import { CORTE_PHOTOS } from '../content/corte.js';
-import { createCityMap } from './city-map.js';
+import { createImmersiveMap } from './immersive-map.js?v=22';
 
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 export function createShell(experience, step) {
@@ -12,32 +12,33 @@ export function createShell(experience, step) {
   const account = createAccount();
   let state = account.getState(), page = 'home', inStep = false, settingUp = false, authMode = 'signup', busy = false;
   let draft = { ...state.profile }, cropImage = null, cropBefore = null, profileReturn = null, uploadGeneration = 0;
-  let tabNavigation = null, cityMap = null;
+  let tabNavigation = null, cityMap = null, profileEditorLoaded = false, stepOrigin = 'home';
   let cropState = { zoom: 1, offsetX: 0, offsetY: 0 };
-  const pages = ['home', 'explore', 'route', 'listen', 'profile'];
+  const pages = ['home', 'explore', 'map', 'route', 'listen', 'profile'];
   const scrollPositions = new Map();
   const app = document.createElement('main'); app.id = 'appView'; app.dataset.ui = '';
   app.innerHTML = `
     <header class="site-header app-header"><a class="brand" href="#accueil" data-page="home"><span class="seal">MC</span><span>Memoria <em>Corti</em><small>Des lieux. Des voix. Une mémoire.</small></span></a><div class="header-end"><span class="location-chip">${icon('pin')}Corte · Corse</span><button id="headerProfile" class="profile-shortcut" aria-label="Ouvrir mon profil" data-page="profile"><span data-profile-avatar class="avatar"></span></button></div></header>
     <section id="page-home" class="app-page" aria-labelledby="greeting"><div class="welcome-line"><div><p class="eyebrow">BENVENUTI IN CORTI</p><h1 id="greeting">Bonghjornu.</h1><p class="page-subtitle">Chaque lieu a une histoire. La vôtre commence ici.</p></div><span id="sessionBadge" class="subtle-badge"></span></div>
-      <article id="resumeCard" class="resume-card" hidden><img class="resume-thumbnail" src="assets/savoir-illustration.svg" alt="Illustration du livre ouvert de l’étape IUT" width="100" height="100"><div><p class="eyebrow">VOTRE PARCOURS EN COURS</p><h2>Reprendre ma découverte</h2><p id="resumeDescription"></p><progress id="resumeProgress" max="5" value="0" aria-label="Repères consultés à l’IUT"></progress></div><button id="resumeButton" class="primary">Reprendre ${icon('arrow')}</button></article>
-      <article class="feature-card"><img src="assets/photos/corte-citadelle.jpg" alt="La citadelle de Corte sur son éperon rocheux, dans les montagnes corses" width="1280" height="960" fetchpriority="high"><div class="feature-overlay"><a class="visual-label photo-source" href="https://commons.wikimedia.org/wiki/File:Citadelle_de_Corte,_Corte,_Corsica,_France.jpg" target="_blank" rel="noopener noreferrer">Photo · Bj.schoenmakers · CC0</a><p class="eyebrow">UN TERRITOIRE À RENCONTRER</p><h2>Corte se raconte.<br>À vous de l’explorer.</h2><p>Des lieux de savoir aux voix de la ville, suivez le fil des mémoires.</p><button class="light-button" data-page="explore">Explorer Corte ${icon('arrow')}</button></div></article>
+      <article id="resumeCard" class="resume-card" hidden><span class="resume-thumbnail" aria-hidden="true">${icon('route')}</span><div><p class="eyebrow">VOTRE PARCOURS EN COURS</p><h2>Reprendre ma découverte</h2><p id="resumeDescription"></p><progress id="resumeProgress" max="5" value="0" aria-label="Repères consultés à l’IUT"></progress></div><button id="resumeButton" class="primary">Reprendre ${icon('arrow')}</button></article>
+      <article class="feature-card"><img src="assets/photos/corte-citadelle.jpg" alt="La citadelle de Corte sur son éperon rocheux, dans les montagnes corses" width="1280" height="960" fetchpriority="high"><div class="feature-overlay"><a class="visual-label photo-source" href="https://commons.wikimedia.org/wiki/File:Citadelle_de_Corte,_Corte,_Corsica,_France.jpg" target="_blank" rel="noopener noreferrer">Photo · Bj.schoenmakers · CC0</a><p class="eyebrow">AU CŒUR DE LA CORSE</p><h2>Corte,<br>au fil des lieux.</h2><p>Prenez le temps de découvrir Corte, ses lieux et les histoires qui les relient.</p><button class="light-button" data-page="map">Ouvrir la carte ${icon('arrow')}</button></div></article>
       <div class="section-heading"><div><p class="eyebrow">LES LIEUX, AUTREMENT</p><h2>Explorer Corte</h2></div><button class="text-button" data-page="explore">Tout explorer ${icon('arrow')}</button></div><div id="homePlaces" class="editorial-grid"></div>
       <div class="section-heading"><div><p class="eyebrow">PRENEZ LE TEMPS</p><h2>À écouter</h2></div><button class="text-button" data-page="listen">Les récits ${icon('arrow')}</button></div><div id="homeStories" class="story-grid"></div>
-      <div class="section-heading"><div><p class="eyebrow">REGARDS SUR LE TERRITOIRE</p><h2>Les visages de Corte</h2></div></div><div id="corteGallery" class="corte-gallery"></div><div class="quiet-note">${icon('route')}<div><p>L’IUT ouvre le parcours. Les autres étapes de Corte se préparent, une histoire après l’autre.</p><button class="text-button" data-page="route">Voir le parcours sur la carte ${icon('arrow')}</button></div></div>
+      <div class="section-heading"><div><p class="eyebrow">REGARDS SUR LE TERRITOIRE</p><h2>Un regard sur Corte</h2></div></div><div id="corteGallery" class="corte-gallery"></div><div class="quiet-note">${icon('route')}<div><p>L’IUT ouvre le parcours. Les autres étapes de Corte se préparent, une histoire après l’autre.</p><button class="text-button" data-page="map">Voir les lieux sur la carte ${icon('arrow')}</button></div></div>
     </section>
     <section id="page-explore" class="app-page" hidden aria-labelledby="exploreTitle"><p class="eyebrow">LES MÉMOIRES D’UN TERRITOIRE</p><h1 id="exploreTitle">Explorer Corte</h1><p class="page-subtitle">Des lieux à observer, des histoires à rencontrer.</p><div class="filter-row" role="group" aria-label="Filtrer les lieux"><button id="filterAll" aria-pressed="true">Tous les lieux</button><button id="filterAvailable" aria-pressed="false">Disponibles</button><button id="filterComing" aria-pressed="false">À venir</button></div><div id="explorePlaces" class="editorial-grid"></div><p class="small-note">Les visuels sont des illustrations originales. Les photographies documentées du parcours restent à fournir.</p></section>
+    <section id="page-map" class="app-page" hidden aria-labelledby="mapTitle"><div id="cityMap"></div></section>
     <section id="page-route" class="app-page" hidden aria-labelledby="routeTitle"><p class="eyebrow">UN FIL ENTRE LES LIEUX</p><h1 id="routeTitle">Mon parcours</h1><p class="page-subtitle">Une première étape à découvrir. D’autres mémoires à venir.</p><div class="route-summary"><div><span id="routeCount" class="large-number">0 / 5</span><p>repères consultés à l’IUT</p></div><div><h2>Corte, une ville de savoir</h2><p id="routeDescription">Votre découverte commence sur le campus Grimaldi.</p><progress id="routeProgress" max="5" value="0" aria-label="Progression de l’étape IUT"></progress></div></div><ol class="route-steps"><li><span class="route-marker">01</span><div><span class="status-pill">Disponible</span><h2>L’IUT de Corse</h2><p>Apprendre, transmettre et relier les mémoires de l’université.</p><button id="routeStartButton" class="primary">Découvrir l’étape ${icon('arrow')}</button></div></li><li><span class="route-marker muted-marker">02</span><div><span class="status-pill coming">À venir</span><h2>Le Palazzu Naziunale</h2><p>L’université historique, un autre lieu de savoir. Cette étape est en préparation.</p><button data-coming="Le Palazzu Naziunale">En savoir plus</button></div></li></ol></section>
-    <section id="page-listen" class="app-page" hidden aria-labelledby="listenTitle"><p class="eyebrow">LES HISTOIRES PRENNENT VOIX</p><h1 id="listenTitle">À écouter</h1><p class="page-subtitle">Choisissez un récit, ou prenez le temps de le lire.</p><div class="listen-intro">${icon('listen')}<p>Retrouvez les histoires dans une narration française à voix IA naturelle. Les transcriptions restent accessibles à tout moment.</p></div><div id="listenStories" class="story-grid"></div><div class="section-heading"><h2>Les voix de demain</h2></div><article class="empty-card">${icon('listen')}<div><span class="status-pill coming">À venir</span><h3>Des mémoires à partager</h3><p>De futurs récits et témoignages enrichiront la découverte de Corte.</p></div></article></section>
+    <section id="page-listen" class="app-page" hidden aria-labelledby="listenTitle"><p class="eyebrow">LES HISTOIRES PRENNENT VOIX</p><h1 id="listenTitle">À écouter</h1><p class="page-subtitle">Choisissez un récit, ou prenez le temps de le lire.</p><div class="listen-intro">${icon('listen')}<p>Écoutez les récits du parcours, ou lisez leur transcription. Les voix sont générées par IA.</p></div><div id="listenStories" class="story-grid"></div><div class="section-heading"><h2>Les voix de demain</h2></div><article class="empty-card">${icon('listen')}<div><span class="status-pill coming">À venir</span><h3>Des mémoires à partager</h3><p>De futurs récits et témoignages enrichiront la découverte de Corte.</p></div></article></section>
     <section id="page-profile" class="app-page" hidden aria-labelledby="profileTitle"><p class="eyebrow">VOTRE REGARD SUR CORTE</p><h1 id="profileTitle">Mon profil</h1><div class="profile-layout"><div><div class="profile-identity"><span class="avatar avatar-large" data-profile-avatar></span><div><h2 id="profileName"></h2><p id="profileConnection" class="small-note"></p></div></div><div id="profileEditorHome"></div></div><aside class="profile-aside"><p class="eyebrow">VOTRE DÉCOUVERTE</p><h2 id="profileProgressTitle">Le premier pas vous attend.</h2><p id="profileProgressText"></p><button id="profileResume">Retrouver mon parcours ${icon('arrow')}</button><div class="profile-account"><p id="profileStorageNote" class="small-note"></p><button id="connectFromProfile">Créer un compte ou se connecter</button><button id="logoutButton">Se déconnecter ${icon('exit')}</button></div></aside></div></section>
     <footer class="site-footer"><span>Memoria Corti · La mémoire en mouvement</span><span>Corte, des lieux à rencontrer</span></footer>`;
   root.prepend(app);
 
   const dock = document.createElement('div'); dock.id = 'appDock'; dock.className = 'journey-dock'; dock.dataset.ui = '';
-  dock.innerHTML = `<nav class="journey-nav app-nav" aria-label="Navigation principale">${[['home','Accueil','home'],['explore','Explorer','discover'],['route','Parcours','route'],['listen','Écouter','listen'],['profile','Profil','']].map(([id,label,symbol]) => `<button id="tab-${id}" class="journey-item" data-page="${id}" type="button">${symbol ? icon(symbol) : '<span data-profile-avatar class="avatar nav-avatar"></span>'}<span>${label}</span></button>`).join('')}</nav>`;
+  dock.innerHTML = `<nav class="journey-nav app-nav" aria-label="Navigation principale">${[['home','Accueil','home'],['explore','Explorer','discover'],['map','Carte','map'],['route','Parcours','route'],['listen','Écouter','listen'],['profile','Profil','']].map(([id,label,symbol]) => `<button id="tab-${id}" class="journey-item" data-page="${id}" type="button">${symbol ? icon(symbol) : '<span data-profile-avatar class="avatar nav-avatar"></span>'}<span>${label}</span></button>`).join('')}</nav>`;
   root.appendChild(dock);
   const overlay = document.createElement('section'); overlay.id = 'onboarding'; overlay.className = 'onboarding'; overlay.dataset.ui = ''; overlay.hidden = true;
-  overlay.innerHTML = `<div class="onboarding-brand"><span class="seal">MC</span><span>Memoria <em>Corti</em></span></div><div id="onboardingWelcome" class="onboarding-screen"><span class="welcome-medallion">${icon('discover')}</span><p class="eyebrow">BENVENUTI IN CORTI</p><h1>Les lieux passent.<br>Les mémoires restent.</h1><p class="onboarding-lead">Bienvenue à Corte. Partez à la rencontre d’une ville, de ses voix et de ce qu’elle nous transmet.</p><div class="onboarding-actions"><button id="signupButton" class="primary">Créer mon profil ${icon('arrow')}</button><button id="createAccountButton" hidden>Créer un compte connecté</button><button id="signinButton">J’ai déjà un compte</button><button id="guestButton" class="text-button">Continuer en invité</button></div><p class="small-note">Un pseudo, une image, et votre découverte peut commencer.<br>Le profil invité est conservé sur cet appareil.</p></div>
+  overlay.innerHTML = `<div class="onboarding-brand"><span class="seal">MC</span><span>Memoria <em>Corti</em></span></div><div id="onboardingWelcome" class="onboarding-screen"><span class="welcome-medallion">${icon('discover')}</span><p class="eyebrow">BENVENUTI IN CORTI</p><h1>Bienvenue<br>à Corte.</h1><p class="onboarding-lead">Découvrez les lieux de la ville, écoutez leurs récits et retrouvez votre parcours au fil des visites.</p><div class="onboarding-actions"><button id="signupButton" class="primary">Créer mon profil ${icon('arrow')}</button><button id="createAccountButton" hidden>Créer un compte connecté</button><button id="signinButton">J’ai déjà un compte</button><button id="guestButton" class="text-button">Continuer en invité</button></div><p class="small-note">Un pseudo, une image, et votre découverte peut commencer.<br>Le profil invité est conservé sur cet appareil.</p></div>
     <div id="onboardingAuth" class="onboarding-screen" hidden><button id="authBack" class="text-button">← Retour</button><p class="eyebrow">01 / VOTRE CONNEXION</p><h1 id="authTitle">Créer mon compte</h1><p id="authDescription" class="onboarding-lead"></p><form id="authForm" novalidate><label for="emailInput">Adresse e-mail</label><input id="emailInput" name="email" type="email" autocomplete="email" required aria-describedby="authMessage" placeholder="vous@exemple.fr"><label for="passwordInput">Mot de passe</label><input id="passwordInput" name="password" type="password" autocomplete="new-password" required aria-describedby="authMessage"><p class="small-note" id="passwordHelp">Au moins 8 caractères.</p><p id="authMessage" class="form-message" role="status" aria-live="polite"></p><button id="authSubmit" class="primary" type="submit">Créer mon compte</button></form><button id="authSwitch" class="text-button">J’ai déjà un compte</button><button id="authGuest" class="text-button">Découvrir en invité</button></div>
     <div id="onboardingSetup" class="onboarding-screen setup-screen" hidden><p class="eyebrow">02 / UN PROFIL QUI VOUS RESSEMBLE</p><h1>Et vous,<br>comment vous appelez-vous ?</h1><p id="setupModeNote" class="small-note"></p><div id="setupEditorHome"></div></div><p id="onboardingStatus" class="form-message" role="status" aria-live="polite"></p>`;
   root.appendChild(overlay);
@@ -50,9 +51,10 @@ export function createShell(experience, step) {
   const upcoming = document.createElement('div'); upcoming.id = 'comingModal'; upcoming.className = 'modal-backdrop'; upcoming.dataset.ui = ''; upcoming.hidden = true;
   upcoming.innerHTML = `<article class="content-card" role="dialog" aria-modal="true" aria-labelledby="comingTitle"><header><div><p class="eyebrow">LE PARCOURS S’ÉTOFFE</p><h2 id="comingTitle"></h2></div><button id="closeComing">Fermer</button></header><div class="card-scroll"><img class="coming-visual" src="assets/corte-illustration.svg" alt="Illustration symbolique de Corte"><p>Cette étape est en préparation. Ses contenus, médias et repères AR ne sont pas encore disponibles.</p><button id="comingStart" class="primary">Découvrir la première étape : l’IUT</button></div></article>`;
   root.appendChild(upcoming);
-  const mapHost = document.createElement('section'); mapHost.id = 'cityMap';
-  el('page-route').querySelector('.route-steps').before(mapHost);
-  cityMap = createCityMap(mapHost, { onStep: () => startStep(), onComing: openComing });
+  cityMap = createImmersiveMap(el('cityMap'), { onStep: () => startStep(), onComing: openComing });
+  const mapLink = document.createElement('div'); mapLink.className = 'route-map-link';
+  mapLink.innerHTML = `<p>Retrouvez les étapes dans Corte et préparez votre balade.</p><button type="button" data-page="map">${icon('map')} Ouvrir la carte</button>`;
+  el('page-route').querySelector('.route-steps').before(mapLink);
   el('page-explore').querySelector(':scope > .small-note').textContent = 'Photographies de Corte et illustrations du parcours : les crédits et les licences accompagnent chaque cliché.';
   function photoCredit(photo) {
     const credit = document.createElement('div'); credit.className = 'photo-credit';
@@ -69,7 +71,7 @@ export function createShell(experience, step) {
   const comingPhoto = CORTE_PHOTOS.find(item => item.id === 'palazzu');
   const comingImage = upcoming.querySelector('.coming-visual'); comingImage.src = comingPhoto.src; comingImage.alt = comingPhoto.alt; comingImage.after(photoCredit(comingPhoto));
   const back = document.createElement('button'); back.id = 'backToApp'; back.type = 'button'; back.className = 'text-button'; back.textContent = '← Accueil';
-  el('homeView').querySelector('.site-header').appendChild(back); back.addEventListener('click', () => showPage('home'));
+  el('homeView').querySelector('.site-header').appendChild(back); back.addEventListener('click', () => showPage(stepOrigin));
   el('homeView').querySelector('.brand').addEventListener('click', event => { event.preventDefault(); showPage('home'); });
 
   const places = [
@@ -80,6 +82,9 @@ export function createShell(experience, step) {
     const article = document.createElement('article'); article.className = 'editorial-card';
     article.innerHTML = `<div class="card-visual"><img src="assets/${item.image}-illustration.svg" alt="Illustration symbolique ${item.available ? 'de la transmission du savoir' : 'de Corte'}" width="1000" height="600" loading="lazy"><span class="visual-label">Illustration</span></div><div class="editorial-card-body"><span class="status-pill ${item.available ? '' : 'coming'}"></span><h3></h3><p></p><button class="${item.available ? 'primary' : ''}"></button></div>`;
     article.querySelector('.status-pill').textContent = item.status; article.querySelector('h3').textContent = item.title; article.querySelector('p').textContent = item.description;
+    if (!item.photo) {
+      article.querySelector('.card-visual').innerHTML = `<div class="campus-placeholder">${icon('place')}<strong>L’IUT de Corse</strong><span>Campus Grimaldi</span><small>Photographie du campus à fournir</small></div>`;
+    }
     if(item.photo) { const image = article.querySelector('img'); image.src = item.photo.src; image.alt = item.photo.alt; image.style.objectPosition = item.photo.position; article.querySelector('.visual-label').textContent = 'Photographie · Corte'; article.querySelector('.editorial-card-body').appendChild(photoCredit(item.photo)); }
     const button = article.querySelector('button'); button.textContent = item.action; button.addEventListener('click', () => item.available ? startStep() : openComing(item.title)); return article;
   }
@@ -93,7 +98,7 @@ export function createShell(experience, step) {
   ];
   function storyCard(item) {
     const article = document.createElement('article'); article.className = 'story-card';
-    article.innerHTML = `<div class="story-visual"><img src="assets/voix-illustration.svg" alt="Illustration d’ondes sonores" width="1000" height="600" loading="lazy">${icon('listen')}</div><div><span class="eyebrow">RÉCITS & VOIX NATURELLE IA</span><h3></h3><p></p><button class="text-button"></button></div>`;
+    article.innerHTML = `<div class="story-visual" aria-hidden="true">${icon('listen')}</div><div><span class="eyebrow">RÉCIT · VOIX IA</span><h3></h3><p></p><button class="text-button"></button></div>`;
     article.querySelector('h3').textContent = item.title; article.querySelector('p').textContent = item.description; const button = article.querySelector('button'); button.textContent = item.action;
     button.addEventListener('click', () => { experience.openStories(); el('welcomeAudioButton').focus(); if (item.id === 'main') el('mainAudioButton').focus(); }); return article;
   }
@@ -103,20 +108,25 @@ export function createShell(experience, step) {
     if (experience.getState().activeAR || !pages.includes(next)) return;
     const previousPage = page, wasInStep = inStep;
     if (!inStep && !app.hidden) scrollPositions.set(page, app.scrollTop);
-    page = next; inStep = false; experience.closeStories(); experience.closePoint(); experience.closePanorama();
+    cityMap?.deactivate();
+    page = next; inStep = false; app.classList.toggle('is-map', next === 'map'); experience.closeStories(); experience.closePoint(); experience.closePanorama();
     el('homeView').hidden = true; app.hidden = false; el('experienceDock').hidden = true; dock.hidden = false;
     for (const section of app.querySelectorAll('.app-page')) section.hidden = section.id !== 'page-' + next;
     for (const button of dock.querySelectorAll('button')) {
       if (button.dataset.page === next) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
     }
     app.scrollTo({ top: scrollPositions.get(next) || 0, behavior: 'instant' });
-    if (next === 'profile') { settingUp = false; el('profileEditorHome').appendChild(form); draft = { ...state.profile }; fillEditor(); }
-    if (next === 'route') cityMap?.load();
+    if (next === 'profile') {
+      settingUp = false; el('profileEditorHome').appendChild(form);
+      if (!profileEditorLoaded) { draft = { ...state.profile }; fillEditor(); profileEditorLoaded = true; }
+      else renderDraft();
+    }
+    if (next === 'map') cityMap?.activate();
     if (focus) { const title = el('page-' + next).querySelector('h1'); title.tabIndex = -1; title.focus({ preventScroll: true }); }
     tabNavigation?.sync();
     if (previousPage !== next || wasInStep) tabNavigation?.animate(el('page-' + next), pages.indexOf(next) >= pages.indexOf(previousPage) ? 1 : -1);
   }
-  function stepVisibility() { inStep = true; app.hidden = true; dock.hidden = true; el('homeView').hidden = false; el('experienceDock').hidden = false; }
+  function stepVisibility() { if (!inStep) { stepOrigin = page; scrollPositions.set(page, app.scrollTop); } cityMap?.deactivate(); back.textContent = '← ' + ({home:'Accueil',explore:'Explorer',map:'Carte',route:'Parcours',listen:'Écouter',profile:'Profil'}[stepOrigin]); inStep = true; app.hidden = true; dock.hidden = true; el('homeView').hidden = false; el('experienceDock').hidden = false; }
   function startStep(resume = false) {
     stepVisibility(); experience.prepareVisit({ scroll: false }); el('homeView').scrollTo({ top: 0, behavior: 'instant' });
     const title = el('stepTitle'); title.tabIndex = -1; title.focus({ preventScroll: true });
@@ -131,7 +141,7 @@ export function createShell(experience, step) {
     const target = event.target.closest('[data-page]'); if (target) { event.preventDefault(); showPage(target.dataset.page); }
     const coming = event.target.closest('[data-coming]'); if (coming) openComing(coming.dataset.coming);
   });
-  for (const [id, filter] of [['filterAll','all'],['filterAvailable','available'],['filterComing','coming']]) el(id).addEventListener('click', () => { for (const button of app.querySelectorAll('.filter-row button')) button.setAttribute('aria-pressed', String(button.id === id)); renderPlaces(filter); });
+  for (const [id, filter] of [['filterAll','all'],['filterAvailable','available'],['filterComing','coming']]) el(id).addEventListener('click', () => { for (const button of el('page-explore').querySelectorAll('.filter-row button')) button.setAttribute('aria-pressed', String(button.id === id)); renderPlaces(filter); });
   el('resumeButton').addEventListener('click', () => startStep(true)); el('routeStartButton').addEventListener('click', () => startStep(state.profile.progress.started));
   el('profileResume').addEventListener('click', () => showPage('route'));
 
@@ -232,7 +242,7 @@ export function createShell(experience, step) {
   }
   function completeOnboarding() {
     message('onboardingStatus', '');
-    settingUp = false; profileReturn = null; overlay.hidden = true; app.inert = false; el('homeView').inert = false; el('profileEditorHome').appendChild(form);
+    settingUp = false; profileEditorLoaded = false; profileReturn = null; overlay.hidden = true; app.inert = false; el('homeView').inert = false; el('profileEditorHome').appendChild(form);
     showPage('home'); renderProfile();
   }
   el('signupButton').addEventListener('click', openSetup);

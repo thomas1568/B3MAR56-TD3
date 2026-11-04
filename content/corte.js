@@ -8,3 +8,18 @@ export const CORTE_PHOTOS = [
   { id: 'paoli', src: 'assets/photos/corte-paoli.jpg', title: 'Pasquale Paoli, dans la ville', description: 'Un monument de la mémoire corse, photographié à Corte.', author: 'Bj.schoenmakers', license: 'CC0', licenseURL: 'https://creativecommons.org/publicdomain/zero/1.0/', source: 'https://commons.wikimedia.org/wiki/File:Pascal_Paoli_Statue_Corte,_Corsica,_France.jpg', alt: 'La statue de Pascal Paoli sur son piédestal, à Corte', position: 'center 40%' },
   { id: 'restonica', src: 'assets/photos/corte-restonica.jpg', title: 'La Restonica', description: 'L’eau et la roche, dans la vallée de la Restonica.', author: 'Chabe01', license: 'CC BY-SA 4.0', licenseURL: 'https://creativecommons.org/licenses/by-sa/4.0/', source: 'https://commons.wikimedia.org/wiki/File:Gorges_Restonica_-_Corte_(FR2B)_-_2021-09-08_-_45.jpg', alt: 'Eau claire et rochers dans les gorges de la Restonica, sur la commune de Corte', position: 'center' }
 ];
+
+
+// Fixed destination supplied in the project brief. This is never device geolocation.
+// Add a documented name, photograph (with author/license/source) and stepId only
+// after verification; proximity to the IUT alone does not establish an identity.
+export const CORTE_FIXED_POINT = Object.freeze({
+  id: 'fixed-gps',
+  title: 'Point GPS à découvrir',
+  coordinates: Object.freeze([9.154278, 42.297500]),
+  coordinateLabel: '42°17\'51.0"N · 9°09\'15.4"E',
+  description: 'Un point fixe à retrouver à Corte. Le nom du lieu et sa présentation restent à documenter.',
+  practical: null,
+  stepId: null,
+  photo: null
+});

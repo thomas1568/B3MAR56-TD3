@@ -176,3 +176,56 @@ Le second test démarre Chrome sans fenêtre visible, via son protocole de débo
 9. Quitter AR et ouvrir le 360°. Vérifier le panorama illustré, son statut, le glissement du regard, les flèches clavier, le recentrage et les cinq fiches accessibles. Couper le réseau après chargement et vérifier que les ressources locales restent disponibles. Vérifier aussi le message d’erreur si l’image ne peut pas être chargée.
 
 Restent à confirmer sur appareil réel : caméra visible et permissions, disponibilité de DOM Overlay, déverrouillage sonore à l’entrée AR, qualité d’écoute, rayons alignés avec l’image caméra, détection des surfaces, absence de saut et de dérive après édition/recalage, annulations tactiles, lisibilité dehors, performances et comportement du moteur vocal. Les quatre photos de Corte ont des crédits documentés ; les enregistrements historiques restent à fournir. Le panorama est une illustration et la musique une composition originale.
+
+
+## Refonte visuelle et carte immersive (novembre 2026)
+
+La stack HTML/CSS/JS et les fonctions de profil, audio, AR et panorama sont conservées.
+Le thème commun est dans `memoria/modern.css`. La navigation possède six onglets,
+dont une Carte indépendante du suivi de progression « Parcours ». Les vues restent
+montées ; le défilement, les filtres, le brouillon du profil et le cadrage de la carte
+sont conservés lors des changements d’onglet.
+
+`memoria/immersive-map.js` affiche l’extrait OpenStreetMap local avec déplacements,
+zoom (boutons, molette, pincement et clavier), recherche, filtres, étapes numérotées,
+repère photographique du Palazzu, et liaison piétonne indicative calculée sur les voies.
+Le panneau mobile a trois positions, accessibles par boutons, clavier ou glissement
+de la poignée ; sur ordinateur il devient un volet latéral. La liste reste utilisable
+si le chargement du fond échoue. Aucun service de tuiles, suivi GPS ni clé API requis.
+
+Le point fixe exact **42.297500, 9.154278** est déclaré dans `content/corte.js`
+(`CORTE_FIXED_POINT`). Il ne représente pas l’utilisateur. Sa fiche possède une
+action d’itinéraire à pied externe, une fermeture explicite et des données neutres.
+La proximité géographique avec l’IUT ne vaut pas identification du lieu.
+L’étiquette de l’IUT est légèrement déportée avec une ligne d’ancrage lorsqu’elle
+recouvrirait le point fixe ; les coordonnées géographiques ne sont pas modifiées.
+
+Contenus à fournir / vérifier :
+- Nom, description documentée et photographie du point GPS, avec auteur, source et
+  droits de réutilisation ; compléter `photo` avec le même schéma que `CORTE_PHOTOS`.
+- Informations pratiques (`practical`) et étape correspondante (`stepId`) du point fixe.
+- Photographie documentée du campus Grimaldi ; les emplacements sans cliché restent
+  explicitement neutres. Les photographies de la ville ne sont pas présentées comme
+  des photographies du campus.
+- Les références visuelles fournies ont guidé la capsule en verre fumé, la recherche
+  sombre, les filtres au-dessus du panneau mobile et les repères photographiques
+  légendés. La petite photo n’identifie pas le point GPS et n’est pas utilisée
+  comme photographie documentaire de cet emplacement.
+- Les contenus historiques manquants, l’étape Palazzu, les ambiances et la configuration
+  Supabase restent soumis aux limites documentées précédemment.
+
+Les photos locales de Corte conservent leurs crédits et licences ; les illustrations
+historiques utiles sont identifiées comme telles. L’interface respecte les préférences
+de réduction des animations et de la transparence et conserve des cibles de 44 px.
+La validation navigateur est une vérification technique, pas un audit WCAG exhaustif.
+
+
+Validation de la refonte :
+- `node --test tests/immersive-map.mjs tests/city-and-crop.mjs` : coordonnées,
+  itinéraires, recherche, droits des photos et géométrie.
+- `node tests/shell-browser.mjs` : Chrome réel, interactions tactiles, carte,
+  panneau, conservation des états, erreur/rechargement et profils, de 320 à 1440 px.
+- `node tests/browser-smoke.mjs` : régression AR/360, WebGL et toucher réels,
+  poses XR simulées. Aucun essai de suivi AR physique sur téléphone.
+- Suite unitaire complète : 61 réussites ; un contrôle eSpeak optionnel ignoré
+  faute des outils de génération vocale (les enregistrements existants sont testés).

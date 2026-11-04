@@ -6,7 +6,7 @@ import { IUT_STEP } from './content/iut.js?v=20';
 import { createMemoriaScene } from './memoria/scene.js?v=20';
 import { loadLayout, saveLayout, LAYOUT_KEY } from './memoria/layout.js';
 import { createExperience } from './memoria/experience.js?v=20';
-import { createShell } from './memoria/shell.js?v=20';
+import { createShell } from './memoria/shell.js?v=22';
 
 let scene;
 let camera;
