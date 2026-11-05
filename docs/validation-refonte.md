@@ -80,3 +80,17 @@ Ouvrir http://127.0.0.1:8080/B3MAR56-TD3/#accueil.
 Aucune installation npm ni compilation n’est nécessaire. Les services en ligne
 nécessitent Internet ; aucune clé n’est requise pour la configuration cartographique
 actuelle. Les clés de comptes éventuelles restent publiques, jamais des secrets.
+
+## Correctif de l’écran blanc après déploiement
+
+Le défaut a été reproduit avec le module Corte de la version précédente conservé
+dans le cache HTTP de Chrome. L’import de `photoVariants` échouait dans l’interface
+avant la création de `appView` ; après fermeture de l’introduction, l’écran était vide.
+Les tests précédents en session neuve ne reproduisaient pas ce mélange de versions.
+
+Les imports locaux utilisent désormais une version cohérente et le chargement
+principal dispose d’un écran de récupération avec nouvelle tentative. Le scénario
+`node tests/startup-browser.mjs` passe : cache ancien, adresse normale sans paramètres,
+profil et progression préservés, panne du module puis rechargement réussi.
+Les deux scénarios navigateur existants et les 66 tests Node ont aussi été relancés
+avec succès après ce correctif (le contrôle eSpeak reste ignoré).

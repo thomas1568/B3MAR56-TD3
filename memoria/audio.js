@@ -1,4 +1,4 @@
-import { createHeritageMusic } from './music.js?v=18';
+import { createHeritageMusic } from './music.js?v=31';
 
 export function chooseFrenchVoice(voices = [], preferredURI = '') {
   const french = voices.filter(voice => /^fr(?:[-_]|$)/i.test(voice.lang));

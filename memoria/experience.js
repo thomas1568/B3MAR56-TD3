@@ -1,7 +1,7 @@
-import { findPoint, mediaReady } from '../content/iut.js?v=20';
-import { createAudioController } from './audio.js?v=20';
-import { layoutHotspots } from './hotspots.js';
-import { POINT_VISUALS } from '../content/point-visuals.js?v=20';
+import { findPoint, mediaReady } from '../content/iut.js?v=31';
+import { createAudioController } from './audio.js?v=31';
+import { layoutHotspots } from './hotspots.js?v=31';
+import { POINT_VISUALS } from '../content/point-visuals.js?v=31';
 
 export function createExperience(step, api) {
   const el = id => document.getElementById(id);
@@ -300,7 +300,7 @@ export function createExperience(step, api) {
     if (!panorama) {
       const generation = ++panoramaGeneration;
       try {
-        const { createPanorama } = await import('./panorama.js?v=30');
+        const { createPanorama } = await import('./panorama.js?v=31');
         if(generation !== panoramaGeneration || el('panoramaPanel').hidden) return;
         panorama = createPanorama(el('panoramaScene'), step, openPoint);
       }

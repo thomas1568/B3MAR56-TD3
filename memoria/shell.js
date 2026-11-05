@@ -1,9 +1,9 @@
-import { createAccount, validatePhoto, validatePseudo } from './account.js?v=30';
-import { AVATARS, renderAvatar } from './avatars.js';
-import { createTabNavigation } from './navigation.js?v=30';
-import { cropGeometry, zoomCrop } from './photo-crop.js';
-import { CORTE_PHOTOS, photoVariants } from '../content/corte.js';
-import { createImmersiveMap } from './immersive-map.js?v=30';
+import { createAccount, validatePhoto, validatePseudo } from './account.js?v=31';
+import { AVATARS, renderAvatar } from './avatars.js?v=31';
+import { createTabNavigation } from './navigation.js?v=31';
+import { cropGeometry, zoomCrop } from './photo-crop.js?v=31';
+import { CORTE_PHOTOS, photoVariants } from '../content/corte.js?v=31';
+import { createImmersiveMap } from './immersive-map.js?v=31';
 
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 export function createShell(experience, step) {

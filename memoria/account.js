@@ -1,5 +1,5 @@
-import { ACCOUNT_CONFIG } from './config.js?v=16';
-import { AVATARS } from './avatars.js';
+import { ACCOUNT_CONFIG } from './config.js?v=31';
+import { AVATARS } from './avatars.js?v=31';
 
 export const GUEST_KEY = 'memoria:guest:v1';
 const SESSION_KEY = 'memoria:session:v1';

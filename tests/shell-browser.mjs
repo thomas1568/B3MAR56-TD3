@@ -272,7 +272,7 @@ try {
 
   // Test-only media enables the archive interaction without fabricating production archives.
   await click('closePointButton');
-  await ev(`import(new URL('content/iut.js?v=30',document.baseURI).href).then(m=>{m.IUT_STEP.points[0].image={src:'assets/photos/corte-palazzu.jpg',label:'Image de test',caption:'Fixture de vérification de l’agrandissement',credit:'Pierre Bona · CC BY-SA 3.0',date:'Fixture',rights:{status:'autorise',label:'Fixture de test'}};})`);
+  await ev(`import(new URL('content/iut.js?v=31',document.baseURI).href).then(m=>{m.IUT_STEP.points[0].image={src:'assets/photos/corte-palazzu.jpg',label:'Image de test',caption:'Fixture de vérification de l’agrandissement',credit:'Pierre Bona · CC BY-SA 3.0',date:'Fixture',rights:{status:'autorise',label:'Fixture de test'}};})`);
   await ev('document.querySelector("#pointList button").click()');await click('enlargeImageButton');await until('!document.getElementById("archiveModal").hidden');
   await input('archiveZoom','2');assert.match(await ev('document.getElementById("archiveImage").style.width'),/200/);
   await click('closeArchiveButton');assert.equal(await ev('document.activeElement.id'),'enlargeImageButton');await click('closePointButton');

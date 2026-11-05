@@ -1,7 +1,7 @@
-import { CORTE_STOPS, CORTE_PHOTOS, CORTE_FIXED_POINT, photoVariants } from '../content/corte.js?v=30';
-import { MAP_CONFIG } from './config.js?v=30';
-import { loadLeaflet } from './leaflet-loader.js?v=30';
-import { createWalkingRouter, validCoordinate, distanceBetween, nearestOnRoute } from './routing.js?v=30';
+import { CORTE_STOPS, CORTE_PHOTOS, CORTE_FIXED_POINT, photoVariants } from '../content/corte.js?v=31';
+import { MAP_CONFIG } from './config.js?v=31';
+import { loadLeaflet } from './leaflet-loader.js?v=31';
+import { createWalkingRouter, validCoordinate, distanceBetween, nearestOnRoute } from './routing.js?v=31';
 
 export const MAP_PLACES = [...CORTE_STOPS.map(stop=>({...stop,kind:'step',photo:CORTE_PHOTOS.find(p=>p.id===stop.id)||null})),{...CORTE_FIXED_POINT,kind:'fixed'}];
 export const directionsURL = place => `https://www.google.com/maps/dir/?api=1&destination=${place.coordinates[1]},${place.coordinates[0]}&travelmode=walking`;

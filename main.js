@@ -1,6 +1,6 @@
-import { IUT_STEP } from './content/iut.js?v=30';
-import { createExperience } from './memoria/experience.js?v=30';
-import { createShell } from './memoria/shell.js?v=30';
+import { IUT_STEP } from './content/iut.js?v=31';
+import { createExperience } from './memoria/experience.js?v=31';
+import { createShell } from './memoria/shell.js?v=31';
 
 // Three.js and the XR engine are fetched when the visitor opens an experience.
 let runtime=null, pending=null;
@@ -8,7 +8,7 @@ function prepareAR() {
   if(runtime)return Promise.resolve(runtime);
   if(pending)return pending;
   experience.setAvailability(false,'Préparation de l’AR… Les fiches restent accessibles.');
-  pending=import('./memoria/ar-runtime.js?v=30').then(module=>runtime=module.initializeAR(experience)).catch(error=>{
+  pending=import('./memoria/ar-runtime.js?v=31').then(module=>runtime=module.initializeAR(experience)).catch(error=>{
     pending=null;experience.setAvailability(false,'AR indisponible. Les fiches et la vue 360° restent accessibles.');
     console.error('Chargement de l’AR',error);
     return null;

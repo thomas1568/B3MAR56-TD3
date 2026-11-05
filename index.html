@@ -6,16 +6,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#273B31">
 <meta name="description" content="Découvrez les lieux et les mémoires de Corte : carte interactive, parcours culturel, récits et expériences immersives.">
-<link rel="stylesheet" href="main.css?v=30">
-<link rel="stylesheet" href="memoria/shell.css?v=30">
-<link rel="stylesheet" href="memoria/experience.css?v=30">
-<link rel="stylesheet" href="memoria/city.css?v=30">
-<link rel="stylesheet" href="memoria/ar.css?v=30">
+<link rel="stylesheet" href="main.css?v=31">
+<link rel="stylesheet" href="memoria/shell.css?v=31">
+<link rel="stylesheet" href="memoria/experience.css?v=31">
+<link rel="stylesheet" href="memoria/city.css?v=31">
+<link rel="stylesheet" href="memoria/ar.css?v=31">
 <script type="importmap">
 {"imports":{"three":"./build/three.module.js","three/addons/":"./jsm/"}}
 </script>
+<style>
+#startupFallback { position:fixed; inset:0; z-index:80; display:grid; align-content:center; justify-items:start; gap:18px; overflow:auto; padding:32px max(24px,calc((100vw - 620px)/2)); background:#F4F0E8; color:#202823; font:16px/1.6 Arial,sans-serif; }
+#startupFallback[hidden] { display:none; }
+#startupFallback h1 { margin:0; color:#273B31; font:38px/1.15 Georgia,serif; }
+#startupFallback p { margin:0; }
+#startupRetry { min-height:48px; padding:12px 24px; border:1px solid #273B31; border-radius:24px; background:#273B31; color:#F4F0E8; font:600 16px Arial,sans-serif; cursor:pointer; }
+#startupRetry:focus-visible { outline:3px solid #245d7e; outline-offset:3px; }
+</style>
 </head>
 <body>
+<section id="startupFallback" role="status" aria-labelledby="startupTitle" hidden>
+  <h1 id="startupTitle">Le chargement prend plus de temps que prévu.</h1>
+  <p id="startupMessage">Vérifiez votre connexion, puis réessayez. Votre profil reste conservé sur cet appareil.</p>
+  <button id="startupRetry" type="button">Réessayer</button>
+</section>
+<noscript><p style="position:fixed;inset:0;z-index:2000;margin:0;padding:32px;background:#F4F0E8;color:#202823;font:18px Arial,sans-serif">Activez JavaScript dans votre navigateur pour ouvrir Memoria Corti.</p></noscript>
+
 <section id="appIntro" class="app-intro" tabindex="-1" aria-label="Bienvenue dans Memoria Corti">
   <div class="intro-emblem" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="m7 52 9-11 8 3 8-14 9 9 7-5 9 18M23 38V24h18v14M20 24h24M27 24v-5h5v5m4 0v-5h5v5M30 34v-5h5v5"/></svg></div>
   <p class="intro-name">Memoria <em>Corti</em></p><p class="intro-tagline">Des lieux. Des voix. Une mémoire.</p><span class="intro-line" aria-hidden="true"></span><button id="skipIntro" type="button">Passer l’introduction</button>
@@ -93,8 +108,35 @@
   </nav>
 </div>
 </div>
-<script type="module" src="./memoria/startup.js?v=20"></script>
-<script type="module" src="./main.js?v=30"></script>
+<script type="module" src="./memoria/startup.js?v=31"></script>
+<script>
+(function () {
+  var fallback = document.getElementById('startupFallback');
+  var content = document.getElementById('content');
+  function recover(failed) {
+    document.getElementById('appIntro').hidden = true;
+    fallback.hidden = false;
+    if (failed) {
+      content.hidden = true;
+      fallback.setAttribute('role', 'alert');
+      document.getElementById('startupTitle').textContent = 'Impossible d’ouvrir Memoria Corti.';
+      document.getElementById('startupTitle').tabIndex = -1;
+      document.getElementById('startupTitle').focus({ preventScroll: true });
+    }
+  }
+  var deadline = setTimeout(function () { if (!document.getElementById('appView')) recover(false); }, 5000);
+  document.addEventListener('memoria:intro-end', function () { if (!document.getElementById('appView')) recover(false); });
+  document.getElementById('startupRetry').addEventListener('click', function () { location.reload(); });
+  import('./main.js?v=31').then(function () {
+    clearTimeout(deadline);
+    fallback.hidden = true;
+  }).catch(function (error) {
+    clearTimeout(deadline);
+    console.error('Démarrage de Memoria Corti', error);
+    recover(true);
+  });
+})();
+</script>
 <script>
 function openNav(){document.getElementById('mySidenav').classList.add('open');}
 function closeNav(){document.getElementById('mySidenav').classList.remove('open');}

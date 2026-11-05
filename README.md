@@ -118,3 +118,27 @@ Le contrôle eSpeak optionnel demande les outils de génération vocale document
 
 Cette validation technique ne constitue pas un audit WCAG exhaustif.
 Aucune publication distante n’est effectuée par les scripts de développement ou de test.
+
+## Démarrage après une mise à jour
+
+L’adresse publique reste `https://thomas1568.github.io/B3MAR56-TD3/`.
+Les suffixes de version concernent les ressources internes, pas l’adresse à ouvrir.
+
+Le correctif de démarrage aligne les imports locaux sur la version 31. L’ancienne
+interface chargeait `content/corte.js` sans version ; après une mise à jour, sa copie
+en cache pouvait manquer l’export `photoVariants` attendu par le nouveau module
+d’interface. L’import échouait avant la construction des écrans.
+
+Le chargement principal est désormais intercepté : en cas d’erreur, un écran lisible
+propose de réessayer à la même adresse. Il ne supprime pas le profil local.
+Lors d’une prochaine version, mettre à jour ensemble les versions des imports et
+celles des ressources dans `index.html`.
+
+```sh
+node tests/startup-browser.mjs
+```
+
+Ce scénario conserve une vraie ancienne version du module Corte dans le cache HTTP
+de Chrome, puis ouvre l’adresse normale avec le profil invité enregistré. Il vérifie
+aussi une erreur de chargement du module principal, le message de récupération et
+une nouvelle tentative réussie sans paramètre d’URL.
