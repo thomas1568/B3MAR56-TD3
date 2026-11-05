@@ -1,6 +1,5 @@
 import { findPoint, mediaReady } from '../content/iut.js?v=20';
 import { createAudioController } from './audio.js?v=20';
-import { createPanorama } from './panorama.js?v=20';
 import { layoutHotspots } from './hotspots.js';
 import { POINT_VISUALS } from '../content/point-visuals.js?v=20';
 
@@ -8,6 +7,7 @@ export function createExperience(step, api) {
   const el = id => document.getElementById(id);
   let activePoint = null, activeAR = false, mode = 'visit', availableAR = false, panorama = null, focusBefore = null, toastTimer = null;
   let prepared = false, scenePlaced = false, currentStage = 'prepare', storiesFocus = null, panoramaFocus = null;
+  let panoramaGeneration = 0;
   let musicEnabled = true;
   try { musicEnabled = localStorage.getItem('memoria-corti:ar-music') !== 'off'; } catch {}
   const audioDockHome = el('audioDock').parentNode;
@@ -93,6 +93,8 @@ export function createExperience(step, api) {
     el('audioDock').setAttribute('aria-busy', String(state.loading));
     el('playerMessage').textContent = state.message;
     el('playerTranscript').textContent = state.text;
+    document.getElementById('content').classList.toggle('has-audio', !!state.text || state.playing);
+    el('pauseAudioButton').hidden = state.paused; el('resumeAudioButton').hidden = !state.paused;
     el('pauseAudioButton').disabled = !state.playing || state.paused;
     el('resumeAudioButton').disabled = !state.paused;
     el('ambienceStatus').textContent = state.ambience;
@@ -101,6 +103,12 @@ export function createExperience(step, api) {
     el('arMusicButton').title = state.musicPlaying ? 'Couper la musique' : 'Activer la musique';
     el('arMusicStatus').textContent = state.musicPlaying ? 'Petra · musique douce' : state.musicMessage || 'Musique arrêtée';
   } });
+  const playerObserver = new ResizeObserver(() => {
+    const dock=el('audioDock'), home=dock.parentNode===audioDockHome;
+    el('content').style.setProperty('--player-height', (!dock.hidden && home ? dock.getBoundingClientRect().height : 0)+'px');
+    el('content').classList.toggle('player-expanded', home && dock.firstElementChild.open);
+  });
+  playerObserver.observe(el('audioDock'));
   el('arMusicButton').addEventListener('click', () => {
     musicEnabled = !audio.getState().musicPlaying;
     try { localStorage.setItem('memoria-corti:ar-music', musicEnabled ? 'on' : 'off'); } catch {}
@@ -200,8 +208,8 @@ export function createExperience(step, api) {
   el('welcomeAudioButton').addEventListener('click', () => play(step.narrations.welcome));
   el('mainAudioButton').addEventListener('click', () => play(step.narrations.main));
   el('listenPointButton').addEventListener('click', () => { if (activePoint) play({id:activePoint.id,title:activePoint.title,text:activePoint.transcript,audio:activePoint.audio}); });
-  el('pauseAudioButton').addEventListener('click', () => audio.pause());
-  el('resumeAudioButton').addEventListener('click', () => audio.resume());
+  el('pauseAudioButton').addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); audio.pause(); });
+  el('resumeAudioButton').addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); audio.resume(); });
   el('stopAudioButton').addEventListener('click', () => audio.stopNarration());
   el('volumeControl').addEventListener('input', event => audio.setVolume(event.target.value));
   el('ambienceChoice').addEventListener('change', event => audio.setAmbience(step.ambiences.find(item => item.id === event.target.value) || null));
@@ -273,13 +281,15 @@ export function createExperience(step, api) {
   function closeArchive() { el('archiveModal').hidden = true; el('archiveImage').removeAttribute('src'); el('archiveImage').style.width = '100%'; el('archiveZoom').value = 1; el('enlargeImageButton').focus(); }
   function closePoint() {
     if (!el('archiveModal').hidden) closeArchive();
-    el('poiModal').hidden = true; activePoint = null; audio.stopNarration();
+    if (el('poiModal').hidden) return;
+    el('poiModal').hidden = true; activePoint = null;
+    document.dispatchEvent(new CustomEvent('memoria:point-close'));
     audioDockHome.appendChild(el('audioDock'));
     if (activeAR) el('audioDock').firstElementChild.open = false;
     if (!el('panoramaPanel').hidden) panorama?.setActive(true);
     focusBefore?.focus(); focusBefore = null;
   }
-  function openPanorama() {
+  async function openPanorama() {
     if (activeAR) { showMessage('Quittez la session AR pour ouvrir la consultation 360°.'); return; }
     panoramaFocus = document.activeElement; prepared = true; closeStories(); closePoint(); el('panoramaPanel').hidden = false;
     el('homeView').inert = true;
@@ -288,13 +298,19 @@ export function createExperience(step, api) {
     el('panoramaCredit').textContent = mediaReady(step.panorama) ? step.panorama.credit || 'Crédit à renseigner' : 'Aucune photographie du lieu n’est simulée. Le calage des points sur la future photographie reste à faire.';
     el('panoramaLoadStatus').textContent = 'Chargement du panorama…';
     if (!panorama) {
-      try { panorama = createPanorama(el('panoramaScene'), step, openPoint); }
+      const generation = ++panoramaGeneration;
+      try {
+        const { createPanorama } = await import('./panorama.js?v=30');
+        if(generation !== panoramaGeneration || el('panoramaPanel').hidden) return;
+        panorama = createPanorama(el('panoramaScene'), step, openPoint);
+      }
       catch (error) { el('panoramaLoadStatus').textContent = 'Vue 3D indisponible. Retrouvez les cinq fiches ci-dessous.'; showMessage('Vue 3D indisponible. Les cinq fiches restent accessibles ci-dessous.'); console.error('Consultation 360°', error); }
     } else { panorama.setActive(true); el('panoramaLoadStatus').textContent = el('panoramaScene').dataset.state === 'ready' ? 'Panorama prêt · glissez pour explorer' : el('panoramaScene').dataset.state === 'error' ? 'Image indisponible · les fiches restent accessibles' : 'Chargement du panorama…'; }
   }
   el('panoramaScene').addEventListener('panoramaready', () => { el('panoramaLoadStatus').textContent = 'Panorama prêt · glissez pour explorer'; });
   el('panoramaScene').addEventListener('panoramaerror', () => { el('panoramaLoadStatus').textContent = 'Image indisponible · les cinq fiches restent accessibles'; });
   function closePanorama() {
+    panoramaGeneration++;
     const wasOpen = !el('panoramaPanel').hidden;
     panorama?.setActive(false); el('panoramaPanel').hidden = true;
     el('homeView').inert = false;
@@ -354,6 +370,7 @@ export function createExperience(step, api) {
     },
     leave() { setARState(false); prepared = false; scenePlaced = false; updateJourney(); el('stepSection').hidden = true; el('homeView').scrollTop = 0; panorama?.dispose(); panorama = null; clearTimeout(toastTimer); el('experienceNotice').hidden = true; document.dispatchEvent(new CustomEvent('memoria:leave')); },
     getState: () => ({ activeAR, mode, activePoint: activePoint?.id || null, availableAR }),
+    playNarration: play, exit: () => api.exit(), collapsePlayer: () => { el('audioDock').firstElementChild.open=false; },
     audio
   };
 }

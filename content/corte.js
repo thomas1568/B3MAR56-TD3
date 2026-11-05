@@ -23,3 +23,10 @@ export const CORTE_FIXED_POINT = Object.freeze({
   stepId: null,
   photo: null
 });
+
+
+// Variants encoded from the documented originals by scripts/optimize-photos.mjs.
+export function photoVariants(photo) {
+  const base=photo.src.replace(/\.jpg$/,'');
+  return {srcset:[320,768,1280].map(width=>base+'-'+width+'.webp '+width+'w').join(', '),thumbnail:base+'-320.webp'};
+}

@@ -6,8 +6,8 @@ import * as THREE from '../build/three.core.js';
 
 // Run the actual application functions with Three.js and mock only DOM/WebXR.
 // No WebGL context or phone tracking is simulated by these regression tests.
-const source = readFileSync(new URL('../main.js', import.meta.url), 'utf8')
-    .replace(/^import .*;$/gm, '').replace(/^init\(\);$/m, '');
+const source = readFileSync(new URL('../memoria/ar-runtime.js', import.meta.url), 'utf8')
+    .replace(/^import .*;$/gm, '').replace(/^export .*;$/gm, '').replace(/^init\(\);$/m, '');
 
 function app() {
     const elements = new Map();

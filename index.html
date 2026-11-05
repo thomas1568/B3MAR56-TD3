@@ -4,15 +4,13 @@
 <meta charset="utf-8">
 <title>Memoria Corti — Des lieux, des voix, une mémoire</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f7f5ef">
+<meta name="theme-color" content="#273B31">
 <meta name="description" content="Découvrez les lieux et les mémoires de Corte : carte interactive, parcours culturel, récits et expériences immersives.">
-<link rel="stylesheet" href="main.css?v=20">
-<link rel="stylesheet" href="memoria/shell.css?v=20">
-<link rel="stylesheet" href="memoria/experience.css?v=20">
-<link rel="stylesheet" href="memoria/city.css?v=20">
-<link rel="stylesheet" href="memoria/ar.css?v=20">
-<link rel="stylesheet" href="memoria/refinements.css?v=20">
-<link rel="stylesheet" href="memoria/modern.css?v=22">
+<link rel="stylesheet" href="main.css?v=30">
+<link rel="stylesheet" href="memoria/shell.css?v=30">
+<link rel="stylesheet" href="memoria/experience.css?v=30">
+<link rel="stylesheet" href="memoria/city.css?v=30">
+<link rel="stylesheet" href="memoria/ar.css?v=30">
 <script type="importmap">
 {"imports":{"three":"./build/three.module.js","three/addons/":"./jsm/"}}
 </script>
@@ -81,7 +79,7 @@
 <div id="archiveModal" class="modal-backdrop archive-modal" data-ui hidden><article class="content-card" role="dialog" aria-modal="true" aria-label="Archive agrandie"><header><h2>Explorer l’archive</h2><button id="closeArchiveButton" type="button">Fermer</button></header><label>Zoom <input id="archiveZoom" type="range" min="1" max="3" step=".1" value="1"></label><div class="archive-scroll"><img id="archiveImage" alt=""></div><p id="archiveCaption"></p></article></div>
 <div id="routeModal" class="modal-backdrop" data-ui hidden><article class="content-card route-card" role="dialog" aria-modal="true" aria-label="Le parcours"><header><h2>La suite de Memoria Corti</h2><button id="closeRouteButton" type="button">Fermer</button></header><div class="card-scroll"><button id="routeCurrentButton" type="button">01 · IUT — Corte, une ville de savoir</button><p>02 · Le Palazzu Naziunale</p><p class="small-note">Étape suivante à préparer. Seule l’étape IUT est disponible dans cette première version.</p></div></article></div>
 <div id="storiesModal" class="modal-backdrop" data-ui hidden><article class="content-card" role="dialog" aria-modal="true" aria-label="Récits et ambiances"><header><h2>Les récits de l’IUT</h2><button id="closeStoriesButton" type="button">Fermer</button></header><div id="storiesContainer" class="card-scroll"></div></article></div>
-<section id="audioDock"  data-ui hidden><details open><summary id="playerTitle">Écoute</summary><p id="playerSource"></p><p id="playerTime"></p><p id="playerMessage" role="status"></p><div class="button-row"><button id="pauseAudioButton" type="button" disabled>Pause</button><button id="resumeAudioButton" type="button" disabled>Reprendre</button><button id="stopAudioButton" type="button">Arrêter</button><label>Volume <input id="volumeControl" type="range" min="0" max="1" step=".05" value=".8"></label></div><details><summary>Transcription</summary><p id="playerTranscript"></p></details></details></section>
+<section id="audioDock" data-ui hidden aria-label="Lecteur commun"><details><summary><span class="player-heading"><span id="playerTitle">Écoute</span><small id="playerTime"></small></span><button id="pauseAudioButton" type="button" disabled aria-label="Mettre le récit en pause">Pause</button><button id="resumeAudioButton" type="button" disabled hidden aria-label="Reprendre le récit">Reprendre</button><span class="player-expand" aria-hidden="true">⌃</span></summary><div class="player-body"><p id="playerSource"></p><p id="playerMessage" role="status"></p><div class="button-row"><button id="stopAudioButton" type="button">Arrêter</button><label>Volume <input id="volumeControl" type="range" min="0" max="1" step=".05" value=".8"></label></div><details><summary>Transcription</summary><p id="playerTranscript"></p></details></div></details></section>
 <p id="experienceNotice" data-ui class="notice" role="status" hidden></p>
 <section id="prepareModal" class="modal-backdrop" data-ui hidden><article class="content-card" role="dialog" aria-modal="true" aria-labelledby="prepareTitle"><header><div><p class="eyebrow">Votre première étape</p><h2 id="prepareTitle">Prendre le temps de regarder</h2></div><button id="closePrepareButton" type="button" aria-label="Fermer la préparation">Fermer</button></header><div class="card-scroll"><ol class="preparation-list"><li><strong>Autour de vous</strong><p>Installez-vous dans un espace dégagé et restez attentif au lieu qui vous entoure.</p></li><li><strong>Une surface, une scène</strong><p>Scannez doucement une surface plane. Lorsque le cercle apparaît, touchez « Placer la scène ».</p></li><li><strong>À votre rythme</strong><p>Touchez les cinq repères pour lire les fiches. Retrouvez les récits dans « Écouter » et fermez l’expérience avec « Quitter ».</p></li></ol><p class="historical-note">Placement manuel : un recalage est nécessaire à chaque session. La scène est une évocation du savoir, pas une restitution historique du campus.</p></div></article></section>
 <div id="experienceDock" class="journey-dock" data-ui hidden>
@@ -96,7 +94,7 @@
 </div>
 </div>
 <script type="module" src="./memoria/startup.js?v=20"></script>
-<script type="module" src="./main.js?v=22"></script>
+<script type="module" src="./main.js?v=30"></script>
 <script>
 function openNav(){document.getElementById('mySidenav').classList.add('open');}
 function closeNav(){document.getElementById('mySidenav').classList.remove('open');}

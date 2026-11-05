@@ -1,3 +1,18 @@
+/* XR positioning primitives; camera transparency and session styling below. */
+#content.ar-active { pointer-events:auto; touch-action:none; }
+#arToolbar,#sceneControls,#actionButtons,#menuButton { position:absolute; }
+#sceneControls { display:flex; gap:8px; flex-wrap:wrap; }
+#actionButtons { display:none; gap:8px; flex-wrap:wrap; }
+#selectionActions { display:flex; gap:8px; flex-wrap:wrap; }
+#content[data-mode=visit] #actionButtons,#content[data-mode=visit] #menuButton { display:none !important; }
+#menuButton { display:none; z-index:3; }.ar-active[data-mode=edit] #menuButton { display:block; }
+#modeSwitch { display:flex; gap:6px; }
+#arStatus,#arDiagnostics { display:none; }.ar-active #arStatus,.ar-active #arDiagnostics { display:block; }
+#diagnosticText { white-space:pre-wrap; overflow-wrap:anywhere; overflow-y:auto; font-size:10px; }
+.sidenav { visibility:hidden; position:absolute; top:0; bottom:0; left:0; width:min(290px,85vw); padding:70px 22px 25px; background:var(--paper); z-index:55; border-radius:0 26px 26px 0; transform:translateX(-105%); transition:transform .2s; box-shadow:8px 0 35px #10291f26; }
+.sidenav.open { visibility:visible; transform:translateX(0); }.sidenav .closebtn { position:absolute; top:14px; right:14px; font-size:25px; }.sidenav a { display:block; min-height:48px; margin-top:10px; padding:14px; border:1px solid var(--line); border-radius:16px; background:var(--surface); text-decoration:none; }.sidenav p { font-size:14px; }
+#poiHotspots { position:absolute; inset:0; pointer-events:none; }.world-hotspot { position:absolute; transform:translate(-50%,-100%); min-height:44px; max-width:200px; padding:9px 12px; border-radius:24px; border:2px solid #e2c382; color:var(--paper); box-shadow:0 3px 16px #001b1833; pointer-events:auto; z-index:1; }
+.world-hotspot::after { content:''; position:absolute; width:6px; height:6px; border-radius:50%; background:#d9bb7a; bottom:-10px; left:calc(50% - 3px); }
 /* WebXR supplies the camera. Never paint an opaque full-screen DOM layer over it.
    Keep :xr-overlay separate: unsupported selectors must not invalidate fallback rules. */
 html.ar-session, body.ar-session { background: transparent !important; }

@@ -7,10 +7,11 @@ import os from 'node:os';
 import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
 
-const root = process.cwd(); let failMap = false, mapRequests = 0; let withAuth = false, storedProfile = null, storedProgress = null, user = null;
+const walkingFixture=JSON.parse(fs.readFileSync(new URL('./fixtures/ign-corte-walk.json',import.meta.url)));
+const root = process.cwd(); let failMap = false, mapRequests = 0, routingMode = 'ok', routingCalls = 0; let withAuth = false, storedProfile = null, storedProgress = null, user = null;
 const users = new Map(), photos = new Map(), calls = [];
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://localhost'); res.setHeader('Cache-Control', 'no-store');
+  const url = new URL(req.url, 'http://localhost'); if(url.pathname.startsWith('/B3MAR56-TD3/'))url.pathname=url.pathname.slice('/B3MAR56-TD3'.length); res.setHeader('Cache-Control', 'no-store');
   const json = (data, code = 200) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(data)); };
   if (url.pathname === '/assets/maps/corte.json') { mapRequests++; if (failMap) { json({ error: 'Map fixture unavailable' }, 503); return; } }
   const read = async () => { const chunks = []; for await (const chunk of req) chunks.push(chunk); return Buffer.concat(chunks); };
@@ -40,7 +41,20 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST') { photos.set(url.pathname.slice(prefix.length), await read()); json({}); return; }
     if (req.method === 'DELETE') { const body = JSON.parse((await read()).toString()); for (const name of body.prefixes) photos.delete('avatars/' + name); json([]); return; }
   }
-  if (url.pathname === '/memoria/config.js' && withAuth) { res.writeHead(200, { 'Content-Type': 'text/javascript' }); res.end(`export const ACCOUNT_CONFIG={supabaseUrl:'http://127.0.0.1:${server.address().port}',publishableKey:'public-ui-fixture'};`); return; }
+
+  if (url.pathname === '/memoria/config.js') {
+    res.writeHead(200,{'Content-Type':'text/javascript'});
+    res.end(`export const ACCOUNT_CONFIG={supabaseUrl:${withAuth?JSON.stringify('http://127.0.0.1:'+server.address().port):"''"},publishableKey:'public-ui-fixture'};
+      export const MAP_CONFIG={tilesURL:'http://127.0.0.1:${server.address().port}/test/tiles/{z}/{x}/{y}.png',routingURL:'http://127.0.0.1:${server.address().port}/test/walking',routingResource:'bdtopo-valhalla'};`);return;
+  }
+  if(url.pathname.startsWith('/test/tiles/')){res.writeHead(503);res.end();return;}
+  if(url.pathname==='/test/walking') {
+    routingCalls++;
+    if(routingMode==='error'){json({error:'fixture unavailable'},503);return;}
+    if(routingMode==='malformed'){json({distance:123});return;}
+    if(routingMode==='slow'){setTimeout(()=>json(walkingFixture),600);return;}
+    json(walkingFixture);return;
+  }
   const file = path.resolve(root, '.' + (url.pathname === '/' ? '/index.html' : decodeURIComponent(url.pathname)));
   if (!file.startsWith(root + path.sep)) { res.writeHead(403); res.end(); return; }
   try { const data = fs.readFileSync(file); res.writeHead(200, { 'Content-Type': ({ '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.glb': 'model/gltf-binary' })[path.extname(file)] || 'application/octet-stream' }); res.end(data); }
@@ -62,16 +76,16 @@ try {
   const until = async expression => { for (let n=0;n<200;n++) { if (await ev(expression)) return; await new Promise(resolve=>setTimeout(resolve,50)); } throw Error('Timeout: '+expression); };
   const input = (id,value) => ev(`(()=>{const node=document.getElementById(${JSON.stringify(id)});node.value=${JSON.stringify(value)};node.dispatchEvent(new Event('input',{bubbles:true}));})()`);
   const click = async id => {
-    await ev(`document.getElementById(${JSON.stringify(id)}).scrollIntoView({block:'center',behavior:'instant'})`);
+    await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".atlas-sheet,.nav-active-pill")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))');
+    await ev(`(()=>{const n=document.getElementById(${JSON.stringify(id)}),r=n.getBoundingClientRect();let clip=r.top<0||r.bottom>innerHeight||r.left<0||r.right>innerWidth;for(let p=n.parentElement;p;p=p.parentElement){const s=getComputedStyle(p);if(/auto|scroll|hidden|clip/.test(s.overflow+s.overflowY+s.overflowX)){const b=p.getBoundingClientRect();if(r.top<b.top||r.bottom>b.bottom||r.left<b.left||r.right>b.right)clip=true;}}if(clip)n.scrollIntoView({block:'center',behavior:'instant'});})()`);
     await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
-    await ev('Promise.all([...document.querySelectorAll(".atlas-sheet,.nav-active-pill")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{})))');
-    const point = await ev(`(()=>{const node=document.getElementById(${JSON.stringify(id)});if(node.disabled||!node.getClientRects().length||getComputedStyle(node).visibility!=='visible'||node.closest('[inert]'))throw Error('Unavailable '+node.id);const r=node.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);
-    await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point]}); await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    const point=await ev(`(()=>{const n=document.getElementById(${JSON.stringify(id)});if(n.disabled||!n.getClientRects().length||getComputedStyle(n).visibility!=='visible'||n.closest('[inert]'))throw Error('Unavailable '+n.id);const r=n.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,h=document.elementFromPoint(x,y);if(h!==n&&!n.contains(h))throw Error('Covered '+n.id+' by '+h?.outerHTML.slice(0,180));return{x,y};})()`);
+    await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point]});await ev('new Promise(r=>requestAnimationFrame(r))');await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     await ev('new Promise(r=>setTimeout(r,70))');
   };
-  const shot = async name => { await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".nav-active-pill,.atlas-sheet")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))'); const result = await send('Page.captureScreenshot',{format:'png'}); const file = path.join(profileDir,name+'.png'); fs.writeFileSync(file,Buffer.from(result.data,'base64')); console.log('Screenshot: '+file); };
+  const shot = async name => { await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".nav-active-pill,.atlas-sheet")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))'); const result = await send('Page.captureScreenshot',{format:'png'}); const output=path.join(root,'artifacts','refonte'); fs.mkdirSync(output,{recursive:true}); const file = path.join(output,name+'.png'); fs.writeFileSync(file,Buffer.from(result.data,'base64')); console.log('Screenshot: '+file); };
   let firstNavigation = true;
-  const nav = async () => { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/?run=${Date.now()}`}); await loaded; await until('!!document.getElementById("guestButton")');
+  const nav = async () => { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/B3MAR56-TD3/?run=${Date.now()}`}); await loaded; await until('!!document.getElementById("guestButton")');
     if (firstNavigation) { firstNavigation = false; assert.equal(await ev('document.getElementById("appIntro").hidden'),false); assert.equal(await ev('document.getElementById("content").inert'),true); await shot('entry-animation'); }
     await until('!document.getElementById("onboardingStatus").textContent.includes("Préparation")'); await until('document.getElementById("appIntro").hidden'); };
   await send('Runtime.enable'); await send('Page.enable');
@@ -132,7 +146,8 @@ try {
     await drag(cropPoint,{x:cropPoint.x+50,y:cropPoint.y+22});
     assert.notEqual(await ev('document.getElementById("cropCanvas").toDataURL()'),beforeCrop);
     assert.ok(await ev('(()=>{const r=document.getElementById("confirmCrop").getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;})()'));
-    await shot('photo-crop'); await click('confirmCrop'); await until('document.getElementById("cropModal").hidden'); await until('!document.getElementById("saveProfileButton").disabled');
+    await shot('photo-crop');await click('confirmCrop');
+    await until('document.getElementById("cropModal").hidden'); await until('!document.getElementById("saveProfileButton").disabled');
   }
   await ev('window.createImageBitmap=undefined'); // Also exercise the decoder used on older phones.
   await importPhoto();
@@ -140,140 +155,143 @@ try {
   assert.equal(await ev('document.querySelector("#tab-profile img").src'),await ev('document.querySelector("#headerProfile img").src'));
   { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.reload'); await loaded; } await until('document.getElementById("onboarding")?.hidden && document.getElementById("appIntro").hidden');
   assert.match(await ev('document.getElementById("greeting").textContent'),/Lisandra Corti/);
-  assert.equal(await ev('document.activeElement.id'),'greeting');
+  assert.equal(await ev('document.activeElement.id'),'profileTitle');
   assert.equal(await ev('getComputedStyle(document.getElementById("greeting")).outlineStyle'),'none');
   assert.ok(await ev('!!document.querySelector("#tab-profile img")'));
-  await click('tab-map');
-  await until('document.querySelectorAll("#cityMap .map-roads path").length>100');
-  assert.ok(await ev('!!document.querySelector(".map-route-line")'));
-  const originalMap=await ev('document.querySelector(".city-map-svg").getAttribute("viewBox")');
-  await click('map-in');assert.notEqual(await ev('document.querySelector(".city-map-svg").getAttribute("viewBox")'),originalMap);
-  await click('map-reset');
-  const mapPoint=await ev('(()=>{const r=document.querySelector(".atlas-frame").getBoundingClientRect();return {x:r.x+r.width*.18,y:r.y+r.height*.47};})()');
-  await drag(mapPoint,{x:mapPoint.x+42,y:mapPoint.y+25});
-  assert.equal(await ev('document.getElementById("tab-map").getAttribute("aria-current")'),'page');
-  assert.notEqual(await ev('document.querySelector(".city-map-svg").getAttribute("viewBox")'),originalMap);
-  // The map occupies the viewport and keeps state without refetching on tab changes.
-  assert.ok(await ev('(()=>{const r=document.querySelector(".atlas-frame").getBoundingClientRect();return r.x===0&&r.y===0&&r.width===innerWidth&&r.height===innerHeight;})()'));
-  const savedView=await ev('document.querySelector(".city-map-svg").getAttribute("viewBox")');
-  const requestsBefore=mapRequests;
-  await click('tab-home'); await ev('document.getElementById("appView").scrollTop=700');
-  const homeScroll=await ev('document.getElementById("appView").scrollTop');
-  await click('tab-map');
-  assert.equal(await ev('document.querySelector(".city-map-svg").getAttribute("viewBox")'),savedView);
-  assert.equal(mapRequests,requestsBefore);
-  await click('tab-home');assert.equal(await ev('document.getElementById("appView").scrollTop'),homeScroll);
-  await click('tab-map'); await click('map-reset');
-  // The supplied GPS coordinate is distinct from the IUT and has a truthful neutral card.
-  await click('map-stop-fixed-gps');
-  assert.equal(await ev('document.getElementById("map-stop-fixed-gps").dataset.latitude'),'42.2975');
-  assert.equal(await ev('document.getElementById("map-stop-fixed-gps").dataset.longitude'),'9.154278');
-  assert.match(await ev('document.getElementById("mapPlaceTitle").textContent'),/GPS/);
-  assert.ok(await ev('!document.querySelector(".atlas-photo-missing").hidden'));
-  assert.match(await ev('document.querySelector(".atlas-directions").href'),/destination=42.2975,9.154278/);
-  await shot('fixed-gps-mobile');
-  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});
-  assert.equal(await ev('document.querySelector(".atlas-sheet").dataset.position'),'list');
-  assert.equal(await ev('document.activeElement.dataset.place'),'fixed-gps');
-  await input('mapSearch','introuvable');
-  assert.equal(await ev('document.querySelectorAll(".atlas-list li:not([hidden])").length'),0);
-  assert.equal(await ev('document.querySelector(".atlas-empty").hidden'),false);
-  await click('resetMapFilters');
-  await input('mapSearch','PAlaZZu');
-  assert.equal(await ev('document.querySelectorAll(".atlas-list li:not([hidden])").length'),1);
-  assert.equal(await ev('document.getElementById("map-stop-fixed-gps").hidden'),true);
-  await click('tab-listen'); await click('tab-map');
-  assert.equal(await ev('document.getElementById("mapSearch").value'),'PAlaZZu');
-  await click('clearMapSearch');
-  await ev('document.querySelector(".atlas-filters [data-filter=fixed]").click()');
-  assert.equal(await ev('document.querySelectorAll(".atlas-list li:not([hidden])").length'),1);
-  await ev('document.querySelector(".atlas-filters [data-filter=all]").click()');
-  // All three sheet positions work by actual touch drag and by buttons.
-  await ev('document.querySelector(".sheet-positions [data-position=compact]").click()');
-  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all(document.querySelector(".atlas-sheet").getAnimations().map(a=>a.finished.catch(()=>{}))))');
-  const handlePoint=()=>ev('(()=>{const r=document.querySelector(".sheet-handle").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
-  let hp=await handlePoint(); await drag(hp,{x:hp.x,y:hp.y-90});
-  assert.equal(await ev('document.querySelector(".atlas-sheet").dataset.position'),'list');
-  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all(document.querySelector(".atlas-sheet").getAnimations().map(a=>a.finished.catch(()=>{}))))');
-  hp=await handlePoint(); await drag(hp,{x:hp.x,y:hp.y-70});
-  assert.equal(await ev('document.querySelector(".atlas-sheet").dataset.position'),'detail');
-  await ev('document.querySelector(".sheet-positions [data-position=compact]").click()');
-  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all(document.querySelector(".atlas-sheet").getAnimations().map(a=>a.finished.catch(()=>{}))))');
-  assert.ok(await ev('(()=>{const a=document.querySelector(".atlas-sheet").getBoundingClientRect(),b=document.getElementById("appDock").getBoundingClientRect();return a.bottom<b.top;})()'));
-  // Native touch scroll in the sheet must remain available even over a touch-controlled map.
-  await ev('document.querySelector(".sheet-positions [data-position=detail]").click()');
-  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all(document.querySelector(".atlas-sheet").getAnimations().map(a=>a.finished.catch(()=>{}))))');
-  const sheetPoint=await ev('(()=>{const r=document.querySelector(".sheet-content").getBoundingClientRect();return {x:r.x+r.width/2,y:r.bottom-35};})()');
-  await drag(sheetPoint,{x:sheetPoint.x,y:sheetPoint.y-120});
-  assert.ok(await ev('document.querySelector(".sheet-content").scrollTop>0'));
-  await ev('document.querySelector(".sheet-positions [data-position=compact]").click()');
-  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all(document.querySelector(".atlas-sheet").getAnimations().map(a=>a.finished.catch(()=>{}))))');
-  await click('map-reset');await click('map-stop-palazzu');
-  assert.match(await ev('document.querySelector(".map-stop-status").textContent'),/À venir/);
-  await shot('city-map-mobile');
-  await ev('document.querySelector(".detail-close").click()');
-  await ev('document.querySelector("[data-position=compact]").click()');
-  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all(document.querySelector(".atlas-sheet").getAnimations().map(a=>a.finished.catch(()=>{}))))');
-  await click('map-stop-iut');assert.match(await ev('document.querySelector(".map-stop-status").textContent'),/Disponible/);
+
+  assert.equal(await ev('document.querySelectorAll("#appDock [data-page]").length'),5);
+  assert.equal(await ev('document.getElementById("page-profile").hidden'),false);
+  await click('tab-home');
+  await until('document.getElementById("tab-home").getAttribute("aria-current")==="page"');
+  const scroll=await ev('document.getElementById("appView").scrollTop=680;document.getElementById("appView").scrollTop');
+  await click('tab-explore');await input('exploreSearch','Palazzu');
+  assert.equal(await ev('document.querySelectorAll("#explorePlaces article").length'),1);
+  await click('tab-home');assert.equal(await ev('document.getElementById("appView").scrollTop'),scroll);
+  await click('tab-explore');assert.equal(await ev('document.getElementById("exploreSearch").value'),'Palazzu');
+  await ev('history.back()');await until('document.getElementById("tab-home").getAttribute("aria-current")==="page"');
+  await ev('history.forward()');await until('document.getElementById("tab-explore").getAttribute("aria-current")==="page"');
+  await input('exploreSearch','');
+  // Audio is started by a real user gesture and remains active across the five destinations.
+  await click('tab-listen');
+  await ev('document.querySelector("#listenStories button").id="testPlayStory"');await click('testPlayStory');
+  await until('!document.getElementById("audioDock").hidden && !document.getElementById("pauseAudioButton").disabled');
+  await click('tab-profile');assert.equal(await ev('document.getElementById("pauseAudioButton").disabled'),false);
+  await click('tab-explore');assert.equal(await ev('document.getElementById("pauseAudioButton").disabled'),false);
+  await click('pauseAudioButton');await until('!document.getElementById("resumeAudioButton").hidden');
+  await click('resumeAudioButton');
   await click('tab-route');
-  await click('routeStartButton');
-  await shot('step-mobile');
-  assert.equal(await ev('new Set([...document.querySelectorAll("#pointList .point-card-visual")].map(image=>image.getAttribute("src"))).size'),5);
-  assert.equal(await ev('!!document.querySelector("#homeView .hero")'),false);
-  assert.equal(await ev('!!document.querySelector("#homeView .step-cover img")'),true);
-  await ev('document.querySelector("#pointList button").click()'); await until('!document.getElementById("poiModal").hidden');
-  await shot('point-mobile');
-  await click('closePointButton'); await click('backToApp'); await click('tab-home');
-  await until('!document.getElementById("resumeCard").hidden'); assert.match(await ev('document.getElementById("resumeDescription").textContent'),/1 repère/);
-  await click('resumeButton'); assert.match(await ev('document.getElementById("pointTitle").textContent'),/IUT/); await click('closePointButton'); await click('backToApp'); await click('tab-home');
-  await click('tab-listen'); await ev('document.querySelector("#listenStories button").click()');
-  await until('!document.getElementById("storiesModal").hidden'); await shot('stories-mobile'); await click('closeStoriesButton');
-  await click('tab-route'); await click('routeStartButton');
-  if(!await ev('document.getElementById("poiModal").hidden'))await click('closePointButton');
-  await click('openPanoramaButton'); await until('!document.getElementById("panoramaPanel").hidden'); await shot('panorama-mobile');
-  await ev('document.getElementById("panoramaPanel").scrollTop=1000');
-  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
-  assert.equal(await ev('getComputedStyle(document.querySelector("#panoramaPanel > header")).position'),'static');
-  assert.ok(await ev('document.querySelector("#panoramaPanel > header").getBoundingClientRect().bottom<0'));
-  assert.ok(await ev('(()=>{const r=document.getElementById("closePanoramaButton").getBoundingClientRect();return r.top>=0&&r.bottom<innerHeight&&r.width>=44&&r.height>=44;})()'));
-  await shot('panorama-scrolled');
-  await click('closePanoramaButton'); await click('backToApp'); await click('tab-home');
-  for (const [width,height] of [[320,740],[768,1024],[1440,1000]]) {
-    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<1000});
-    await ev('document.getElementById("appView").scrollTop=0');
-    assert.equal(await ev('document.getElementById("appView").scrollWidth>innerWidth'),false);
-    assert.ok(await ev('[...document.querySelectorAll("#appDock button")].every(b=>{const r=b.getBoundingClientRect();return r.width>=44&&r.height>=44&&r.left>=0&&r.right<=innerWidth;})'));
-    await shot('home-'+width);
-  }
-  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
-  // Responsive map: no page overflow, visible controls, desktop sidebar.
-  for(const [width,height] of [[320,740],[390,844],[768,1024],[1440,1000]]) {
-    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<900});
-    await click('tab-map');
-    await ev('document.querySelector(".sheet-positions [data-position=compact]").click()');
-    await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all(document.querySelector(".atlas-sheet").getAnimations().map(a=>a.finished.catch(()=>{}))))');
-    await click('map-reset');
-    assert.ok(await ev('document.getElementById("appView").scrollWidth<=innerWidth'));
-    if(width<900)assert.ok(await ev('(()=>{const s=document.querySelector(".atlas-sheet").getBoundingClientRect();return [...document.querySelectorAll(".atlas-marker")].every(m=>m.getBoundingClientRect().bottom<s.top);})()'));
-    assert.ok(await ev('[...document.querySelectorAll("#appDock button,.atlas-controls button,.atlas-filters button")].every(b=>{const r=b.getBoundingClientRect();return r.width>=44&&r.height>=44&&r.left>=0&&r.right<=innerWidth;})'));
-    assert.equal(await ev('document.querySelector(".sheet-handle").getClientRects().length>0'),width<900);
-    await shot('map-'+width);
-    await click('tab-home');
-  }
-  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
-  // A profile draft survives leaving the tab until explicitly saved.
-  await click('tab-profile'); await input('pseudoInput','Brouillon local'); await click('tab-home'); await click('tab-profile');
-  assert.equal(await ev('document.getElementById("pseudoInput").value'),'Brouillon local');
-  await input('pseudoInput','Lisandra Corti'); await click('saveProfileButton');
-  // The accessible list and destination link remain usable when the base map fails.
-  failMap=true; await nav(); await click('tab-map');
-  await until('!document.getElementById("retryMap").hidden');
+  await until('!!document.querySelector("#walkingMap .leaflet-map-pane")');
+  await until('document.getElementById("map-stop-fixed-gps").getClientRects().length>0');
+  assert.equal(await ev('location.hash'),'#parcours');
+  assert.ok(await ev('(()=>{const r=document.getElementById("walkingMap").getBoundingClientRect();return r.width===innerWidth&&r.height===innerHeight;})()'));
+  // Native dragging opens the three sheet positions; buttons remain an equivalent.
+  const settleSheet=()=>ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all(document.querySelector(".atlas-sheet").getAnimations().map(a=>a.finished.catch(()=>{}))))');
+  const handleCenter=()=>ev('(()=>{const r=document.querySelector(".sheet-handle").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
+  await settleSheet();let hp=await handleCenter();await drag(hp,{x:hp.x,y:hp.y-80});
+  assert.equal(await ev('document.querySelector(".atlas-sheet").dataset.position'),'list');
+  await settleSheet();hp=await handleCenter();await drag(hp,{x:hp.x,y:hp.y-80});
+  assert.equal(await ev('document.querySelector(".atlas-sheet").dataset.position'),'detail');
+  await ev('document.querySelector(".sheet-positions [data-position=compact]").click()');await settleSheet();
+  const markerBefore=await ev('document.getElementById("map-stop-palazzu").getBoundingClientRect().x');
+  const panY=await ev('document.querySelector(".atlas-sheet").getBoundingClientRect().top-60');
+  await drag({x:45,y:panY},{x:85,y:panY+20});
+  assert.notEqual(await ev('document.getElementById("map-stop-palazzu").getBoundingClientRect().x'),markerBefore);
+  await click('map-reset');
+  // Expand the sheet and choose a fixed destination from the keyboard-accessible list.
+  await ev('document.querySelector(".sheet-positions [data-position=list]").click()');
   await ev('document.querySelector(".atlas-list [data-place=fixed-gps]").click()');
-  assert.match(await ev('document.querySelector(".atlas-directions").href'),/42.2975,9.154278/);
-  await ev('document.querySelector(".detail-close").click()');
-  failMap=false; await click('retryMap');
-  await until('document.querySelector(".atlas-load").hidden');
-  assert.ok(await ev('document.querySelectorAll("#cityMap .map-roads path").length>100'));
+  assert.match(await ev('document.getElementById("mapPlaceTitle").textContent'),/GPS/);
+  assert.equal(await ev('location.hash'),'#parcours?lieu=fixed-gps');
+  assert.equal(await ev('document.getElementById("map-stop-fixed-gps").dataset.longitude'),'9.154278');
+  await shot('gps-place-mobile');
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});
+  assert.equal(await ev('document.activeElement.dataset.place'),'fixed-gps');
+  await input('mapSearch','introuvable');assert.equal(await ev('document.querySelector(".atlas-empty").hidden'),false);
+  await click('resetMapFilters');await until('document.getElementById("mapSearch").value===""');
+  await ev('document.querySelector(".atlas-list [data-place=palazzu]").click()');
+  await until('!document.querySelector(".atlas-photo-image").hidden');
+  await shot('palazzu-place-mobile');
+  // Route responses are recorded real IGN data; no fixture is used in production.
+  await click('planWalking');
+  assert.equal(await ev('document.getElementById("walkingStart").value'),'iut');
+  await click('calculateWalking');await until('!document.getElementById("walkingResult").hidden');
+  assert.match(await ev('document.getElementById("walkingDistance").textContent'),/1,2 km/);
+  assert.match(await ev('document.getElementById("walkingDuration").textContent'),/19 min/);
+  assert.ok(await ev('document.querySelectorAll("#walkingInstructions li").length>3'));
+  assert.ok(await ev('!!document.querySelector(".leaflet-overlay-pane path")'));
+  await shot('walking-route-mobile');
+  const count=routingCalls;await click('tab-listen');await click('tab-route');
+  assert.equal(routingCalls,count);assert.equal(await ev('document.getElementById("walkingResult").hidden'),false);
+  await send('Browser.grantPermissions',{origin:'http://127.0.0.1:'+server.address().port,permissions:['geolocation']});
+  await send('Emulation.setGeolocationOverride',{latitude:42.297383,longitude:9.154338,accuracy:8});
+  // Headless Chrome exposes one-shot geolocation. Continuous fixes are explicit
+  // test callbacks; the production watchPosition implementation is unchanged.
+  await ev(`window.__gpsFixture={success:null,error:null,cleared:false};navigator.geolocation.watchPosition=(success,error)=>{window.__gpsFixture.success=success;window.__gpsFixture.error=error;queueMicrotask(()=>success({coords:{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()}));return 73;};navigator.geolocation.clearWatch=id=>{window.__gpsFixture.cleared=id===73;window.__gpsFixture.success=null;};`);
+  await click('startGuidance');await until('document.getElementById("cityMap").dataset.tracking==="true"');
+  await until('document.getElementById("guidanceStatus").textContent.includes("restant")');
+  const mid=walkingFixture.geometry.coordinates[Math.floor(walkingFixture.geometry.coordinates.length/2)];
+  await send('Emulation.setGeolocationOverride',{latitude:mid[1],longitude:mid[0],accuracy:8});
+  await ev(`window.__gpsFixture.error({code:2});window.__gpsFixture.success({coords:{latitude:${mid[1]},longitude:${mid[0]},accuracy:8},timestamp:Date.now()});`);
+  await until('Number(document.getElementById("walkingProgress").value)>5');
+  assert.equal(routingCalls,count);await click('stopGuidance');
+  assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');assert.equal(await ev('window.__gpsFixture.cleared'),true);
+  // A delayed location permission must not restart a route that was cleared.
+  await ev('window.__originalLocate=navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);navigator.geolocation.getCurrentPosition=success=>{window.__lateLocate=success;};document.getElementById("startGuidance").click();document.getElementById("clearWalking").click();window.__lateLocate({coords:{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()});navigator.geolocation.getCurrentPosition=window.__originalLocate;');
+  await ev('new Promise(r=>requestAnimationFrame(r))');
+  assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');
+  assert.equal(await ev('window.__gpsFixture.success'),null);
+  // Failed calls clear the previous successful result instead of pretending a route exists.
+  routingMode='error';await ev('document.getElementById("walkingStart").value="custom";document.getElementById("walkingStart").dispatchEvent(new Event("change"));document.getElementById("startLatitude").value="42.2974";document.getElementById("startLongitude").value="9.1543"');
+  await click('calculateWalking');await until('document.getElementById("walkingStatus").classList.contains("is-error")');
+  assert.equal(await ev('document.getElementById("walkingResult").hidden'),true);
+  routingMode='malformed';await click('calculateWalking');await until('document.getElementById("walkingStatus").classList.contains("is-error")');
+  routingMode='slow';await click('calculateWalking');await click('cancelWalkingRequest');
+  assert.match(await ev('document.getElementById("walkingStatus").textContent'),/annul/);
+  routingMode='ok';
+  await send('Browser.setPermission',{permission:{name:'geolocation'},setting:'denied',origin:'http://127.0.0.1:'+server.address().port});
+  await click('useWalkingLocation');await until('document.getElementById("walkingStatus").textContent.includes("refus")');
+  assert.equal(await ev('document.getElementById("walkingResult").hidden'),true);
+  await click('closeWalking');
+  // A direct hash survives a reload under the GitHub Pages path.
+  await click('tab-home');
+  await ev('location.hash="#parcours?lieu=inconnu"');await until('document.getElementById("mapResults").textContent.includes("introuvable")');
+  assert.equal(await ev('document.querySelector(".atlas-detail").hidden'),true);
+  await ev('location.hash="#parcours?lieu=palazzu"');await until('!document.querySelector(".atlas-detail").hidden');
+  {const ready=new Promise(r=>{onLoad=r;});await send('Page.reload');await ready;}
+  await until('document.getElementById("onboarding")?.hidden && document.getElementById("appIntro").hidden');
+  await until('document.getElementById("mapPlaceTitle")?.textContent==="Le Palazzu Naziunale"');
+  assert.ok(await ev('location.pathname.startsWith("/B3MAR56-TD3/")'));
+  assert.equal(await ev('performance.getEntriesByType("resource").some(r=>/three\.module|three\.core|GLTFLoader/.test(r.name))'),false);
+  await click('tab-home');await click('heroAction');await until('!document.getElementById("stepSection").hidden');
+  await until('document.getElementById("arAvailability").textContent.indexOf("Préparation")<0');
+  assert.equal(await ev('document.querySelectorAll("#pointList button").length'),5);
+  await ev('document.querySelector("#pointList button").click()');await until('!document.getElementById("poiModal").hidden');
+  assert.equal(await ev('document.getElementById("enlargeImageButton").disabled'),true);
+  assert.ok(await ev('document.getElementById("pointTranscript").textContent.length>40'));
+  await shot('point-mobile');
+
+  // Test-only media enables the archive interaction without fabricating production archives.
+  await click('closePointButton');
+  await ev(`import(new URL('content/iut.js?v=30',document.baseURI).href).then(m=>{m.IUT_STEP.points[0].image={src:'assets/photos/corte-palazzu.jpg',label:'Image de test',caption:'Fixture de vérification de l’agrandissement',credit:'Pierre Bona · CC BY-SA 3.0',date:'Fixture',rights:{status:'autorise',label:'Fixture de test'}};})`);
+  await ev('document.querySelector("#pointList button").click()');await click('enlargeImageButton');await until('!document.getElementById("archiveModal").hidden');
+  await input('archiveZoom','2');assert.match(await ev('document.getElementById("archiveImage").style.width'),/200/);
+  await click('closeArchiveButton');assert.equal(await ev('document.activeElement.id'),'enlargeImageButton');await click('closePointButton');
+
+  await click('openPanoramaButton');await until('document.querySelector("canvas.panorama-canvas")');
+  await shot('panorama-mobile');await click('closePanoramaButton');await click('backToApp');await click('tab-home');
+  for(const [width,height]of[[320,740],[390,844],[768,1024],[1440,1000]]) {
+    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<900});
+    await click('tab-home');await ev('document.getElementById("appView").scrollTop=0');await shot('home-'+width);
+    assert.equal(await ev('document.getElementById("appView").scrollWidth>innerWidth'),false,await ev('JSON.stringify({width:innerWidth,scroll:document.getElementById("appView").scrollWidth,wide:[...document.querySelectorAll("#appView *")].filter(n=>n.getBoundingClientRect().right>innerWidth+.5).slice(0,30).map(n=>({tag:n.tagName,id:n.id,class:n.className,right:n.getBoundingClientRect().right,width:n.getBoundingClientRect().width}))})'));
+    assert.ok(await ev('[...document.querySelectorAll("#appDock button")].every(b=>{const r=b.getBoundingClientRect();return r.width>=44&&r.height>=44&&r.left>=0&&r.right<=innerWidth;})'));
+    for(const page of ['explore','listen','profile']){await click('tab-'+page);assert.equal(await ev('document.getElementById("appView").scrollWidth>innerWidth'),false);await shot(page+'-'+width);}
+    await click('tab-route');await ev('document.querySelector(".sheet-positions [data-position=compact]").click()');await click('map-reset');await shot('map-'+width);
+    assert.ok(await ev('(()=>{const n=document.querySelector(".leaflet-control-attribution a"),r=n.getBoundingClientRect(),h=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return h===n||n.contains(h);})()'),'Cartographic attribution must remain visible and clickable');
+    assert.equal(await ev('document.querySelector(".sheet-handle").getClientRects().length>0'),width<900);
+  }
+  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+  await click('tab-profile');await input('pseudoInput','Brouillon local');await click('tab-home');await click('tab-profile');
+  assert.equal(await ev('document.getElementById("pseudoInput").value'),'Brouillon local');await input('pseudoInput','Lisandra Corti');await click('saveProfileButton');
   // A separate configured run exercises actual auth/REST/Storage HTTP boundaries.
   withAuth = true; await ev('localStorage.clear()'); await nav();
   await click('createAccountButton'); await input('emailInput','lisandra@example.com'); await input('passwordInput','password-fixture'); await click('authSubmit');
@@ -288,7 +306,7 @@ try {
   assert.equal(await ev('document.getElementById("sessionBadge").textContent'),'Profil connecté');
   await click('tab-profile'); await importPhoto(); await until('!!document.querySelector("#tab-profile img")');
   assert.ok(storedProfile.photo_path.startsWith(user.id+'/'));
-  await click('tab-route'); await click('routeStartButton'); await ev('document.querySelector("#pointList button").click()');
+  await click('tab-route'); await ev('document.querySelector(".sheet-positions [data-position=list]").click()'); await click('routeStartButton'); await ev('document.querySelector("#pointList button").click()');
   await until('!document.getElementById("poiModal").hidden'); await click('closePointButton'); await click('backToApp'); await click('tab-home');
   await click('tab-profile'); await click('logoutButton'); await until('!document.getElementById("onboardingWelcome").hidden');
   await click('signinButton'); await input('emailInput','lisandra@example.com'); await input('passwordInput','password-fixture'); await click('authSubmit');
@@ -313,8 +331,9 @@ try {
   assert.equal(await ev('document.getElementById("content").inert'),false);
   assert.equal(await ev('document.querySelector(".intro-emblem").getAnimations().length'),0);
   assert.equal(errors.length,0,JSON.stringify(errors));
-  console.log('PASS: map viewport, exact fixed GPS destination, search/filters, pan/zoom, three touch sheet positions, native sheet scrolling, accessible close, state retention, offline retry, 320/390/768/1440 layouts, reduced motion, profiles and real HTTP auth/storage/progress against a Supabase fixture.');
+  console.log('PASS: five destinations, history/deep links under GitHub Pages path, audio continuity, real Leaflet map, IGN response parsing, GPS following with simulated positions, routing errors/cancellation, profiles/auth fixture, AR preparation/360, responsive screenshots and reduced motion.');
 } catch (error) {
+  if (ev) console.error('Failure diagnostic',await ev('({crop:window.__cropTrace,errors:document.getElementById("cropMessage")?.textContent,focus:document.activeElement?.id,scale:visualViewport.scale,root:document.getElementById("cropModal")?.parentElement.id})'));
   if (send) { const shot = await send('Page.captureScreenshot',{format:'png'}); const file = path.join(profileDir,'failure.png'); fs.writeFileSync(file,Buffer.from(shot.data,'base64')); console.error('Failure screenshot: '+file); }
   throw error;
 } finally { socket?.close(); chrome.kill(); server.close(); }

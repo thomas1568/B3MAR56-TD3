@@ -70,8 +70,9 @@ export function createTabNavigation({ nav, view, pages, getPage, navigate, canNa
   const observer = new ResizeObserver(sync); observer.observe(nav);
   sync();
   return { sync, animate(node, direction) {
-    // Views stay mounted and appear immediately; only the navigation capsule moves.
-    // This avoids flashes and moving hit targets when switching tabs.
     for (const animation of node.getAnimations?.() || []) animation.cancel();
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !node.animate) return;
+    const frames = node.id === 'page-route' ? [{opacity:.98},{opacity:1}] : [{opacity:.94,transform:'translateY(6px)'},{opacity:1,transform:'translateY(0)'}];
+    node.animate(frames,{duration:240,easing:'cubic-bezier(.2,.7,.2,1)'});
   } };
 }

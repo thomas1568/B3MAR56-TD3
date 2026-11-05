@@ -1,0 +1,89 @@
+{
+  "method": "Redimensionnement proportionnel et compression WebP, qualité 0,8. Contenu photographique inchangé. Licences : credits.json.",
+  "variants": [
+    {
+      "source": "assets/photos/corte-citadelle.jpg",
+      "file": "assets/photos/corte-citadelle-320.webp",
+      "width": 320,
+      "height": 240,
+      "bytes": 11536
+    },
+    {
+      "source": "assets/photos/corte-citadelle.jpg",
+      "file": "assets/photos/corte-citadelle-768.webp",
+      "width": 768,
+      "height": 576,
+      "bytes": 50472
+    },
+    {
+      "source": "assets/photos/corte-citadelle.jpg",
+      "file": "assets/photos/corte-citadelle-1280.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 129742
+    },
+    {
+      "source": "assets/photos/corte-palazzu.jpg",
+      "file": "assets/photos/corte-palazzu-320.webp",
+      "width": 320,
+      "height": 375,
+      "bytes": 26548
+    },
+    {
+      "source": "assets/photos/corte-palazzu.jpg",
+      "file": "assets/photos/corte-palazzu-768.webp",
+      "width": 768,
+      "height": 901,
+      "bytes": 143014
+    },
+    {
+      "source": "assets/photos/corte-palazzu.jpg",
+      "file": "assets/photos/corte-palazzu-1280.webp",
+      "width": 1280,
+      "height": 1501,
+      "bytes": 395798
+    },
+    {
+      "source": "assets/photos/corte-paoli.jpg",
+      "file": "assets/photos/corte-paoli-320.webp",
+      "width": 320,
+      "height": 427,
+      "bytes": 33054
+    },
+    {
+      "source": "assets/photos/corte-paoli.jpg",
+      "file": "assets/photos/corte-paoli-768.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 128830
+    },
+    {
+      "source": "assets/photos/corte-paoli.jpg",
+      "file": "assets/photos/corte-paoli-1280.webp",
+      "width": 1280,
+      "height": 1707,
+      "bytes": 313232
+    },
+    {
+      "source": "assets/photos/corte-restonica.jpg",
+      "file": "assets/photos/corte-restonica-320.webp",
+      "width": 320,
+      "height": 240,
+      "bytes": 37910
+    },
+    {
+      "source": "assets/photos/corte-restonica.jpg",
+      "file": "assets/photos/corte-restonica-768.webp",
+      "width": 768,
+      "height": 576,
+      "bytes": 208808
+    },
+    {
+      "source": "assets/photos/corte-restonica.jpg",
+      "file": "assets/photos/corte-restonica-1280.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 583400
+    }
+  ]
+}

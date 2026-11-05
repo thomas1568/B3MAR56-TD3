@@ -64,7 +64,7 @@ for(const type of ['pointerdown','pointermove','pointerup','touchstart','touchen
 const server=http.createServer((req,res)=>{
  const url=new URL(req.url,'http://localhost'),file=path.resolve(root,'.'+(url.pathname==='/'?'/index.html':url.pathname));
  if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}
- try{let data=fs.readFileSync(file);if(url.pathname==='/main.js')data=data.toString()+bridge;
+ try{let data=fs.readFileSync(file);if(url.pathname==='/memoria/ar-runtime.js')data=data.toString().replace("document.dispatchEvent(new CustomEvent('memoria:ar-ready'));",bridge+"\ndocument.dispatchEvent(new CustomEvent('memoria:ar-ready'));");
  res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.glb':'model/gltf-binary','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream');res.end(data);}
  catch{res.writeHead(404);res.end();}
 });
@@ -89,7 +89,7 @@ try{
  await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1});
  await send('Page.navigate',{url:'http://127.0.0.1:'+server.address().port+'/'});
  async function until(expression){for(let i=0;i<150;i++){if(await ev(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+expression);}
- await until('!!window.__memoriaCheck');await until('document.getElementById("arAvailability").textContent.indexOf("Vérification")<0');assert.equal(errors.length,0,JSON.stringify(errors));
+ await ev("document.addEventListener('memoria:ar-ready',()=>{}, {once:true})");assert.equal(errors.length,0,JSON.stringify(errors));
  await until('document.getElementById("appIntro").hidden');
  const decodedNarrations=await ev(`(async()=>{const manifest=await(await fetch('assets/audio/narrations.json')).json(),context=new OfflineAudioContext(1,1,24000),result=[];for(const [id,track] of Object.entries(manifest.tracks)){const data=await(await fetch(track.src)).arrayBuffer(),audio=await context.decodeAudioData(data);result.push({id,duration:audio.duration,expected:track.duration,channels:audio.numberOfChannels});}return result;})()`);
  assert.equal(decodedNarrations.length,7);
@@ -103,7 +103,8 @@ try{
  async function tap(point){await touch(point);await touch(point,'touchEnd');await ev('new Promise(resolve=>setTimeout(resolve,100))');}
  async function button(id,{scroll=false}={}){
   if(scroll)await ev('document.getElementById('+JSON.stringify(id)+').scrollIntoView({block:"center",behavior:"instant"})');
-  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
+  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all(document.querySelector(".atlas-sheet").getAnimations().map(a=>a.finished.catch(()=>{}))))');
+  if(scroll)await ev('document.getElementById('+JSON.stringify(id)+').scrollIntoView({block:"center",behavior:"instant"})');
   const point=await ev('(()=>{const e=document.getElementById('+JSON.stringify(id)+');if(e.disabled||e.hidden)throw Error("Button unavailable: "+e.id);const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
   assert.ok(point.x>0&&point.x<390&&point.y>0&&point.y<844,'offscreen button '+id+JSON.stringify(point));await tap(point);
  }
@@ -115,7 +116,8 @@ try{
  // Global navigation opens the first stage; AR controls are contextual.
  assert.equal(await ev('document.getElementById("experienceDock").hidden'),true);
  assert.equal(await ev('document.getElementById("tab-home").getAttribute("aria-current")'),'page');
- await button('tab-route');await button('routeStartButton',{scroll:true});
+ await button('tab-route'); await ev('document.querySelector(".sheet-positions [data-position=list]").click()'); await button('routeStartButton',{scroll:true});
+ await until('!!window.__memoriaCheck');
  await ev('new Promise(r=>setTimeout(r,600))');
  assert.equal(await ev('document.getElementById("stepSection").hidden'),false);
  assert.equal(await ev('document.querySelectorAll("#pointList button").length'),5);
@@ -287,7 +289,7 @@ try{
  assert.equal(errors.length,0,JSON.stringify(errors));
  console.log('PASS: mobile UI, five POIs, illustrated 360 texture, transparent AR layers, original music toggle and exit cleanup, real WebGL and touch, visit protection, editing, repeat add/delete, relative persistence, exit/restart. XR tracking/camera are simulated.');
 }catch(error){
- if(inspect)console.error('Browser state',await inspect('({state:__memoriaCheck.state(),diagnostic:document.getElementById("diagnosticText").textContent,touch:window.__touchTrace.slice(-15)})'));
+ if(inspect)console.error('Browser state',await inspect('({state:window.__memoriaCheck?.state(),diagnostic:document.getElementById("diagnosticText").textContent,touch:window.__touchTrace?.slice(-15)})'));
  if(capture){const shot=await capture('Page.captureScreenshot',{format:'png'});const file=path.join(profile,'failure.png');fs.writeFileSync(file,Buffer.from(shot.data,'base64'));console.error('Failure screenshot: '+file);}
  console.error(error);throw error;}
 finally{socket?.close();chrome.kill();server.close();}

@@ -22,7 +22,7 @@ function close() {
 }
 function reveal() {
   ready = true;
-  const remaining = (reduced.matches ? 0 : 1000) - (performance.now() - started);
+  const remaining = 0 - (performance.now() - started);
   if (remaining > 0) setTimeout(close, remaining); else close();
 }
 document.addEventListener('memoria:ready', reveal, { once: true });
