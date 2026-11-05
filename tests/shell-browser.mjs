@@ -79,11 +79,12 @@ try {
     await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".atlas-sheet,.nav-active-pill")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))');
     await ev(`(()=>{const n=document.getElementById(${JSON.stringify(id)}),r=n.getBoundingClientRect();let clip=r.top<0||r.bottom>innerHeight||r.left<0||r.right>innerWidth;for(let p=n.parentElement;p;p=p.parentElement){const s=getComputedStyle(p);if(/auto|scroll|hidden|clip/.test(s.overflow+s.overflowY+s.overflowX)){const b=p.getBoundingClientRect();if(r.top<b.top||r.bottom>b.bottom||r.left<b.left||r.right>b.right)clip=true;}}if(clip)n.scrollIntoView({block:'center',behavior:'instant'});})()`);
     await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
+    await ev('Promise.all(document.getAnimations().filter(a=>a.id==="memoria-reveal").map(a=>a.finished.catch(()=>{})))');
     const point=await ev(`(()=>{const n=document.getElementById(${JSON.stringify(id)});if(n.disabled||!n.getClientRects().length||getComputedStyle(n).visibility!=='visible'||n.closest('[inert]'))throw Error('Unavailable '+n.id);const r=n.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,h=document.elementFromPoint(x,y);if(h!==n&&!n.contains(h))throw Error('Covered '+n.id+' by '+h?.outerHTML.slice(0,180));return{x,y};})()`);
     await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point]});await ev('new Promise(r=>requestAnimationFrame(r))');await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     await ev('new Promise(r=>setTimeout(r,70))');
   };
-  const shot = async name => { await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".nav-active-pill,.atlas-sheet")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))'); const result = await send('Page.captureScreenshot',{format:'png'}); const output=path.join(root,'artifacts','refonte'); fs.mkdirSync(output,{recursive:true}); const file = path.join(output,name+'.png'); fs.writeFileSync(file,Buffer.from(result.data,'base64')); console.log('Screenshot: '+file); };
+  const shot = async name => { await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".nav-active-pill,.atlas-sheet")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))'); await ev('Promise.all(document.getAnimations().filter(a=>a.id==="memoria-reveal").map(a=>a.finished.catch(()=>{})))'); const result = await send('Page.captureScreenshot',{format:'png'}); const output=path.join(root,'artifacts','refonte'); fs.mkdirSync(output,{recursive:true}); const file = path.join(output,name+'.png'); fs.writeFileSync(file,Buffer.from(result.data,'base64')); console.log('Screenshot: '+file); };
   let firstNavigation = true;
   const nav = async () => { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/B3MAR56-TD3/?run=${Date.now()}`}); await loaded; await until('!!document.getElementById("guestButton")');
     if (firstNavigation) { firstNavigation = false; assert.equal(await ev('document.getElementById("appIntro").hidden'),false); assert.equal(await ev('document.getElementById("content").inert'),true); await shot('entry-animation'); }
@@ -164,6 +165,13 @@ try {
   await click('tab-home');
   await until('document.getElementById("tab-home").getAttribute("aria-current")==="page"');
   const scroll=await ev('document.getElementById("appView").scrollTop=680;document.getElementById("appView").scrollTop');
+  await until('document.querySelector(".app-header").inert');
+  await shot('home-logo-hidden');
+  await ev('document.getElementById("appView").scrollTop=480');
+  await until('!document.querySelector(".app-header").inert');
+  await ev('document.getElementById("appView").scrollTop=680');
+  await until('document.querySelector(".app-header").inert');
+  assert.match(await ev('document.querySelector("#homePlaces [data-place=iut] img").src'),/iut-corte\.png/);
   await click('tab-explore');await input('exploreSearch','Palazzu');
   assert.equal(await ev('document.querySelectorAll("#explorePlaces article").length'),1);
   await click('tab-home');assert.equal(await ev('document.getElementById("appView").scrollTop'),scroll);
@@ -272,7 +280,7 @@ try {
 
   // Test-only media enables the archive interaction without fabricating production archives.
   await click('closePointButton');
-  await ev(`import(new URL('content/iut.js?v=31',document.baseURI).href).then(m=>{m.IUT_STEP.points[0].image={src:'assets/photos/corte-palazzu.jpg',label:'Image de test',caption:'Fixture de vérification de l’agrandissement',credit:'Pierre Bona · CC BY-SA 3.0',date:'Fixture',rights:{status:'autorise',label:'Fixture de test'}};})`);
+  await ev(`import(new URL('content/iut.js?v=32',document.baseURI).href).then(m=>{m.IUT_STEP.points[0].image={src:'assets/photos/corte-palazzu.jpg',label:'Image de test',caption:'Fixture de vérification de l’agrandissement',credit:'Pierre Bona · CC BY-SA 3.0',date:'Fixture',rights:{status:'autorise',label:'Fixture de test'}};})`);
   await ev('document.querySelector("#pointList button").click()');await click('enlargeImageButton');await until('!document.getElementById("archiveModal").hidden');
   await input('archiveZoom','2');assert.match(await ev('document.getElementById("archiveImage").style.width'),/200/);
   await click('closeArchiveButton');assert.equal(await ev('document.activeElement.id'),'enlargeImageButton');await click('closePointButton');
@@ -330,6 +338,8 @@ try {
   await nav();
   assert.equal(await ev('document.getElementById("content").inert'),false);
   assert.equal(await ev('document.querySelector(".intro-emblem").getAnimations().length'),0);
+  await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
+  assert.equal(await ev('document.getAnimations().filter(a=>a.id==="memoria-reveal").length'),0);
   assert.equal(errors.length,0,JSON.stringify(errors));
   console.log('PASS: five destinations, history/deep links under GitHub Pages path, audio continuity, real Leaflet map, IGN response parsing, GPS following with simulated positions, routing errors/cancellation, profiles/auth fixture, AR preparation/360, responsive screenshots and reduced motion.');
 } catch (error) {

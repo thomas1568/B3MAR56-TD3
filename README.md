@@ -86,12 +86,15 @@ Les photographies originales de Corte et leurs licences sont dans
 Les versions WebP 320/768/1280 px conservent le cadrage entier, les sujets et les droits.
 Elles sont produites par `node scripts/optimize-photos.mjs` (Chrome requis).
 Les originaux sont conservés ; les tailles exportées figurent dans `variants.json`.
-Les images secondaires sont chargées à la demande.
+Les images secondaires sont chargées à la demande. La photo de l’IUT fournie pour le projet
+est conservée en PNG et déclinée en WebP 320/415 px, sans agrandissement.
+Le logo s’efface en descendant et revient en remontant. Les cartes apparaissent
+progressivement et les animations respectent la préférence de réduction du mouvement.
 
 Les voix générées, la musique originale, les illustrations d’évocation et les
 archives restent clairement distinguées. Voir [les notes sur les contenus et l’AR](docs/contenus-et-ar.md)
 et [les narrations](assets/audio/README.md).
-La photographie du campus, les archives autorisées, les témoignages et les ambiances
+Les archives autorisées, les témoignages et les ambiances
 de terrain non fournis ne sont pas remplacés par de faux documents. La fiche du
 point GPS conserve un état neutre.
 

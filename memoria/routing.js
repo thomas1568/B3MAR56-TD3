@@ -1,4 +1,4 @@
-import { MAP_CONFIG } from './config.js?v=31';
+import { MAP_CONFIG } from './config.js?v=32';
 export const validCoordinate = p => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && Math.abs(p[0]) <= 180 && Math.abs(p[1]) <= 90;
 export function distanceBetween(a,b) {
   if (!validCoordinate(a) || !validCoordinate(b)) return Infinity;

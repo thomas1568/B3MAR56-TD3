@@ -1,4 +1,4 @@
-import { CORTE_STOPS } from '../content/corte.js?v=31';
+import { CORTE_STOPS } from '../content/corte.js?v=32';
 const NS = 'http://www.w3.org/2000/svg';
 const width = 900, height = 1000;
 const clamp = (value,low,high) => Math.max(low,Math.min(high,value));

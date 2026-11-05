@@ -10,3 +10,13 @@ Les fichiers JPEG sont des versions 1280 px fournies par Wikimedia Commons. Ils 
 | corte-restonica.jpg | Chabe01 | [Gorges Restonica, 8 septembre 2021, no 45](https://commons.wikimedia.org/wiki/File:Gorges_Restonica_-_Corte_(FR2B)_-_2021-09-08_-_45.jpg) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) |
 
 Les crédits, liens originaux, dates et versions téléchargées sont archivés dans `credits.json`. Les crédits et les licences sont également visibles à côté des photos dans l’application. Ces images ne sont pas des archives de la fondation de l’université ni des photos du campus Grimaldi.
+
+## Photo IUT fournie pour le projet
+
+iut-corte.png est la photographie exacte jointe par le contributeur pour remplacer
+le livre sur les visuels de l’IUT. Original conserve : 415 x 739 px ; variantes WebP
+320 et 415 px sans agrandissement. Le cadrage d’affichage reste realise en CSS.
+Le credit affiche est « Photo fournie pour Memoria Corti ». Aucun nom d’auteur,
+date de prise de vue ou licence publique n’a ete fourni ; aucune licence Wikimedia
+ou Creative Commons n’est attribuee a cette image. Son utilisation dans ce projet
+est explicitement demandee par le contributeur.

@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 import { GLTFLoader } from 'three/addons/webxr/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/webxr/OrbitControls.js';
-import { IUT_STEP } from '../content/iut.js?v=31';
-import { createMemoriaScene } from './scene.js?v=31';
-import { loadLayout, saveLayout, LAYOUT_KEY } from './layout.js?v=31';
+import { IUT_STEP } from '../content/iut.js?v=32';
+import { createMemoriaScene } from './scene.js?v=32';
+import { loadLayout, saveLayout, LAYOUT_KEY } from './layout.js?v=32';
 
 let scene;
 let camera;

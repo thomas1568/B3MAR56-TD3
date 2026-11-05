@@ -31,7 +31,8 @@ test('five preparation cards have different relevant local visuals, with photos 
   assert.equal(new Set(Object.values(POINT_VISUALS).map(asset => asset.src)).size, 5);
   for (const asset of Object.values(POINT_VISUALS)) {
     assert.ok(asset.alt && asset.label); assert.ok(fs.existsSync(new URL('../' + asset.src, import.meta.url)));
-    if (asset.src.endsWith('.jpg')) assert.ok(asset.author && asset.source && asset.license);
+    if (asset.credit) { assert.equal(asset.rights.status,'autorise'); assert.match(asset.label,/Photographie/); }
+    else if (asset.src.endsWith('.jpg')) assert.ok(asset.author && asset.source && asset.license);
     else assert.match(asset.label, /Illustration/);
   }
 });

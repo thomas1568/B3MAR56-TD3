@@ -94,3 +94,21 @@ principal dispose d’un écran de récupération avec nouvelle tentative. Le sc
 profil et progression préservés, panne du module puis rechargement réussi.
 Les deux scénarios navigateur existants et les 66 tests Node ont aussi été relancés
 avec succès après ce correctif (le contrôle eSpeak reste ignoré).
+
+## Photo IUT et animations de défilement
+
+La photographie jointe par le contributeur remplace le livre sur les cartes de
+l’IUT et dans la fiche de l’étape. L’original PNG 415 × 739 px est conservé ;
+les variantes WebP de 320 et 415 px pèsent environ 20 et 31 Ko. Les crédits
+distinguent cette image fournie pour le projet des photographies sous licence libre.
+
+Le logo et les commandes de l’en-tête s’effacent en descendant et réapparaissent
+en remontant. Un petit seuil évite les clignotements. Les cartes entrent dans la
+fenêtre avec un fondu et un déplacement léger ; les images réagissent au survol.
+Les contenus restent visibles sans moteur d’animation et la préférence de réduction
+du mouvement annule les animations en cours.
+
+Le scénario Chrome vérifie le masquage et le retour du logo, la nouvelle photo,
+le défilement conservé entre onglets et le mode réduit. Les captures 320/390/768/1440 px
+ont été régénérées et examinées. La suite Node reste à 66 succès et 1 contrôle optionnel
+ignoré ; le scénario de démarrage avec ancien cache passe également.

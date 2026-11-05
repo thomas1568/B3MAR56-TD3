@@ -1,9 +1,11 @@
-import { createAccount, validatePhoto, validatePseudo } from './account.js?v=31';
-import { AVATARS, renderAvatar } from './avatars.js?v=31';
-import { createTabNavigation } from './navigation.js?v=31';
-import { cropGeometry, zoomCrop } from './photo-crop.js?v=31';
-import { CORTE_PHOTOS, photoVariants } from '../content/corte.js?v=31';
-import { createImmersiveMap } from './immersive-map.js?v=31';
+import { createAccount, validatePhoto, validatePseudo } from './account.js?v=32';
+import { AVATARS, renderAvatar } from './avatars.js?v=32';
+import { createTabNavigation } from './navigation.js?v=32';
+import { cropGeometry, zoomCrop } from './photo-crop.js?v=32';
+import { CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=32';
+import { createImmersiveMap } from './immersive-map.js?v=32';
+
+import { createPageMotion } from './motion.js?v=32';
 
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 export function createShell(experience, step) {
@@ -12,7 +14,7 @@ export function createShell(experience, step) {
   const account = createAccount();
   let state = account.getState(), page = 'home', inStep = false, settingUp = false, authMode = 'signup', busy = false;
   let draft = { ...state.profile }, cropImage = null, cropBefore = null, profileReturn = null, uploadGeneration = 0;
-  let tabNavigation = null, cityMap = null, profileEditorLoaded = false, stepOrigin = 'home';
+  let tabNavigation = null, cityMap = null, pageMotion = null, profileEditorLoaded = false, stepOrigin = 'home';
   let cropState = { zoom: 1, offsetX: 0, offsetY: 0 };
   const pages = ['home', 'explore', 'route', 'listen', 'profile'];
   let exploreFilter = 'all', applyingLocation = false, appliedHash = null;
@@ -61,6 +63,7 @@ export function createShell(experience, step) {
   el('page-explore').querySelector(':scope > .small-note').textContent = 'Photographies de Corte et illustrations du parcours : les crédits et les licences accompagnent chaque cliché.';
   function photoCredit(photo) {
     const credit = document.createElement('div'); credit.className = 'photo-credit';
+    if(photo.credit){credit.textContent=photo.credit;return credit;}
     const source = document.createElement('a'); source.href = photo.source; source.target = '_blank'; source.rel = 'noopener noreferrer'; source.textContent = 'Photo : ' + photo.author;
     const license = document.createElement('a'); license.href = photo.licenseURL; license.target = '_blank'; license.rel = 'noopener noreferrer'; license.textContent = photo.license;
     credit.append(source, document.createTextNode(' · '), license); return credit;
@@ -78,14 +81,14 @@ export function createShell(experience, step) {
   el('homeView').querySelector('.brand').addEventListener('click', event => { event.preventDefault(); showPage('home'); });
 
   const places = [
-    { id: 'iut', title: 'Corte, une ville de savoir', description: 'De Pasquale Paoli aux étudiants d’aujourd’hui. Première étape : l’IUT de Corse.', image: 'savoir', status: 'Étape 01 · Disponible', action: 'Découvrir l’IUT', available: true },
+    { id: 'iut', title: 'Corte, une ville de savoir', description: 'De Pasquale Paoli aux étudiants d’aujourd’hui. Première étape : l’IUT de Corse.', image: 'savoir', photo: IUT_PHOTO, status: 'Étape 01 · Disponible', action: 'Découvrir l’IUT', available: true },
     { id: 'palazzu', title: 'Le Palazzu Naziunale', description: 'Un autre lieu, aux origines de l’histoire universitaire de Corte.', image: 'corte', photo: comingPhoto, status: 'Étape 02 · À venir', action: 'En savoir plus', available: false }
   ];
   function placeCard(item) {
-    const article = document.createElement('article'); article.className = 'editorial-card';
+    const article = document.createElement('article'); article.className = 'editorial-card'; article.dataset.place = item.id;
     article.innerHTML = `<div class="card-visual"><img src="assets/${item.image}-illustration.svg" alt="Illustration symbolique ${item.available ? 'de la transmission du savoir' : 'de Corte'}" width="1000" height="600" loading="lazy"><span class="visual-label">Illustration</span></div><div class="editorial-card-body"><span class="status-pill ${item.available ? '' : 'coming'}"></span><h3></h3><p></p><button class="${item.available ? 'primary' : ''}"></button></div>`;
     article.querySelector('.status-pill').textContent = item.status; article.querySelector('h3').textContent = item.title; article.querySelector('p').textContent = item.description;
-    if(item.photo) { const image = article.querySelector('img'); image.src = item.photo.src; image.alt = item.photo.alt; image.style.objectPosition = item.photo.position; image.srcset = photoVariants(item.photo).srcset; image.sizes = '(max-width:700px) 85vw, 560px'; image.decoding = 'async'; article.querySelector('.visual-label').textContent = 'Photographie · Corte'; article.querySelector('.editorial-card-body').appendChild(photoCredit(item.photo)); }
+    if(item.photo) { const image = article.querySelector('img'); image.src = item.photo.src; image.alt = item.photo.alt; image.width=item.photo.width||1280; image.height=item.photo.height||960; image.style.objectPosition = item.photo.position; image.srcset = photoVariants(item.photo).srcset; image.sizes = '(max-width:700px) 85vw, 560px'; image.decoding = 'async'; article.querySelector('.visual-label').textContent = item.id==='iut'?'Photographie · IUT de Corse':'Photographie · Corte'; article.querySelector('.editorial-card-body').appendChild(photoCredit(item.photo)); }
     const button = article.querySelector('button'); button.textContent = item.action; button.addEventListener('click', () => item.available ? startStep() : openComing(item.title));
     const mapButton = document.createElement('button'); mapButton.type = 'button'; mapButton.className = 'text-button'; mapButton.textContent = 'Sur le plan ↗'; mapButton.addEventListener('click', () => showPlace(item.id)); article.querySelector('.editorial-card-body').append(mapButton); return article;
   }
@@ -93,7 +96,7 @@ export function createShell(experience, step) {
     exploreFilter = filter;
     const text = el('exploreSearch').value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
     const matches = places.filter(item => (filter === 'all' || item.available === (filter === 'available')) && (item.title+' '+item.description).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(text));
-    el('explorePlaces').replaceChildren(...matches.map(placeCard)); el('exploreEmpty').hidden = matches.length > 0;
+    el('explorePlaces').replaceChildren(...matches.map(placeCard)); el('exploreEmpty').hidden = matches.length > 0; pageMotion?.refresh();
   }
   el('exploreSearch').addEventListener('input', () => renderPlaces());
   el('homePlaces').replaceChildren(...places.map(placeCard)); renderPlaces();
@@ -166,7 +169,7 @@ export function createShell(experience, step) {
     if (next === 'route') cityMap?.activate();
     if (focus) { const title = el('page-' + next).querySelector('h1'); title.tabIndex = -1; title.focus({ preventScroll: true }); }
     if (history && !applyingLocation && (previousPage !== next || wasInStep || !location.hash)) writeLocation(next);
-    tabNavigation?.sync();
+    tabNavigation?.sync(); pageMotion?.refresh();
     if (previousPage !== next || wasInStep) tabNavigation?.animate(el('page-' + next), pages.indexOf(next) >= pages.indexOf(previousPage) ? 1 : -1);
   }
   function stepVisibility() { if (!inStep) { stepOrigin = page; scrollPositions.set(page, app.scrollTop); } cityMap?.deactivate(); back.textContent = '← ' + ({home:'Accueil',explore:'Explorer',map:'Carte',route:'Parcours',listen:'Écouter',profile:'Profil'}[stepOrigin]); inStep = true; app.hidden = true; dock.hidden = true; el('homeView').hidden = false; el('experienceDock').hidden = false; }
@@ -424,6 +427,7 @@ export function createShell(experience, step) {
       else if (!event.shiftKey && document.activeElement === controls.at(-1)) { event.preventDefault(); controls[0]?.focus(); }
     }
   });
+  pageMotion = createPageMotion({ view:app, header:app.querySelector('.app-header'), canAnimate:()=>overlay.hidden&&!app.hidden&&!inStep });
   tabNavigation = createTabNavigation({ nav: dock.querySelector('nav'), view: app, pages, getPage: () => page, navigate: showPage,
     canNavigate: () => overlay.hidden && crop.hidden && upcoming.hidden && !experience.getState().activeAR && !busy && el('poiModal').hidden && el('storiesModal').hidden && el('panoramaPanel').hidden });
   showPage('home', { focus: false, history: false }); renderProfile();

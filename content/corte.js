@@ -1,3 +1,14 @@
+
+/** Exact photograph supplied for this project; no authorship or public licence inferred. */
+export const IUT_PHOTO = Object.freeze({
+  id: 'iut', src: 'assets/photos/iut-corte.png',
+  title: 'L’IUT de Corse', description: 'L’entrée du campus Grimaldi et ses escaliers peints.',
+  alt: 'Entrée de l’IUT di Corsica, avec sa façade, la banderole Pasquale Paoli et les escaliers peints',
+  position: 'center 90%', width: 415, height: 739, widths: [320,415],
+  credit: 'Photo fournie pour Memoria Corti',
+  rights: { status: 'autorise', label: 'Utilisation demandée pour ce projet par son contributeur' }
+});
+
 export const CORTE_STOPS = [
   { id: 'iut', number: '01', title: 'IUT de Corse', subtitle: 'Campus Grimaldi · première étape', available: true, coordinates: [9.154338,42.297383], source: 'https://www.openstreetmap.org/way/350787319', description: 'Commencez votre découverte des mémoires universitaires sur le campus Grimaldi.' },
   { id: 'palazzu', number: '02', title: 'Le Palazzu Naziunale', subtitle: 'Ville haute · étape en préparation', available: false, coordinates: [9.149190,42.305007], source: 'https://www.openstreetmap.org/way/121178674', description: 'Retrouvez ce lieu dans la ville haute. Son expérience culturelle et ses repères AR sont encore en préparation.' }
@@ -27,6 +38,6 @@ export const CORTE_FIXED_POINT = Object.freeze({
 
 // Variants encoded from the documented originals by scripts/optimize-photos.mjs.
 export function photoVariants(photo) {
-  const base=photo.src.replace(/\.jpg$/,'');
-  return {srcset:[320,768,1280].map(width=>base+'-'+width+'.webp '+width+'w').join(', '),thumbnail:base+'-320.webp'};
+  const base=photo.src.replace(/\.(?:jpe?g|png)$/i,'');
+  return {srcset:(photo.widths||[320,768,1280]).map(width=>base+'-'+width+'.webp '+width+'w').join(', '),thumbnail:base+'-320.webp'};
 }

@@ -1,7 +1,7 @@
-import { findPoint, mediaReady } from '../content/iut.js?v=31';
-import { createAudioController } from './audio.js?v=31';
-import { layoutHotspots } from './hotspots.js?v=31';
-import { POINT_VISUALS } from '../content/point-visuals.js?v=31';
+import { findPoint, mediaReady } from '../content/iut.js?v=32';
+import { createAudioController } from './audio.js?v=32';
+import { layoutHotspots } from './hotspots.js?v=32';
+import { POINT_VISUALS } from '../content/point-visuals.js?v=32';
 
 export function createExperience(step, api) {
   const el = id => document.getElementById(id);
@@ -168,7 +168,7 @@ export function createExperience(step, api) {
       if (asset.position) visual.style.objectPosition = asset.position;
       button.prepend(visual);
       const visualLabel = document.createElement('span'); visualLabel.className = 'point-visual-label'; visualLabel.textContent = asset.label; button.appendChild(visualLabel);
-      if (asset.author) { const credit = document.createElement('small'); credit.className = 'point-photo-credit'; credit.textContent = `${asset.author} · ${asset.license} · Wikimedia Commons`; button.appendChild(credit); }
+      if (asset.author || asset.credit) { const credit = document.createElement('small'); credit.className = 'point-photo-credit'; credit.textContent = asset.credit || `${asset.author} · ${asset.license} · Wikimedia Commons`; button.appendChild(credit); }
       const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       arrow.classList.add('icon', 'point-arrow'); arrow.setAttribute('aria-hidden', 'true');
       const use = document.createElementNS('http://www.w3.org/2000/svg', 'use'); use.setAttribute('href', '#icon-arrow'); arrow.appendChild(use); button.appendChild(arrow);
@@ -300,7 +300,7 @@ export function createExperience(step, api) {
     if (!panorama) {
       const generation = ++panoramaGeneration;
       try {
-        const { createPanorama } = await import('./panorama.js?v=31');
+        const { createPanorama } = await import('./panorama.js?v=32');
         if(generation !== panoramaGeneration || el('panoramaPanel').hidden) return;
         panorama = createPanorama(el('panoramaScene'), step, openPoint);
       }

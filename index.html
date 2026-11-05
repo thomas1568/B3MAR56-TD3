@@ -6,11 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#273B31">
 <meta name="description" content="Découvrez les lieux et les mémoires de Corte : carte interactive, parcours culturel, récits et expériences immersives.">
-<link rel="stylesheet" href="main.css?v=31">
-<link rel="stylesheet" href="memoria/shell.css?v=31">
-<link rel="stylesheet" href="memoria/experience.css?v=31">
-<link rel="stylesheet" href="memoria/city.css?v=31">
-<link rel="stylesheet" href="memoria/ar.css?v=31">
+<link rel="stylesheet" href="main.css?v=32">
+<link rel="stylesheet" href="memoria/shell.css?v=32">
+<link rel="stylesheet" href="memoria/experience.css?v=32">
+<link rel="stylesheet" href="memoria/city.css?v=32">
+<link rel="stylesheet" href="memoria/ar.css?v=32">
 <script type="importmap">
 {"imports":{"three":"./build/three.module.js","three/addons/":"./jsm/"}}
 </script>
@@ -57,7 +57,7 @@
 <div id="content" data-mode="visit" inert>
 <main id="homeView" class="detail-view" data-ui hidden>
   <header class="site-header"><a class="brand" href="#homeView"><span class="seal">MC</span><span>Memoria <em>Corti</em><small>Des lieux. Des voix. Une mémoire.</small></span></a><span class="location-chip"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg>Corte · Corse</span></header>
-  <section class="step-introduction"><p class="eyebrow">LES LIEUX, AUTREMENT · ÉTAPE 01</p><h1 id="stepTitle">Corte, une ville de savoir</h1><p id="stepSubtitle" class="page-subtitle"></p><div class="step-cover"><img src="assets/savoir-illustration.svg" alt="Illustration originale d’un livre ouvert, symbole de transmission" width="1000" height="600"><span class="visual-label">Illustration · Transmission du savoir</span><div class="step-cover-caption"><span class="status-pill">Première étape · Disponible</span><p>Les mémoires se transmettent.<br>La découverte commence à l’IUT.</p></div></div><div class="step-overview"><div><p class="location-line"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg>IUT de Corse · Campus Grimaldi</p><p id="stepIntroduction" class="intro"></p></div><div><button id="openStepButton" class="primary" type="button">Préparer ma découverte <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button><p class="small-note">Une rencontre entre histoire universitaire et campus d’aujourd’hui.</p></div></div></section>
+  <section class="step-introduction"><p class="eyebrow">LES LIEUX, AUTREMENT · ÉTAPE 01</p><h1 id="stepTitle">Corte, une ville de savoir</h1><p id="stepSubtitle" class="page-subtitle"></p><div class="step-cover"><img src="assets/photos/iut-corte.png" srcset="assets/photos/iut-corte-320.webp 320w, assets/photos/iut-corte-415.webp 415w" sizes="(max-width:700px) 90vw, 1180px" alt="Entrée de l’IUT di Corsica et ses escaliers peints" width="415" height="739"><span class="visual-label">Photographie · IUT de Corse</span><div class="step-cover-caption"><span class="status-pill">Première étape · Disponible</span><p>Les mémoires se transmettent.<br>La découverte commence à l’IUT.</p></div></div><div class="step-overview"><div><p class="location-line"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg>IUT de Corse · Campus Grimaldi</p><p id="stepIntroduction" class="intro"></p></div><div><button id="openStepButton" class="primary" type="button">Préparer ma découverte <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button><p class="small-note">Une rencontre entre histoire universitaire et campus d’aujourd’hui.</p></div></div></section>
   <section class="dates-band" aria-label="Les trois dates du parcours"><p class="eyebrow">Trois repères,<br><span>une histoire.</span></p><div id="timeline"></div></section>
   <section id="stepSection" class="step-section" hidden>
     <div class="section-heading"><div><p class="eyebrow">01 / L’IUT de Corte</p><h2>Observer. Toucher. Écouter.</h2></div><span class="step-count">5 repères</span></div>
@@ -108,7 +108,7 @@
   </nav>
 </div>
 </div>
-<script type="module" src="./memoria/startup.js?v=31"></script>
+<script type="module" src="./memoria/startup.js?v=32"></script>
 <script>
 (function () {
   var fallback = document.getElementById('startupFallback');
@@ -127,7 +127,7 @@
   var deadline = setTimeout(function () { if (!document.getElementById('appView')) recover(false); }, 5000);
   document.addEventListener('memoria:intro-end', function () { if (!document.getElementById('appView')) recover(false); });
   document.getElementById('startupRetry').addEventListener('click', function () { location.reload(); });
-  import('./main.js?v=31').then(function () {
+  import('./main.js?v=32').then(function () {
     clearTimeout(deadline);
     fallback.hidden = true;
   }).catch(function (error) {

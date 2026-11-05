@@ -1,5 +1,5 @@
 {
-  "method": "Redimensionnement proportionnel et compression WebP, qualité 0,8. Contenu photographique inchangé. Licences : credits.json.",
+  "method": "Redimensionnement proportionnel et compression WebP, qualite 0,8. Contenu photographique inchange. Droits : credits.json et README.md (photo IUT fournie pour le projet).",
   "variants": [
     {
       "source": "assets/photos/corte-citadelle.jpg",
@@ -84,6 +84,20 @@
       "width": 1280,
       "height": 960,
       "bytes": 583400
+    },
+    {
+      "source": "assets/photos/iut-corte.png",
+      "file": "assets/photos/iut-corte-320.webp",
+      "width": 320,
+      "height": 570,
+      "bytes": 20246
+    },
+    {
+      "source": "assets/photos/iut-corte.png",
+      "file": "assets/photos/iut-corte-415.webp",
+      "width": 415,
+      "height": 739,
+      "bytes": 31934
     }
   ]
 }

@@ -1,9 +1,9 @@
-import { CORTE_STOPS, CORTE_PHOTOS, CORTE_FIXED_POINT, photoVariants } from '../content/corte.js?v=31';
-import { MAP_CONFIG } from './config.js?v=31';
-import { loadLeaflet } from './leaflet-loader.js?v=31';
-import { createWalkingRouter, validCoordinate, distanceBetween, nearestOnRoute } from './routing.js?v=31';
+import { CORTE_STOPS, CORTE_PHOTOS, CORTE_FIXED_POINT, IUT_PHOTO, photoVariants } from '../content/corte.js?v=32';
+import { MAP_CONFIG } from './config.js?v=32';
+import { loadLeaflet } from './leaflet-loader.js?v=32';
+import { createWalkingRouter, validCoordinate, distanceBetween, nearestOnRoute } from './routing.js?v=32';
 
-export const MAP_PLACES = [...CORTE_STOPS.map(stop=>({...stop,kind:'step',photo:CORTE_PHOTOS.find(p=>p.id===stop.id)||null})),{...CORTE_FIXED_POINT,kind:'fixed'}];
+export const MAP_PLACES = [...CORTE_STOPS.map(stop=>({...stop,kind:'step',photo:stop.id==='iut'?IUT_PHOTO:CORTE_PHOTOS.find(p=>p.id===stop.id)||null})),{...CORTE_FIXED_POINT,kind:'fixed'}];
 export const directionsURL = place => `https://www.google.com/maps/dir/?api=1&destination=${place.coordinates[1]},${place.coordinates[0]}&travelmode=walking`;
 const normalize=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 export function filterMapPlaces(places,text='',filter='all'){const needle=normalize(text.trim());return places.filter(p=>(filter==='all'||p.kind===filter)&&normalize([p.title,p.subtitle||'',p.description,...p.coordinates].join(' ')).includes(needle));}
@@ -85,7 +85,8 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
     q('.atlas-facts').replaceChildren(fact('Coordonnées',place.coordinates[1].toFixed(6)+', '+place.coordinates[0].toFixed(6)),fact('Sur place',place.practical||'Horaires et conditions d’accès non renseignés.'),fact('Parcours',place.kind==='step'?place.subtitle:place.stepId?CORTE_STOPS.find(p=>p.id===place.stepId)?.title||'Étape à confirmer':'Étape associée à documenter.'));
     const image=q('.atlas-photo-image'),missing=q('.atlas-photo-missing'),credit=q('.atlas-photo-credit');image.hidden=true;image.removeAttribute('src');missing.hidden=false;credit.replaceChildren();
     if(place.photo){const p=place.photo;image.onload=()=>{if(selected?.id===place.id){image.hidden=false;missing.hidden=true;}};image.onerror=()=>{image.hidden=true;missing.hidden=false;};image.alt=p.alt;image.style.objectPosition=p.position;image.srcset=photoVariants(p).srcset;image.sizes='(max-width:899px) 85vw, 320px';image.src=p.src;
-      for(const [text,href]of[[p.author,p.source],[p.license,p.licenseURL]]){const a=document.createElement('a');a.textContent=text;a.href=href;a.target='_blank';a.rel='noopener noreferrer';credit.append(a);}
+      if(p.credit)credit.textContent=p.credit;
+      for(const [text,href]of[[p.author,p.source],[p.license,p.licenseURL]].filter(([text,href])=>text&&href)){const a=document.createElement('a');a.textContent=text;a.href=href;a.target='_blank';a.rel='noopener noreferrer';credit.append(a);}
     }
     q('.atlas-directions').href=directionsURL(place);q('.atlas-start').hidden=place.kind!=='step';q('.atlas-start').textContent=place.available?'Découvrir cette étape':'À propos de cette étape';
     if(open){setPosition('detail',{focus:true});q('.sheet-content').scrollTop=0;}if(notify)onSelection(id);
