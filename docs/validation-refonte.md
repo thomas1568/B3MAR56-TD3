@@ -2,7 +2,7 @@
 
 ## Résultats exécutés
 
-- Suite Node : **66 tests réussis, 0 échec, 1 ignoré**. Le contrôle eSpeak réel reste optionnel et nécessite les outils vocaux documentés.
+- Suite Node : **70 tests réussis, 0 échec, 1 ignoré**. Le contrôle eSpeak réel reste optionnel et nécessite les outils vocaux documentés.
 - `node tests/shell-browser.mjs` : **réussi**, dans Chrome, sous le chemin `/B3MAR56-TD3/`.
 - `node tests/browser-smoke.mjs` : **réussi**, dans Chrome avec WebGL et événements tactiles réels, poses XR et caméra simulées.
 - Rendu examiné sur des captures de **320, 390, 768 et 1440 px**.
@@ -19,7 +19,7 @@ photo et la persistance du profil.
 Le navigateur utilise le véritable moteur Leaflet et l’extrait OpenStreetMap local
 pour reproduire une panne des tuiles. L’attribution est contrôlée comme visible et
 cliquable. Recherche, marqueurs, déplacement tactile, panneau à trois positions,
-fiche du point GPS et photo du Palazzu sont vérifiés.
+fiche de l’IUT et photo du Palazzu sont vérifiés.
 
 Le calcul reproductible utilise une réponse IGN réelle enregistrée dans
 `tests/fixtures/ign-corte-walk.json`, uniquement côté test. Le tracé, les distances,
@@ -112,3 +112,26 @@ Le scénario Chrome vérifie le masquage et le retour du logo, la nouvelle photo
 le défilement conservé entre onglets et le mode réduit. Les captures 320/390/768/1440 px
 ont été régénérées et examinées. La suite Node reste à 66 succès et 1 contrôle optionnel
 ignoré ; le scénario de démarrage avec ancien cache passe également.
+
+## AR native, marqueur IUT unique et flèches SVG
+
+Le point 42.297500, 9.154278 est désormais l’unique IUT de Corse, avec sa photo
+et son accès à l’étape. Le marqueur IUT voisin et la fiche « Point GPS » ont été
+retirés. L’ancien lien fixed-gps est migré vers iut sans perdre l’accès au parcours.
+Les boutons « Sur le plan » utilisent une flèche SVG épaisse dans un cercle contrasté.
+
+WebXR conserve le placement et l’édition interactifs existants. Apple Quick Look
+et Android Scene Viewer ouvrent des modèles autonomes exportés depuis la scène
+d’évocation, avec ses cinq repères. Les interactions propres au site et les récits
+restent dans Memoria Corti ; les visionneuses natives gèrent leur propre placement.
+Voir ar-navigateurs.md pour les appareils requis et les limites.
+
+Validation : 70 tests Node réussis, 0 échec, 1 contrôle eSpeak optionnel ignoré.
+Le scénario Chrome vérifie deux marqueurs, la migration du lien, la nouvelle flèche,
+les plateformes natives émulées, le modèle Apple, son type MIME, l’erreur de chargement
+et la nouvelle tentative, ainsi que le lien Android. Le scénario WebXR et le test
+de démarrage avec ancien cache passent également. Le lancement réel de Quick Look
+et Scene Viewer reste à contrôler sur téléphone compatible.
+
+Captures locales : native-apple-mobile.png, native-android-mobile.png,
+map-action-mobile.png et map-390.png dans artifacts/refonte.

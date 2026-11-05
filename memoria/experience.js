@@ -1,13 +1,13 @@
-import { findPoint, mediaReady } from '../content/iut.js?v=32';
-import { createAudioController } from './audio.js?v=32';
-import { layoutHotspots } from './hotspots.js?v=32';
-import { POINT_VISUALS } from '../content/point-visuals.js?v=32';
+import { findPoint, mediaReady } from '../content/iut.js?v=33';
+import { createAudioController } from './audio.js?v=33';
+import { layoutHotspots } from './hotspots.js?v=33';
+import { POINT_VISUALS } from '../content/point-visuals.js?v=33';
 
 export function createExperience(step, api) {
   const el = id => document.getElementById(id);
   let activePoint = null, activeAR = false, mode = 'visit', availableAR = false, panorama = null, focusBefore = null, toastTimer = null;
   let prepared = false, scenePlaced = false, currentStage = 'prepare', storiesFocus = null, panoramaFocus = null;
-  let panoramaGeneration = 0;
+  let panoramaGeneration = 0, systemAR = null, availabilityMessage = '';
   let musicEnabled = true;
   try { musicEnabled = localStorage.getItem('memoria-corti:ar-music') !== 'off'; } catch {}
   const audioDockHome = el('audioDock').parentNode;
@@ -15,7 +15,7 @@ export function createExperience(step, api) {
   function updateJourney() {
     const availability = {
       prepare: '',
-      place: !prepared ? 'Préparez d’abord votre visite.' : !availableAR && !activeAR ? 'AR indisponible sur cet appareil. Découvrir ouvre la consultation 360°.' : '',
+      place: !prepared ? 'Préparez d’abord votre visite.' : !availableAR && !systemAR?.ready && !activeAR ? 'Le placement AR n’est pas encore disponible ici. Découvrir ouvre la consultation 360°.' : '',
       discover: !prepared ? 'Préparez d’abord votre visite.' : activeAR && !scenePlaced ? 'Placez d’abord la scène sur une surface détectée.' : '',
       listen: !prepared ? 'Préparez d’abord votre visite.' : '',
       exit: !prepared && !activeAR ? 'Aucune expérience en cours.' : ''
@@ -23,12 +23,12 @@ export function createExperience(step, api) {
     for (const button of el('journeyNav').querySelectorAll('button')) {
       const stage = button.dataset.stage;
       button.setAttribute('aria-disabled', String(!!availability[stage]));
-      button.title = availability[stage] || ({prepare:'Conseils pour commencer',place:activeAR ? 'Placer ou recaler la scène' : 'Démarrer le placement AR',discover:activeAR ? 'Explorer les repères en AR' : 'Explorer les repères en 360°',listen:'Ouvrir les récits et les transcriptions',exit:'Fermer l’expérience et arrêter les sons'})[stage];
+      button.title = availability[stage] || ({prepare:'Conseils pour commencer',place:activeAR ? 'Placer ou recaler la scène' : systemAR?.ready&&!availableAR ? 'Ouvrir l’AR du téléphone' : 'Démarrer le placement AR',discover:activeAR ? 'Explorer les repères en AR' : 'Explorer les repères en 360°',listen:'Ouvrir les récits et les transcriptions',exit:'Fermer l’expérience et arrêter les sons'})[stage];
       if (stage === currentStage) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
     }
     el('journeyHint').textContent = !prepared ? 'Commencez par préparer votre découverte.'
       : activeAR ? scenePlaced ? 'La scène est en place · explorez les cinq repères.' : 'Scannez une surface, puis placez la scène.'
-      : availableAR ? 'Votre visite est prête · placez la scène ou découvrez en 360°.' : 'AR indisponible ici · découvrez les repères en 360°.';
+      : availableAR ? 'Votre visite est prête · placez la scène ou découvrez en 360°.' : systemAR?.ready ? 'Placez la scène avec l’AR du téléphone ou découvrez les repères en 360°.' : systemAR?.mode ? 'L’AR du téléphone se prépare · la vue 360° est accessible.' : 'Placement AR non disponible sur cet appareil · consultez les repères en 360°.';
   }
   function prepareVisit({ scroll = true } = {}) {
     prepared = true; currentStage = 'prepare';
@@ -300,7 +300,7 @@ export function createExperience(step, api) {
     if (!panorama) {
       const generation = ++panoramaGeneration;
       try {
-        const { createPanorama } = await import('./panorama.js?v=32');
+        const { createPanorama } = await import('./panorama.js?v=33');
         if(generation !== panoramaGeneration || el('panoramaPanel').hidden) return;
         panorama = createPanorama(el('panoramaScene'), step, openPoint);
       }
@@ -334,13 +334,18 @@ export function createExperience(step, api) {
     el('mySidenav').classList.remove('open');
     document.dispatchEvent(new CustomEvent('memoria:ar', { detail: { active: value } }));
   }
-  function setAvailability(available, message) {
-    availableAR = available; el('arAvailability').textContent = message;
-    el('startARButton').disabled = !available;
+  function refreshAvailability() {
+    el('arAvailability').textContent = availableAR ? availabilityMessage : systemAR?.message || availabilityMessage;
+    el('startARButton').disabled = !availableAR;
+    el('startARButton').hidden = !availableAR && !!systemAR?.mode;
+    if(systemAR?.link)systemAR.link.hidden = availableAR || !systemAR.ready;
+    const note=el('systemARNote');if(note)note.hidden=availableAR||!systemAR?.mode;
     updateJourney();
   }
+  function setAvailability(available,message) { availableAR=available;availabilityMessage=message;refreshAvailability(); }
+  function setSystemAR(state) { systemAR=state;refreshAvailability(); }
   return {
-    openPoint, closePoint, openPanorama, closePanorama, openStories, closeStories, prepareVisit, showMessage, setMode, setARState, setAvailability,
+    openPoint, closePoint, openPanorama, closePanorama, openStories, closeStories, prepareVisit, showMessage, setMode, setARState, setAvailability, setSystemAR,
     unlockARAudio: () => { if (musicEnabled) audio.unlockMusic().catch(() => {}); },
     stopSounds: () => audio.stopAll(),
     setScenePlaced(placed) { scenePlaced = placed; el('placeSceneButton').textContent = placed ? 'Recaler la scène' : 'Placer la scène'; if (activeAR) currentStage = placed ? 'discover' : 'place'; updateJourney(); },
@@ -369,7 +374,7 @@ export function createExperience(step, api) {
       }
     },
     leave() { setARState(false); prepared = false; scenePlaced = false; updateJourney(); el('stepSection').hidden = true; el('homeView').scrollTop = 0; panorama?.dispose(); panorama = null; clearTimeout(toastTimer); el('experienceNotice').hidden = true; document.dispatchEvent(new CustomEvent('memoria:leave')); },
-    getState: () => ({ activeAR, mode, activePoint: activePoint?.id || null, availableAR }),
+    getState: () => ({ activeAR, mode, activePoint: activePoint?.id || null, availableAR, systemAR:systemAR?.mode||null, systemARReady:!!systemAR?.ready }),
     playNarration: play, exit: () => api.exit(), collapsePlayer: () => { el('audioDock').firstElementChild.open=false; },
     audio
   };

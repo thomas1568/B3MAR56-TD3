@@ -1,11 +1,11 @@
-import { createAccount, validatePhoto, validatePseudo } from './account.js?v=32';
-import { AVATARS, renderAvatar } from './avatars.js?v=32';
-import { createTabNavigation } from './navigation.js?v=32';
-import { cropGeometry, zoomCrop } from './photo-crop.js?v=32';
-import { CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=32';
-import { createImmersiveMap } from './immersive-map.js?v=32';
+import { createAccount, validatePhoto, validatePseudo } from './account.js?v=33';
+import { AVATARS, renderAvatar } from './avatars.js?v=33';
+import { createTabNavigation } from './navigation.js?v=33';
+import { cropGeometry, zoomCrop } from './photo-crop.js?v=33';
+import { CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=33';
+import { createImmersiveMap } from './immersive-map.js?v=33';
 
-import { createPageMotion } from './motion.js?v=32';
+import { createPageMotion } from './motion.js?v=33';
 
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 export function createShell(experience, step) {
@@ -90,7 +90,7 @@ export function createShell(experience, step) {
     article.querySelector('.status-pill').textContent = item.status; article.querySelector('h3').textContent = item.title; article.querySelector('p').textContent = item.description;
     if(item.photo) { const image = article.querySelector('img'); image.src = item.photo.src; image.alt = item.photo.alt; image.width=item.photo.width||1280; image.height=item.photo.height||960; image.style.objectPosition = item.photo.position; image.srcset = photoVariants(item.photo).srcset; image.sizes = '(max-width:700px) 85vw, 560px'; image.decoding = 'async'; article.querySelector('.visual-label').textContent = item.id==='iut'?'Photographie · IUT de Corse':'Photographie · Corte'; article.querySelector('.editorial-card-body').appendChild(photoCredit(item.photo)); }
     const button = article.querySelector('button'); button.textContent = item.action; button.addEventListener('click', () => item.available ? startStep() : openComing(item.title));
-    const mapButton = document.createElement('button'); mapButton.type = 'button'; mapButton.className = 'text-button'; mapButton.textContent = 'Sur le plan ↗'; mapButton.addEventListener('click', () => showPlace(item.id)); article.querySelector('.editorial-card-body').append(mapButton); return article;
+    const mapButton = document.createElement('button'); mapButton.type = 'button'; mapButton.className = 'text-button map-link'; mapButton.innerHTML = '<span>Sur le plan</span><span class="action-arrow" aria-hidden="true">'+icon('arrow')+'</span>'; mapButton.addEventListener('click', () => showPlace(item.id)); article.querySelector('.editorial-card-body').append(mapButton); return article;
   }
   function renderPlaces(filter = exploreFilter) {
     exploreFilter = filter;
@@ -119,7 +119,7 @@ export function createShell(experience, step) {
     const [name,query=''] = location.hash.slice(1).split('?');
     const id = Object.keys(routeNames).find(key => routeNames[key] === name) || (name === 'carte' ? 'route' : 'home');
     const params = new URLSearchParams(query);
-    return { page:id, place:params.get('lieu'), point:params.get('point') };
+    return { page:id, place:params.get('lieu')==='fixed-gps'?'iut':params.get('lieu'), point:params.get('point'), panorama:params.get('vue')==='360', legacyPlace:params.get('lieu')==='fixed-gps' };
   }
   function writeLocation(next, { place, point, replace = false } = {}) {
     if (applyingLocation) return;
@@ -137,11 +137,11 @@ export function createShell(experience, step) {
     applyingLocation = true;
     try {
       if (experience.getState().activeAR) await experience.exit();
-      if (intent.page === 'step') { startStep(false); if(intent.point && step.points.some(p=>p.id===intent.point)) experience.openPoint(intent.point); }
+      if (intent.page === 'step') { startStep(false); if(intent.point && step.points.some(p=>p.id===intent.point)) experience.openPoint(intent.point); else if(intent.panorama)experience.openPanorama(); }
       else { showPage(intent.page,{history:false}); if(intent.page === 'route') cityMap.select(intent.place); }
     } finally { applyingLocation = false; }
     appliedHash = location.hash;
-    if (replace) writeLocation(intent.page,{place:intent.place,point:intent.point,replace:true});
+    if (replace || intent.legacyPlace) writeLocation(intent.page,{place:intent.place,point:intent.point,replace:true});
   }
   function restoreLocation() {
     if(!overlay.hidden || location.hash === appliedHash) return;

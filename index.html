@@ -6,11 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#273B31">
 <meta name="description" content="Découvrez les lieux et les mémoires de Corte : carte interactive, parcours culturel, récits et expériences immersives.">
-<link rel="stylesheet" href="main.css?v=32">
-<link rel="stylesheet" href="memoria/shell.css?v=32">
-<link rel="stylesheet" href="memoria/experience.css?v=32">
-<link rel="stylesheet" href="memoria/city.css?v=32">
-<link rel="stylesheet" href="memoria/ar.css?v=32">
+<link rel="stylesheet" href="main.css?v=33">
+<link rel="stylesheet" href="memoria/shell.css?v=33">
+<link rel="stylesheet" href="memoria/experience.css?v=33">
+<link rel="stylesheet" href="memoria/city.css?v=33">
+<link rel="stylesheet" href="memoria/ar.css?v=33">
 <script type="importmap">
 {"imports":{"three":"./build/three.module.js","three/addons/":"./jsm/"}}
 </script>
@@ -108,7 +108,7 @@
   </nav>
 </div>
 </div>
-<script type="module" src="./memoria/startup.js?v=32"></script>
+<script type="module" src="./memoria/startup.js?v=33"></script>
 <script>
 (function () {
   var fallback = document.getElementById('startupFallback');
@@ -127,7 +127,7 @@
   var deadline = setTimeout(function () { if (!document.getElementById('appView')) recover(false); }, 5000);
   document.addEventListener('memoria:intro-end', function () { if (!document.getElementById('appView')) recover(false); });
   document.getElementById('startupRetry').addEventListener('click', function () { location.reload(); });
-  import('./main.js?v=32').then(function () {
+  import('./main.js?v=33').then(function () {
     clearTimeout(deadline);
     fallback.hidden = true;
   }).catch(function (error) {

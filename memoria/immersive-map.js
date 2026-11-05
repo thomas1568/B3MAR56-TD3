@@ -1,9 +1,9 @@
-import { CORTE_STOPS, CORTE_PHOTOS, CORTE_FIXED_POINT, IUT_PHOTO, photoVariants } from '../content/corte.js?v=32';
-import { MAP_CONFIG } from './config.js?v=32';
-import { loadLeaflet } from './leaflet-loader.js?v=32';
-import { createWalkingRouter, validCoordinate, distanceBetween, nearestOnRoute } from './routing.js?v=32';
+import { CORTE_STOPS, CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=33';
+import { MAP_CONFIG } from './config.js?v=33';
+import { loadLeaflet } from './leaflet-loader.js?v=33';
+import { createWalkingRouter, validCoordinate, distanceBetween, nearestOnRoute } from './routing.js?v=33';
 
-export const MAP_PLACES = [...CORTE_STOPS.map(stop=>({...stop,kind:'step',photo:stop.id==='iut'?IUT_PHOTO:CORTE_PHOTOS.find(p=>p.id===stop.id)||null})),{...CORTE_FIXED_POINT,kind:'fixed'}];
+export const MAP_PLACES = CORTE_STOPS.map(stop=>({...stop,kind:'step',photo:stop.id==='iut'?IUT_PHOTO:CORTE_PHOTOS.find(p=>p.id===stop.id)||null}));
 export const directionsURL = place => `https://www.google.com/maps/dir/?api=1&destination=${place.coordinates[1]},${place.coordinates[0]}&travelmode=walking`;
 const normalize=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 export function filterMapPlaces(places,text='',filter='all'){const needle=normalize(text.trim());return places.filter(p=>(filter==='all'||p.kind===filter)&&normalize([p.title,p.subtitle||'',p.description,...p.coordinates].join(' ')).includes(needle));}
@@ -21,12 +21,12 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
     <p id="mapStatus" class="map-feedback" role="status">Le plan se chargera à l’ouverture du parcours.</p><button id="retryMap" class="map-retry" type="button" hidden>Recharger le plan</button>
     <aside class="atlas-sheet" data-position="compact" aria-labelledby="sheetTitle" data-no-swipe>
       <button class="sheet-handle" type="button" aria-controls="sheetContent" aria-expanded="false" aria-label="Développer la liste des lieux"><span aria-hidden="true"></span></button>
-      <div class="sheet-heading"><div><p class="eyebrow">2 ÉTAPES · 1 POINT FIXE</p><h2 id="sheetTitle">Les lieux de Corte</h2><p id="mapResults" role="status">Une première étape disponible</p></div><button class="sheet-close" type="button" aria-label="Réduire le panneau" hidden>${icon('chevron')}</button></div>
+      <div class="sheet-heading"><div><p class="eyebrow">2 ÉTAPES</p><h2 id="sheetTitle">Les lieux de Corte</h2><p id="mapResults" role="status">Une première étape disponible</p></div><button class="sheet-close" type="button" aria-label="Réduire le panneau" hidden>${icon('chevron')}</button></div>
       <div class="sheet-positions" role="group" aria-label="Affichage du parcours"><button type="button" data-position="compact" aria-pressed="true">Aperçu</button><button type="button" data-position="list" aria-pressed="false">Les lieux</button><button type="button" data-position="detail" aria-pressed="false">La fiche</button></div>
       <div id="sheetContent" class="sheet-content">
-        <div class="atlas-list-view"><ol class="atlas-list" aria-label="Lieux du parcours"></ol><div class="atlas-empty" hidden><h3>Aucun lieu trouvé</h3><p>Essayez « IUT », « Palazzu » ou « GPS ».</p><button id="resetMapFilters" type="button">Afficher tous les lieux</button></div>
+        <div class="atlas-list-view"><ol class="atlas-list" aria-label="Lieux du parcours"></ol><div class="atlas-empty" hidden><h3>Aucun lieu trouvé</h3><p>Essayez « IUT » ou « Palazzu ».</p><button id="resetMapFilters" type="button">Afficher tous les lieux</button></div>
           <section class="route-progress-block" aria-labelledby="routeProgressTitle"><p class="eyebrow">VOTRE DÉCOUVERTE</p><h3 id="routeProgressTitle">Corte, une ville de savoir</h3><p><strong id="routeCount">0 / 5</strong> repères consultés à l’IUT</p><progress id="routeProgress" max="5" value="0" aria-label="Repères de l’IUT consultés"></progress><p id="routeDescription">Votre découverte commence sur le campus Grimaldi.</p><button id="routeStartButton" class="primary" type="button">Découvrir l’étape ${icon('arrow')}</button></section>
-          <p class="small-note">Le point GPS est un lieu fixe. Votre position apparaît uniquement après votre autorisation.</p>
+          <p class="small-note">Votre position apparaît uniquement après votre autorisation.</p>
         </div>
         <article class="atlas-detail" hidden aria-labelledby="mapPlaceTitle"><div class="atlas-detail-header"><button class="detail-back text-button" type="button">← Les lieux</button><button class="detail-close icon-button" type="button" aria-label="Fermer la fiche">${icon('close')}</button></div>
           <figure class="atlas-photo"><img class="atlas-photo-image" alt="" width="640" height="420" hidden><div class="atlas-photo-missing">${icon('camera')}<span>Photographie du lieu à fournir</span></div><figcaption class="atlas-photo-credit"></figcaption></figure>
@@ -51,7 +51,7 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
     </aside>`;
   const q=s=>container.querySelector(s),sheet=q('.atlas-sheet'),desktop=matchMedia('(min-width:900px)');
   const router=createWalkingRouter();let L=null,map=null,tileLayer=null,loaded=false,loading=null,active=false,selected=null,position='compact',planner=false,pickMode=false;
-  let route=null,routeLayer=null,startLayer=null,userLayer=null,accuracyLayer=null,leader=null,fallback=null,lastLocation=null,watchId=null,maxProgress=0,requestId=0,tileErrors=0;
+  let route=null,routeLayer=null,startLayer=null,userLayer=null,accuracyLayer=null,fallback=null,lastLocation=null,watchId=null,maxProgress=0,requestId=0,tileErrors=0;
   const markers=new Map(),items=new Map();let origin=null,drag=null,suppressClick=false;
   const latlng=p=>[p[1],p[0]];
   function status(text,error=false){q('#walkingStatus').textContent=text;q('#walkingStatus').classList.toggle('is-error',error);}
@@ -71,6 +71,7 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
   function closeDetail(){planner=false;setPosition('list');const target=items.get(selected?.id)||q('.atlas-list button');target?.focus({preventScroll:true});target?.scrollIntoView({block:'start',behavior:'instant'});}
   function fact(label,value){const wrap=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;wrap.append(dt,dd);return wrap;}
   function select(id,{open=true,notify=true}={}) {
+    if(id==='fixed-gps')id='iut';
     const place=MAP_PLACES.find(p=>p.id===id);
     if(!place){requestId++;router.cancel();stopTracking('');selected=null;planner=false;pickMode=false;route=null;if(routeLayer)map?.removeLayer(routeLayer);if(startLayer)map?.removeLayer(startLayer);q('#walkingResult').hidden=true;q('#calculateWalking').disabled=false;q('#cancelWalkingRequest').hidden=true;status('');
       for(const item of items.values())item.setAttribute('aria-pressed','false');for(const m of markers.values()){m.getElement()?.setAttribute('aria-pressed','false');m.getElement()?.classList.remove('is-selected');}
@@ -81,7 +82,7 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
     for(const [key,item]of items)item.setAttribute('aria-pressed',String(key===id));
     for(const [key,m]of markers){const node=m.getElement();node?.setAttribute('aria-pressed',String(key===id));node?.classList.toggle('is-selected',key===id);}
     q('#mapPlaceTitle').textContent=place.title;q('.map-place-description').textContent=place.description;
-    q('.map-stop-status').textContent=place.kind==='fixed'?'Point fixe · GPS':`Étape ${place.number} · ${place.available?'Disponible':'À venir'}`;q('.map-stop-status').classList.toggle('coming',place.kind==='step'&&!place.available);
+    q('.map-stop-status').textContent=`Étape ${place.number} · ${place.available?'Disponible':'À venir'}`;q('.map-stop-status').classList.toggle('coming',place.kind==='step'&&!place.available);
     q('.atlas-facts').replaceChildren(fact('Coordonnées',place.coordinates[1].toFixed(6)+', '+place.coordinates[0].toFixed(6)),fact('Sur place',place.practical||'Horaires et conditions d’accès non renseignés.'),fact('Parcours',place.kind==='step'?place.subtitle:place.stepId?CORTE_STOPS.find(p=>p.id===place.stepId)?.title||'Étape à confirmer':'Étape associée à documenter.'));
     const image=q('.atlas-photo-image'),missing=q('.atlas-photo-missing'),credit=q('.atlas-photo-credit');image.hidden=true;image.removeAttribute('src');missing.hidden=false;credit.replaceChildren();
     if(place.photo){const p=place.photo;image.onload=()=>{if(selected?.id===place.id){image.hidden=false;missing.hidden=true;}};image.onerror=()=>{image.hidden=true;missing.hidden=false;};image.alt=p.alt;image.style.objectPosition=p.position;image.srcset=photoVariants(p).srcset;image.sizes='(max-width:899px) 85vw, 320px';image.src=p.src;
@@ -93,9 +94,9 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
   }
   for(const place of MAP_PLACES){
     const li=document.createElement('li'),button=document.createElement('button');button.type='button';button.dataset.place=place.id;button.setAttribute('aria-pressed','false');
-    const badge=document.createElement('span');badge.className='atlas-list-number';badge.textContent=place.number||'GPS';
+    const badge=document.createElement('span');badge.className='atlas-list-number';badge.textContent=place.number;
     if(place.photo){const img=document.createElement('img');img.src=photoVariants(place.photo).thumbnail;img.alt='';img.width=48;img.height=48;img.loading='lazy';img.style.objectPosition=place.photo.position;badge.replaceChildren(img);}
-    const copy=document.createElement('span');copy.className='atlas-list-copy';const title=document.createElement('strong'),sub=document.createElement('small');title.textContent=place.title;sub.textContent=place.kind==='fixed'?'Point fixe · lieu à documenter':place.available?'Étape 01 · Disponible':'Étape 02 · En préparation';copy.append(title,sub);button.append(badge,copy);button.insertAdjacentHTML('beforeend',icon('arrow'));button.addEventListener('click',()=>{origin=button;select(place.id);});li.append(button);q('.atlas-list').append(li);items.set(place.id,button);
+    const copy=document.createElement('span');copy.className='atlas-list-copy';const title=document.createElement('strong'),sub=document.createElement('small');title.textContent=place.title;sub.textContent=place.available?'Étape 01 · Disponible':'Étape 02 · En préparation';copy.append(title,sub);button.append(badge,copy);button.insertAdjacentHTML('beforeend',icon('arrow'));button.addEventListener('click',()=>{origin=button;select(place.id);});li.append(button);q('.atlas-list').append(li);items.set(place.id,button);
     const option=new Option(place.title,place.id);q('#walkingStart').append(option);
   }
   q('#walkingStart').append(new Option('Coordonnées ou point sur le plan','custom'),new Option('Ma position autorisée','gps'));
@@ -115,24 +116,21 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
   for(const event of ['pointerup','pointercancel'])handle.addEventListener(event,e=>{if(drag?.id!==e.pointerId)return;const d=drag;drag=null;suppressClick=Math.abs(d.delta)>8;const levels=['compact','list','detail'];setPosition(e.type==='pointercancel'?d.start:levels[Math.max(0,Math.min(2,levels.indexOf(d.start)+(d.delta<-35?1:d.delta>35?-1:0)))]);});
   handle.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','Home','End'].includes(e.key)){e.preventDefault();const a=['compact','list','detail'];setPosition(e.key==='Home'?'compact':e.key==='End'?'detail':a[Math.max(0,Math.min(2,a.indexOf(position)+(e.key==='ArrowUp'?1:-1)))]);}});
   function fit(){if(!map)return;const bounds=route?L.latLngBounds(route.coordinates.map(latlng)):L.latLngBounds(MAP_PLACES.map(p=>latlng(p.coordinates)));map.fitBounds(bounds,{paddingTopLeft:desktop.matches?[420,100]:[65,260],paddingBottomRight:desktop.matches?[65,170]:[55,(parseFloat(getComputedStyle(sheet).bottom)||100)+240],maxZoom:17,animate:false});}
-  function separateMarkers(){if(!map)return;const a=markers.get('iut'),b=markers.get('fixed-gps');if(!a||!b)return;const p=map.latLngToContainerPoint(a.getLatLng()),r=map.latLngToContainerPoint(b.getLatLng()),close=p.distanceTo(r)<90;const n=a.getElement();if(n){n.style.marginLeft=(close?-80:-24)+'px';n.style.marginTop=(close?2:-24)+'px';}
-    if(leader)map.removeLayer(leader);leader=close?L.polyline([a.getLatLng(),map.containerPointToLatLng([p.x-56,p.y+26])],{color:'#273B31',weight:2,interactive:false}).addTo(map):null;
-  }
   async function offlinePlan(){if(fallback||!map)return;try{const response=await fetch(new URL('../assets/maps/corte.json',import.meta.url));if(!response.ok)return;const data=await response.json();const group=L.layerGroup();for(const f of data.features){const t=f.tags,coords=f.coordinates.map(latlng);if(t.building)L.polygon(coords,{stroke:false,fillColor:'#cfc9bb',fillOpacity:.8,interactive:false}).addTo(group);else if(t.highway)L.polyline(coords,{color:'#fffdf8',weight:4,interactive:false}).addTo(group);else if(t.waterway)L.polyline(coords,{color:'#9dbfc7',weight:6,interactive:false}).addTo(group);}fallback=group.addTo(map);fallback.setZIndex?.(0);}catch{/* The place list is still available. */}}
   async function load(){if(map)return;if(loading)return loading;q('#mapStatus').textContent='Chargement de la carte…';q('#retryMap').hidden=true;
     loading=(async()=>{try{L=await loadLeaflet();map=L.map(q('.atlas-frame'),{zoomControl:false,attributionControl:true,preferCanvas:false,zoomAnimation:false,markerZoomAnimation:false,inertia:false}).setView([42.302,9.152],15);
       map.attributionControl.setPrefix(false);
       tileLayer=L.tileLayer(MAP_CONFIG.tilesURL,{maxZoom:19,attribution:'<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>',crossOrigin:false}).addTo(map);
       tileLayer.on('tileerror',()=>{tileErrors++;if(tileErrors===3){q('#mapStatus').textContent='Fond en ligne indisponible · plan local et liste accessibles.';q('#retryMap').hidden=false;offlinePlan();}});tileLayer.on('load',()=>{if(!tileErrors)q('#mapStatus').textContent='';});
-      for(const p of MAP_PLACES){const node=document.createElement('div');node.className='atlas-marker'+(p.kind==='fixed'?' is-fixed':p.photo?' is-photo':'');if(p.photo){const im=document.createElement('img');im.src=photoVariants(p.photo).thumbnail;im.alt='';im.style.objectPosition=p.photo.position;node.append(im);}
-        const badge=document.createElement('span');badge.className='atlas-marker-number';badge.textContent=p.number||'GPS';node.append(badge);
-        if(p.photo||p.kind==='fixed'){const label=document.createElement('span');label.className='atlas-marker-label';label.textContent=p.kind==='fixed'?'Point fixe':p.title;node.append(label);}
+      for(const p of MAP_PLACES){const node=document.createElement('div');node.className='atlas-marker'+(p.photo?' is-photo':'');if(p.photo){const im=document.createElement('img');im.src=photoVariants(p.photo).thumbnail;im.alt='';im.style.objectPosition=p.photo.position;node.append(im);}
+        const badge=document.createElement('span');badge.className='atlas-marker-number';badge.textContent=p.number;node.append(badge);
+        if(p.photo){const label=document.createElement('span');label.className='atlas-marker-label';label.textContent=p.title;node.append(label);}
         const m=L.marker(latlng(p.coordinates),{icon:L.divIcon({html:node,className:'leaflet-place-icon',iconSize:[48,48],iconAnchor:[24,24]}),keyboard:true,title:p.title,alt:p.title,autoPanOnFocus:false}).addTo(map);
-        const el=m.getElement();el.id='map-stop-'+p.id;el.dataset.longitude=p.coordinates[0];el.dataset.latitude=p.coordinates[1];el.setAttribute('aria-label',p.kind==='fixed'?'Point GPS fixe : 42.297500, 9.154278':p.number+' · '+p.title);el.setAttribute('aria-pressed',String(selected?.id===p.id));el.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();select(p.id);}});
+        const el=m.getElement();el.id='map-stop-'+p.id;el.dataset.longitude=p.coordinates[0];el.dataset.latitude=p.coordinates[1];el.setAttribute('aria-label',p.number+' · '+p.title);el.setAttribute('aria-pressed',String(selected?.id===p.id));el.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();select(p.id);}});
         m.on('click',()=>{origin=el;select(p.id);});markers.set(p.id,m);
       }
-      map.on('moveend zoomend',separateMarkers);map.on('click',e=>{if(pickMode){pickMode=false;q('#walkingStart').value='custom';q('#startLatitude').value=e.latlng.lat.toFixed(6);q('#startLongitude').value=e.latlng.lng.toFixed(6);q('#customStartFields').hidden=false;planner=true;setPosition('detail',{focus:true});q('#mapStatus').textContent='Départ choisi sur la carte.';}});
-      loaded=true;fit();separateMarkers();q('#mapStatus').textContent='';setPosition(position);
+      map.on('click',e=>{if(pickMode){pickMode=false;q('#walkingStart').value='custom';q('#startLatitude').value=e.latlng.lat.toFixed(6);q('#startLongitude').value=e.latlng.lng.toFixed(6);q('#customStartFields').hidden=false;planner=true;setPosition('detail',{focus:true});q('#mapStatus').textContent='Départ choisi sur la carte.';}});
+      loaded=true;fit();q('#mapStatus').textContent='';setPosition(position);
     }catch(error){q('#mapStatus').textContent=error.message;q('#retryMap').hidden=false;setPosition('list');}finally{loading=null;}})();return loading;
   }
   q('#map-in').addEventListener('click',()=>map?.zoomIn());q('#map-out').addEventListener('click',()=>map?.zoomOut());q('#map-reset').addEventListener('click',fit);
@@ -169,8 +167,8 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
   q('#stopGuidance').addEventListener('click',()=>stopTracking());q('#recalculateWalking').addEventListener('click',()=>{q('#walkingStart').value='gps';calculate();});
   q('#clearWalking').addEventListener('click',()=>{requestId++;router.cancel();stopTracking('');route=null;if(routeLayer)map?.removeLayer(routeLayer);if(startLayer)map?.removeLayer(startLayer);q('#walkingResult').hidden=true;status('Itinéraire effacé.');});
   addEventListener('pagehide',()=>stopTracking('Suivi arrêté.'));document.addEventListener('visibilitychange',()=>{if(document.hidden&&watchId!==null)stopTracking('Suivi mis en pause. Relancez-le lorsque vous reprenez la marche.');});
-  const observer=new ResizeObserver(()=>{if(active&&map){map.invalidateSize({pan:false});separateMarkers();}});observer.observe(container);
+  const observer=new ResizeObserver(()=>{if(active&&map){map.invalidateSize({pan:false});}});observer.observe(container);
   desktop.addEventListener('change',()=>{setPosition(position);if(active){map?.invalidateSize({pan:false});fit();}});
   setPosition('compact');
-  return {async activate(){active=true;await load();map?.invalidateSize({pan:false});separateMarkers();},deactivate(){active=false;},select(id){if(id===null){selected=null;planner=false;setPosition('list');return;}q('#mapSearch').value='';applySearch();select(id,{notify:false});},plan(id){if(id&&select(id,{open:false,notify:false})===false)return;openPlanner();},getState:()=>({selected:selected?.id||null,position,route,tracking:watchId!==null,loaded})};
+  return {async activate(){active=true;await load();map?.invalidateSize({pan:false});},deactivate(){active=false;},select(id){if(id===null){selected=null;planner=false;setPosition('list');return;}q('#mapSearch').value='';applySearch();select(id,{notify:false});},plan(id){if(id&&select(id,{open:false,notify:false})===false)return;openPlanner();},getState:()=>({selected:selected?.id||null,position,route,tracking:watchId!==null,loaded})};
 }

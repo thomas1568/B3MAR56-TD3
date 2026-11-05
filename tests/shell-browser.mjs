@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
 
 const walkingFixture=JSON.parse(fs.readFileSync(new URL('./fixtures/ign-corte-walk.json',import.meta.url)));
-const root = process.cwd(); let failMap = false, mapRequests = 0, routingMode = 'ok', routingCalls = 0; let withAuth = false, storedProfile = null, storedProgress = null, user = null;
+const root = process.cwd(); let failMap = false, failNative = false, mapRequests = 0, routingMode = 'ok', routingCalls = 0; let withAuth = false, storedProfile = null, storedProgress = null, user = null;
 const users = new Map(), photos = new Map(), calls = [];
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost'); if(url.pathname.startsWith('/B3MAR56-TD3/'))url.pathname=url.pathname.slice('/B3MAR56-TD3'.length); res.setHeader('Cache-Control', 'no-store');
@@ -55,6 +55,7 @@ const server = http.createServer(async (req, res) => {
     if(routingMode==='slow'){setTimeout(()=>json(walkingFixture),600);return;}
     json(walkingFixture);return;
   }
+  if(url.pathname==='/assets/ar/iut-scene-v1.usdz'&&failNative){res.writeHead(503);res.end();return;}
   const file = path.resolve(root, '.' + (url.pathname === '/' ? '/index.html' : decodeURIComponent(url.pathname)));
   if (!file.startsWith(root + path.sep)) { res.writeHead(403); res.end(); return; }
   try { const data = fs.readFileSync(file); res.writeHead(200, { 'Content-Type': ({ '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.glb': 'model/gltf-binary' })[path.extname(file)] || 'application/octet-stream' }); res.end(data); }
@@ -189,7 +190,7 @@ try {
   await click('resumeAudioButton');
   await click('tab-route');
   await until('!!document.querySelector("#walkingMap .leaflet-map-pane")');
-  await until('document.getElementById("map-stop-fixed-gps").getClientRects().length>0');
+  await until('document.getElementById("map-stop-iut").getClientRects().length>0');
   assert.equal(await ev('location.hash'),'#parcours');
   assert.ok(await ev('(()=>{const r=document.getElementById("walkingMap").getBoundingClientRect();return r.width===innerWidth&&r.height===innerHeight;})()'));
   // Native dragging opens the three sheet positions; buttons remain an equivalent.
@@ -207,13 +208,13 @@ try {
   await click('map-reset');
   // Expand the sheet and choose a fixed destination from the keyboard-accessible list.
   await ev('document.querySelector(".sheet-positions [data-position=list]").click()');
-  await ev('document.querySelector(".atlas-list [data-place=fixed-gps]").click()');
-  assert.match(await ev('document.getElementById("mapPlaceTitle").textContent'),/GPS/);
-  assert.equal(await ev('location.hash'),'#parcours?lieu=fixed-gps');
-  assert.equal(await ev('document.getElementById("map-stop-fixed-gps").dataset.longitude'),'9.154278');
-  await shot('gps-place-mobile');
+  await ev('document.querySelector(".atlas-list [data-place=iut]").click()');
+  assert.match(await ev('document.getElementById("mapPlaceTitle").textContent'),/IUT de Corse/);
+  assert.equal(await ev('location.hash'),'#parcours?lieu=iut');
+  assert.equal(await ev('document.getElementById("map-stop-iut").dataset.longitude'),'9.154278');
+  await shot('iut-place-mobile');
   await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});
-  assert.equal(await ev('document.activeElement.dataset.place'),'fixed-gps');
+  assert.equal(await ev('document.activeElement.dataset.place'),'iut');
   await input('mapSearch','introuvable');assert.equal(await ev('document.querySelector(".atlas-empty").hidden'),false);
   await click('resetMapFilters');await until('document.getElementById("mapSearch").value===""');
   await ev('document.querySelector(".atlas-list [data-place=palazzu]").click()');
@@ -262,6 +263,9 @@ try {
   await click('closeWalking');
   // A direct hash survives a reload under the GitHub Pages path.
   await click('tab-home');
+  await ev('location.hash="#parcours?lieu=fixed-gps"');await until('document.getElementById("mapPlaceTitle").textContent==="IUT de Corse"');
+  assert.equal(await ev('location.hash'),'#parcours?lieu=iut');
+  assert.equal(await ev('document.querySelectorAll(".leaflet-place-icon").length'),2);
   await ev('location.hash="#parcours?lieu=inconnu"');await until('document.getElementById("mapResults").textContent.includes("introuvable")');
   assert.equal(await ev('document.querySelector(".atlas-detail").hidden'),true);
   await ev('location.hash="#parcours?lieu=palazzu"');await until('!document.querySelector(".atlas-detail").hidden');
@@ -280,7 +284,7 @@ try {
 
   // Test-only media enables the archive interaction without fabricating production archives.
   await click('closePointButton');
-  await ev(`import(new URL('content/iut.js?v=32',document.baseURI).href).then(m=>{m.IUT_STEP.points[0].image={src:'assets/photos/corte-palazzu.jpg',label:'Image de test',caption:'Fixture de vérification de l’agrandissement',credit:'Pierre Bona · CC BY-SA 3.0',date:'Fixture',rights:{status:'autorise',label:'Fixture de test'}};})`);
+  await ev(`import(new URL('content/iut.js?v=33',document.baseURI).href).then(m=>{m.IUT_STEP.points[0].image={src:'assets/photos/corte-palazzu.jpg',label:'Image de test',caption:'Fixture de vérification de l’agrandissement',credit:'Pierre Bona · CC BY-SA 3.0',date:'Fixture',rights:{status:'autorise',label:'Fixture de test'}};})`);
   await ev('document.querySelector("#pointList button").click()');await click('enlargeImageButton');await until('!document.getElementById("archiveModal").hidden');
   await input('archiveZoom','2');assert.match(await ev('document.getElementById("archiveImage").style.width'),/200/);
   await click('closeArchiveButton');assert.equal(await ev('document.activeElement.id'),'enlargeImageButton');await click('closePointButton');
@@ -340,6 +344,32 @@ try {
   assert.equal(await ev('document.querySelector(".intro-emblem").getAnimations().length'),0);
   await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
   assert.equal(await ev('document.getAnimations().filter(a=>a.id==="memoria-reveal").length'),0);
+  // These checks emulate platform selection; native viewers still need real phones.
+  await send('Network.setUserAgentOverride',{userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1',platform:'iPhone'});
+  failNative=true;await nav();await click('heroAction');if(await ev('!document.getElementById("poiModal").hidden'))await click('closePointButton');
+  await until('!document.getElementById("retrySystemAR").hidden');
+  assert.equal(await ev('document.getElementById("systemARLink").hidden'),true);
+  failNative=false;await click('retrySystemAR');
+  await until('!document.getElementById("systemARLink").hidden');
+  assert.equal(await ev('document.getElementById("systemARLink").rel'),'ar');
+  assert.equal(await ev('document.getElementById("systemARLink").children.length'),1);
+  assert.equal(await ev('document.getElementById("systemARLink").firstElementChild.tagName'),'IMG');
+  assert.equal(await ev('fetch(document.getElementById("systemARLink").href).then(r=>r.headers.get("content-type"))'),'model/vnd.usdz+zip');
+  await ev('document.getElementById("systemARLink").scrollIntoView({block:"center",behavior:"instant"})');await shot('native-apple-mobile');
+  await ev('document.getElementById("systemARLink").addEventListener("click",e=>{e.preventDefault();window.nativeLaunchObserved=true;})');
+  await click('systemARLink');assert.equal(await ev('window.nativeLaunchObserved'),true);
+  await send('Network.setUserAgentOverride',{userAgent:'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Firefox/140.0 Mobile',platform:'Linux armv8l'});
+  await nav();await click('heroAction');if(await ev('!document.getElementById("poiModal").hidden'))await click('closePointButton');await until('!document.getElementById("systemARLink").hidden');
+  const androidLink=await ev('document.getElementById("systemARLink").href');
+  assert.match(androidLink,/^intent:\/\//);assert.match(androidLink,/mode=ar_preferred/);
+  assert.ok(androidLink.includes(encodeURIComponent('/B3MAR56-TD3/#etape/iut?vue=360')));
+  await ev('document.getElementById("systemARLink").scrollIntoView({block:"center",behavior:"instant"})');await shot('native-android-mobile');
+  await click('backToApp');await click('tab-explore');
+  await ev('document.querySelector("#explorePlaces [data-place=iut] .map-link").id="testMapAction"');
+  await ev('document.getElementById("testMapAction").scrollIntoView({block:"center",behavior:"instant"})');await shot('map-action-mobile');
+  await click('testMapAction');await until('document.getElementById("mapPlaceTitle").textContent==="IUT de Corse"');
+  assert.equal(await ev('document.querySelectorAll(".leaflet-place-icon").length'),2);
+
   assert.equal(errors.length,0,JSON.stringify(errors));
   console.log('PASS: five destinations, history/deep links under GitHub Pages path, audio continuity, real Leaflet map, IGN response parsing, GPS following with simulated positions, routing errors/cancellation, profiles/auth fixture, AR preparation/360, responsive screenshots and reduced motion.');
 } catch (error) {

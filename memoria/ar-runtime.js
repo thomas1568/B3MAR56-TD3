@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 import { GLTFLoader } from 'three/addons/webxr/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/webxr/OrbitControls.js';
-import { IUT_STEP } from '../content/iut.js?v=32';
-import { createMemoriaScene } from './scene.js?v=32';
-import { loadLayout, saveLayout, LAYOUT_KEY } from './layout.js?v=32';
+import { IUT_STEP } from '../content/iut.js?v=33';
+import { createMemoriaScene } from './scene.js?v=33';
+import { loadLayout, saveLayout, LAYOUT_KEY } from './layout.js?v=33';
 
 let scene;
 let camera;
@@ -37,7 +37,7 @@ let diagnosticText;
 const selectionRaycaster = new THREE.Raycaster();
 const rayMatrix = new THREE.Matrix4();
 const dragPoint = new THREE.Vector3();
-const APP_VERSION = '20';
+const APP_VERSION = '33';
 const MAX_PLACED_OBJECTS = 16;
 let experience = null;
 let experienceMode = 'visit';
@@ -200,7 +200,9 @@ function init() {
     nativeARButton = ARButton.createButton(renderer, options);
     nativeARButton.hidden = true;
     nativeARButton.addEventListener('arerror', event => {
+        renderer.setAnimationLoop(null);
         experience.stopSounds();
+        experience.setAvailability(false,'La session AR du navigateur n’a pas pu démarrer. Essayez le mode AR du téléphone ou la vue 360°.');
         reportARError('Démarrage AR', event.detail);
         experience.showMessage('Impossible de démarrer l’AR : ' + event.detail.message + '. La consultation 360° reste accessible.');
     });

@@ -61,7 +61,7 @@ après une actualisation ou une fermeture.
 Les anciennes feuilles correctives `modern.css` et `refinements.css` sont retirées.
 Les fonctions 3D sont chargées à l’ouverture d’une étape ; aucun modèle n’est
 téléchargé sur l’accueil. Le panorama dispose de son propre chargement différé.
-La fin de session AR arrête la boucle de rendu, libère les modèles de la session,
+La fin de session WebXR arrête la boucle de rendu, libère les modèles de la session,
 annule le hit-test et arrête les sons.
 
 ## Carte, services et configuration
@@ -95,13 +95,14 @@ Les voix générées, la musique originale, les illustrations d’évocation et 
 archives restent clairement distinguées. Voir [les notes sur les contenus et l’AR](docs/contenus-et-ar.md)
 et [les narrations](assets/audio/README.md).
 Les archives autorisées, les témoignages et les ambiances
-de terrain non fournis ne sont pas remplacés par de faux documents. La fiche du
-point GPS conserve un état neutre.
+de terrain non fournis ne sont pas remplacés par de faux documents. Le marqueur IUT
+sur la carte occupe le point 42.297500, 9.154278 confirmé pour cette étape.
+Le doublon « Point GPS » est retiré et les anciens liens sont redirigés vers l’IUT.
 
 ## Vérifications
 
 ```sh
-node --test tests/accounts.mjs tests/ar-interactions.mjs tests/memoria.mjs tests/music.mjs tests/narration-and-entry.mjs tests/french-phonemes.mjs tests/city-and-crop.mjs tests/immersive-map.mjs tests/routing.mjs
+node --test tests/accounts.mjs tests/ar-interactions.mjs tests/memoria.mjs tests/music.mjs tests/narration-and-entry.mjs tests/french-phonemes.mjs tests/city-and-crop.mjs tests/immersive-map.mjs tests/routing.mjs tests/native-ar.mjs
 node tests/shell-browser.mjs
 node tests/browser-smoke.mjs
 ```
@@ -116,6 +117,10 @@ Les captures principales sont écrites dans `artifacts/refonte/`.
 Le scénario AR utilise WebGL et de vrais événements tactiles, avec des poses XR
 simulées. La caméra, les permissions, le hit-test et le suivi physique restent à
 vérifier sur un téléphone compatible HTTPS/WebXR/DOM Overlay.
+Les modes Apple Quick Look et Android Scene Viewer complètent WebXR ; voir
+[la compatibilité AR et ses limites](docs/ar-navigateurs.md). Le scénario navigateur
+vérifie leurs liens et les modèles, avec des plateformes émulées dans Chrome.
+Le placement natif doit encore être contrôlé sur des téléphones réels compatibles.
 La vue 360° et les fiches sont disponibles lorsque l’AR ne l’est pas.
 Le contrôle eSpeak optionnel demande les outils de génération vocale documentés.
 

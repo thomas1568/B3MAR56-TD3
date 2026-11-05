@@ -1,0 +1,18 @@
+{
+  "generator": "Three.js r180 GLTFExporter/USDZExporter; scripts/export-native-ar.mjs",
+  "kind": "evocation",
+  "units": "meter",
+  "points": [
+    "iut",
+    "naissance",
+    "paoli",
+    "reouverture",
+    "corte"
+  ],
+  "size": [
+    1.9499999999999997,
+    1.3441666809717816,
+    1.015
+  ],
+  "meshes": 44
+}

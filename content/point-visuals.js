@@ -1,6 +1,6 @@
 // Card illustrations are distinct from documentary archive assets in iut.js.
 // Existing photographs retain their visible attribution in each card.
-import { CORTE_PHOTOS, IUT_PHOTO } from './corte.js?v=32';
+import { CORTE_PHOTOS, IUT_PHOTO } from './corte.js?v=33';
 const photo = id => CORTE_PHOTOS.find(item => item.id === id);
 export const POINT_VISUALS = {
   iut: { ...IUT_PHOTO, label: 'Photographie · IUT de Corse' },

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/webxr/OrbitControls.js';
-import { layoutHotspots } from './hotspots.js?v=32';
+import { layoutHotspots } from './hotspots.js?v=33';
 
 export function createPanorama(container, step, onPoint) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });

@@ -10,7 +10,7 @@ export const IUT_PHOTO = Object.freeze({
 });
 
 export const CORTE_STOPS = [
-  { id: 'iut', number: '01', title: 'IUT de Corse', subtitle: 'Campus Grimaldi · première étape', available: true, coordinates: [9.154338,42.297383], source: 'https://www.openstreetmap.org/way/350787319', description: 'Commencez votre découverte des mémoires universitaires sur le campus Grimaldi.' },
+  { id: 'iut', number: '01', title: 'IUT de Corse', subtitle: 'Campus Grimaldi · première étape', available: true, coordinates: [9.154278,42.297500], source: 'Emplacement du point fixe confirmé comme IUT de Corse par le contributeur du projet', description: 'Commencez votre découverte des mémoires universitaires sur le campus Grimaldi.' },
   { id: 'palazzu', number: '02', title: 'Le Palazzu Naziunale', subtitle: 'Ville haute · étape en préparation', available: false, coordinates: [9.149190,42.305007], source: 'https://www.openstreetmap.org/way/121178674', description: 'Retrouvez ce lieu dans la ville haute. Son expérience culturelle et ses repères AR sont encore en préparation.' }
 ];
 export const CORTE_PHOTOS = [
@@ -21,19 +21,6 @@ export const CORTE_PHOTOS = [
 ];
 
 
-// Fixed destination supplied in the project brief. This is never device geolocation.
-// Add a documented name, photograph (with author/license/source) and stepId only
-// after verification; proximity to the IUT alone does not establish an identity.
-export const CORTE_FIXED_POINT = Object.freeze({
-  id: 'fixed-gps',
-  title: 'Point GPS à découvrir',
-  coordinates: Object.freeze([9.154278, 42.297500]),
-  coordinateLabel: '42°17\'51.0"N · 9°09\'15.4"E',
-  description: 'Un point fixe à retrouver à Corte. Le nom du lieu et sa présentation restent à documenter.',
-  practical: null,
-  stepId: null,
-  photo: null
-});
 
 
 // Variants encoded from the documented originals by scripts/optimize-photos.mjs.

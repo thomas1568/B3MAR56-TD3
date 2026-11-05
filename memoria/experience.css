@@ -9,7 +9,12 @@
 #timeline { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }#timeline button { border:0; border-left:1px solid var(--line); border-radius:0; text-align:left; background:transparent; padding:3px 23px; }#timeline button:hover { background:var(--beige); }.timeline-year { display:block; color:var(--green); font:36px Georgia,serif; }.timeline-caption { display:block; font-size:13px; font-weight:400; margin-top:8px; color:var(--muted); line-height:1.55; }
 .step-section { padding-top:30px; }.step-section>p { font-size:16px; color:var(--muted); }.step-count { border:1px solid var(--line); border-radius:30px; padding:8px 13px; font-size:12px; white-space:nowrap; }
 .start-panel { display:flex; align-items:center; justify-content:space-between; gap:25px; padding:28px; border:1px solid #c9d1be; border-radius:25px; background:#e4e8dc; }.start-panel h3 { font-size:29px; }.start-panel p { font-size:15px; max-width:650px; }.start-actions { display:flex; flex-direction:column; gap:12px; min-width:240px; }.start-actions button { font-size:15px; }
-#arAvailability { color:#3d593b; }.historical-note { border-left:2px solid var(--copper); padding:13px 18px; color:var(--muted); font-size:14px; margin:20px 0; }
+#arAvailability { color:#3d593b; }
+.system-ar-link { display:flex; align-items:center; justify-content:center; gap:10px; min-height:54px; padding:10px 16px; border:1px solid var(--green); border-radius:18px; text-decoration:none; font:600 15px/1.4 Arial,sans-serif; text-align:center; }
+.system-ar-link>img { width:40px; height:40px; border-radius:10px; object-fit:cover; flex-shrink:0; }
+.system-ar-link::after { content:attr(data-label); }
+#systemARNote { font-size:13px; margin:12px 0 0; max-width:650px; }
+#retrySystemAR { font-size:14px; min-height:48px; }.historical-note { border-left:2px solid var(--copper); padding:13px 18px; color:var(--muted); font-size:14px; margin:20px 0; }
 .point-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:21px; }.point-card { position:relative; display:flex; flex-direction:column; align-items:flex-start; overflow:hidden; padding:0 0 24px; border:1px solid var(--line); border-radius:24px; background:var(--surface); text-align:left; font-weight:400; }
 .point-card-visual { width:100%; height:155px; object-fit:cover; display:block; margin-bottom:20px; }.point-card>span:not(.point-visual-label) { padding:0 22px; margin-bottom:13px; font-size:12px; color:var(--copper-ink); }
 .point-card>strong { font:26px/1.2 Georgia,serif; color:var(--green); padding:0 22px; }.point-card>small { color:var(--muted); font-size:14px; line-height:1.65; padding:0 40px 0 22px; margin-top:12px; }

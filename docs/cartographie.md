@@ -10,7 +10,8 @@ La documentation présente aussi OSRM, mais la ressource `bdtopo-osrm` n’étai
 disponible dans les capacités réellement retournées lors de cette intégration.
 Valhalla a été vérifié sur un trajet IUT → Palazzu : 1 236,88 m, 1 114,192 secondes
 estimées et 125 points de géométrie, jeu de données daté du 4 novembre 2026.
-Ce résultat n’est pas injecté dans l’application. Il est seulement archivé dans
+Cette mesure provient du départ de test 42.297383, 9.154338, antérieur au déplacement
+du marqueur IUT demandé ensuite. Ce résultat n’est pas injecté dans l’application. Il est seulement archivé dans
 `tests/fixtures/ign-corte-walk.json` pour les tests reproductibles.
 
 ## Configuration
@@ -55,6 +56,7 @@ la liste et un message explicite ; aucun ancien trajet n’est conservé pour ce
 géométrie valide, un trajet absent et une erreur réseau restent des erreurs visibles.
 Aucun segment droit n’est présenté comme un trajet praticable.
 
-Le point fixe `42.297500, 9.154278` conserve son identité distincte de la position
-de l’utilisateur. Son nom, sa photographie, ses informations pratiques et son
-éventuel rattachement à une étape restent à documenter.
+À la demande du contributeur, le point `42.297500, 9.154278` est désormais l’unique
+marqueur de l’IUT de Corse. L’ancien marqueur voisin a été supprimé. Le lien historique
+`#parcours?lieu=fixed-gps` ouvre la fiche IUT. La position de l’utilisateur reste
+indépendante et n’apparaît qu’après autorisation.

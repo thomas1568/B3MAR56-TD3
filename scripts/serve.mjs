@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 const root=process.cwd(),port=Number(process.env.PORT||8080),prefix='/B3MAR56-TD3';
-const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.jpg':'image/jpeg','.webp':'image/webp','.png':'image/png','.mp3':'audio/mpeg','.glb':'model/gltf-binary'};
+const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.jpg':'image/jpeg','.webp':'image/webp','.png':'image/png','.mp3':'audio/mpeg','.glb':'model/gltf-binary','.usdz':'model/vnd.usdz+zip'};
 const server=http.createServer((req,res)=>{
  try{let name=new URL(req.url,'http://localhost').pathname;if(name===prefix){res.writeHead(302,{Location:prefix+'/'});res.end();return;}if(name.startsWith(prefix+'/'))name=name.slice(prefix.length);
  const file=path.resolve(root,'.'+decodeURIComponent(name==='/'?'/index.html':name));

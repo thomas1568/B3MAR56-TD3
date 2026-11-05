@@ -49,6 +49,7 @@ function startFixture(){
 nativeARButton.onclick=startFixture;
 experience.setAvailability(true,'AR de test : poses simulées');
 window.__memoriaCheck={
+ requestFailure:async()=>{let frames=0;renderer.setAnimationLoop(()=>frames++);await new Promise(r=>setTimeout(r,100));const before=frames;nativeARButton.dispatchEvent(new CustomEvent('arerror',{detail:new Error('Refus de test')}));await new Promise(r=>setTimeout(r,100));return {before,after:frames};},
  start:startFixture,enable:()=>{nativeARButton.onclick=startFixture;experience.setAvailability(true,'AR de test : poses simulées');},availability:value=>experience.setAvailability(value,value?'AR de test : poses simulées':'AR indisponible : consultation 360° accessible.'),frame:checkFrame,point:checkPoint,
  scan:x=>{checkMatrix.makeTranslation(x,0,-1.8);checkFrame();},
  pose:id=>{const o=typeof id==='number'?placed_objects[id]:memoriaScene.byPoint.get(id);return {p:o.position.toArray(),q:o.quaternion.toArray(),s:o.scale.toArray(),visible:o.visible,parent:o.parent?.uuid};},
@@ -250,9 +251,11 @@ try{
  await button('navExit');assert.equal(await ev('document.getElementById("stepSection").hidden'),true);
  await button('tab-route');await button('routeStartButton',{scroll:true});assert.equal(await ev('document.getElementById("stepSection").hidden'),false);
  if(!await ev('document.getElementById("poiModal").hidden'))await button('closePointButton');
+ const failedSession=await ev('__memoriaCheck.requestFailure()');assert.ok(failedSession.before>0);assert.equal(failedSession.after,failedSession.before);
+ await ev('document.getElementById("experienceNotice").hidden=true');
  await ev('__memoriaCheck.availability(false)');
  assert.equal(await ev('document.getElementById("navPlace").getAttribute("aria-disabled")'),'true');
- await button('navPlace');assert.match(await ev('document.getElementById("experienceNotice").textContent'),/AR indisponible/);
+ await button('navPlace');assert.match(await ev('document.getElementById("experienceNotice").textContent'),/consultation 360/);
  await ev('document.getElementById("experienceNotice").hidden=true');
  await button('navDiscover');assert.equal(await ev('document.getElementById("panoramaPanel").hidden'),false);
  await button('navListen');assert.equal(await ev('document.getElementById("storiesModal").hidden'),false);
