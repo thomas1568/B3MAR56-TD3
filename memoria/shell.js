@@ -1,3 +1,4 @@
+import { createAvatarPicker } from './avatar-picker.js?v=1';
 import { createStackPanel } from './stack-panel.js?v=1';
 import { createCarouselCards } from './carousel-cards.js?v=1';
 import { createCardStack } from './card-stack.js?v=1';
@@ -62,6 +63,7 @@ export function createShell(experience, step) {
   root.appendChild(overlay);
   const form = document.createElement('form'); form.id = 'profileForm'; form.noValidate = true;
   form.innerHTML = `<label for="pseudoInput">Votre pseudo</label><input id="pseudoInput" name="pseudo" type="text" minlength="3" maxlength="24" autocomplete="nickname" required placeholder="Votre prénom ou votre pseudo" aria-describedby="pseudoHelp profileMessage"><p id="pseudoHelp" class="small-note">3 à 24 caractères. Votre adresse e-mail ne sera pas affichée.</p><fieldset><legend>Choisissez votre avatar</legend><div id="avatarChoices" class="avatar-grid"></div></fieldset><div class="photo-import"><label for="photoInput" class="upload-button">Importer ma photo ${icon('arrow')}</label><input id="photoInput" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp"><p class="small-note">JPEG, PNG ou WebP · 5 Mo maximum.<br>Recadrez votre photo avant de la confirmer.</p></div><div class="selected-avatar"><span class="avatar avatar-preview" id="profilePreview"></span><span id="avatarSelectionLabel" class="small-note"></span><button id="removePhotoButton" type="button" hidden>Revenir à un avatar</button></div><p id="profileMessage" class="form-message" role="status" aria-live="polite"></p><button id="saveProfileButton" class="primary" type="submit">Enregistrer mon profil</button>`;
+  const avatarPicker = createAvatarPicker(form);
   el('profileEditorHome').appendChild(form);
   const settingsHost = document.createElement('div'); settingsHost.id = 'profileSettings';
   const identity = el('page-profile').querySelector('.profile-identity');
@@ -255,6 +257,7 @@ export function createShell(experience, step) {
       button.setAttribute('aria-pressed', String(!draft.photoURL && button.dataset.avatar === draft.avatar));
       renderAvatar(button.querySelector('.avatar'), { ...draft, avatar: button.dataset.avatar, photoURL: null });
     }
+    avatarPicker.update(draft);
     renderProfile(draft);
   }
   async function saveAvatar(changes) {

@@ -80,12 +80,12 @@ try {
     await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".atlas-sheet,.nav-active-pill")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))');
     await ev(`(()=>{const n=document.getElementById(${JSON.stringify(id)}),r=n.getBoundingClientRect();let clip=r.top<0||r.bottom>innerHeight||r.left<0||r.right>innerWidth;for(let p=n.parentElement;p;p=p.parentElement){const s=getComputedStyle(p);if(/auto|scroll|hidden|clip/.test(s.overflow+s.overflowY+s.overflowX)){const b=p.getBoundingClientRect();if(r.top<b.top||r.bottom>b.bottom||r.left<b.left||r.right>b.right)clip=true;}}if(clip)n.scrollIntoView({block:'center',behavior:'instant'});})()`);
     await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
-    await ev('Promise.all(document.getAnimations().filter(a=>["memoria-reveal","memoria-settings"].includes(a.id)).map(a=>a.finished.catch(()=>{})))');
+    await ev('Promise.all(document.getAnimations().filter(a=>["memoria-reveal","memoria-settings","memoria-avatar-picker"].includes(a.id)).map(a=>a.finished.catch(()=>{})))');
     const point=await ev(`(()=>{const n=document.getElementById(${JSON.stringify(id)});if(n.disabled||!n.getClientRects().length||getComputedStyle(n).visibility!=='visible'||n.closest('[inert]'))throw Error('Unavailable '+n.id);const r=n.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,h=document.elementFromPoint(x,y);if(h!==n&&!n.contains(h))throw Error('Covered '+n.id+' by '+h?.outerHTML.slice(0,180));return{x,y};})()`);
     await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point]});await ev('new Promise(r=>requestAnimationFrame(r))');await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     await ev('new Promise(r=>setTimeout(r,70))');
   };
-  const shot = async name => { await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".nav-active-pill,.atlas-sheet")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))'); await ev('Promise.all(document.getAnimations().filter(a=>["memoria-reveal","memoria-settings"].includes(a.id)).map(a=>a.finished.catch(()=>{})))'); const result = await send('Page.captureScreenshot',{format:'png'}); const output=path.join(root,'artifacts','refonte'); fs.mkdirSync(output,{recursive:true}); const file = path.join(output,name+'.png'); fs.writeFileSync(file,Buffer.from(result.data,'base64')); console.log('Screenshot: '+file); };
+  const shot = async name => { await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".nav-active-pill,.atlas-sheet")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))'); await ev('Promise.all(document.getAnimations().filter(a=>["memoria-reveal","memoria-settings","memoria-avatar-picker"].includes(a.id)).map(a=>a.finished.catch(()=>{})))'); const result = await send('Page.captureScreenshot',{format:'png'}); const output=path.join(root,'artifacts','refonte'); fs.mkdirSync(output,{recursive:true}); const file = path.join(output,name+'.png'); fs.writeFileSync(file,Buffer.from(result.data,'base64')); console.log('Screenshot: '+file); };
   let firstNavigation = true;
   const nav = async () => { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/B3MAR56-TD3/?run=${Date.now()}`}); await loaded; await until('!!document.getElementById("guestButton")');
     if (firstNavigation) { firstNavigation = false; assert.equal(await ev('document.getElementById("appIntro").hidden'),false); assert.equal(await ev('document.getElementById("content").inert'),true); await shot('entry-animation'); }
@@ -100,6 +100,17 @@ try {
   await input('pseudoInput','x'); await click('saveProfileButton');
   assert.equal(await ev('document.getElementById("pseudoInput").getAttribute("aria-invalid")'),'true');
   await input('pseudoInput','Lisandra');
+  await click('shuffleAvatar');
+  assert.equal(await ev('document.querySelectorAll("#avatarChoices [aria-pressed=true]").length'),1);
+  assert.notEqual(await ev('document.querySelector("#avatarChoices [aria-pressed=true]").dataset.avatar'),'citadelle');
+  await ev('[...document.querySelectorAll("#avatarChoices button")].find(button=>button.tabIndex===0).focus()');
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'End',code:'End',windowsVirtualKeyCode:35});
+  assert.equal(await ev('document.activeElement.dataset.avatar'),'initiales');
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+  await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+  assert.equal(await ev('document.querySelector("#avatarChoices [aria-pressed=true]").dataset.avatar'),'initiales');
+  assert.equal(await ev('document.getElementById("profilePreview").getAttribute("aria-label")'),'Mes initiales');
+
   await ev('document.querySelector("[data-avatar=livre]").click()'); await click('saveProfileButton');
   await until('document.getElementById("onboarding").hidden');
   assert.match(await ev('document.getElementById("greeting").textContent'),/Lisandra/);
@@ -389,6 +400,7 @@ try {
     assert.equal(await ev('document.getElementById("profileSettings").dataset.stackPage'),'settings');
     assert.equal(await ev('document.getElementById("tab-profile").getAttribute("aria-current")'),'page');
     await click('profileSettings-identity');
+    await shot('avatar-picker-'+width);
     await input('pseudoInput','Brouillon panneau');
     await click('profileSettingsBack');
     await click('profileSettings-identity');
@@ -442,7 +454,7 @@ try {
   assert.equal(await ev('document.getElementById("content").inert'),false);
   assert.equal(await ev('document.querySelector(".intro-emblem").getAnimations().length'),0);
   await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
-  assert.equal(await ev('document.getAnimations().filter(a=>["memoria-reveal","memoria-settings"].includes(a.id)).length'),0);
+  assert.equal(await ev('document.getAnimations().filter(a=>["memoria-reveal","memoria-settings","memoria-avatar-picker"].includes(a.id)).length'),0);
   // These checks emulate platform selection; native viewers still need real phones.
   await send('Network.setUserAgentOverride',{userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1',platform:'iPhone'});
   failNative=true;await nav();await click('heroAction');if(await ev('!document.getElementById("poiModal").hidden'))await click('closePointButton');
