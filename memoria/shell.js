@@ -1,3 +1,4 @@
+import { createStackPanel } from './stack-panel.js?v=1';
 import { createCarouselCards } from './carousel-cards.js?v=1';
 import { createCardStack } from './card-stack.js?v=1';
 import { createProfileDropdown } from './profile-dropdown.js?v=2';
@@ -62,6 +63,19 @@ export function createShell(experience, step) {
   const form = document.createElement('form'); form.id = 'profileForm'; form.noValidate = true;
   form.innerHTML = `<label for="pseudoInput">Votre pseudo</label><input id="pseudoInput" name="pseudo" type="text" minlength="3" maxlength="24" autocomplete="nickname" required placeholder="Votre prénom ou votre pseudo" aria-describedby="pseudoHelp profileMessage"><p id="pseudoHelp" class="small-note">3 à 24 caractères. Votre adresse e-mail ne sera pas affichée.</p><fieldset><legend>Choisissez votre avatar</legend><div id="avatarChoices" class="avatar-grid"></div></fieldset><div class="photo-import"><label for="photoInput" class="upload-button">Importer ma photo ${icon('arrow')}</label><input id="photoInput" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp"><p class="small-note">JPEG, PNG ou WebP · 5 Mo maximum.<br>Recadrez votre photo avant de la confirmer.</p></div><div class="selected-avatar"><span class="avatar avatar-preview" id="profilePreview"></span><span id="avatarSelectionLabel" class="small-note"></span><button id="removePhotoButton" type="button" hidden>Revenir à un avatar</button></div><p id="profileMessage" class="form-message" role="status" aria-live="polite"></p><button id="saveProfileButton" class="primary" type="submit">Enregistrer mon profil</button>`;
   el('profileEditorHome').appendChild(form);
+  const settingsHost = document.createElement('div'); settingsHost.id = 'profileSettings';
+  const identity = el('page-profile').querySelector('.profile-identity');
+  const accountSettings = el('page-profile').querySelector('.profile-account');
+  const progressSettings = el('page-profile').querySelector('.profile-aside');
+  const profileSettings = createStackPanel(settingsHost, {
+    pages: [
+      { id: 'identity', title: 'Identité et photo', content: el('profileEditorHome') },
+      { id: 'account', title: 'Compte et connexion', content: accountSettings },
+      { id: 'progress', title: 'Mon parcours', content: progressSettings },
+    ],
+    canNavigate: () => !busy,
+  });
+  el('page-profile').querySelector('.profile-layout').replaceChildren(identity, settingsHost);
   const crop = document.createElement('div'); crop.id = 'cropModal'; crop.className = 'modal-backdrop crop-modal'; crop.dataset.ui = ''; crop.hidden = true;
   crop.innerHTML = `<article class="content-card" role="dialog" aria-modal="true" aria-labelledby="cropTitle"><header><div><p class="eyebrow">VOTRE PHOTO</p><h2 id="cropTitle">Cadrez à votre image.</h2></div><button id="cancelCrop" type="button">Annuler</button></header><div class="card-scroll crop-editor"><p id="cropInstructions" class="small-note">Déplacez la photo avec le doigt. Pincez pour zoomer.<br>Ce qui apparaît dans le cercle sera votre avatar.</p><div class="crop-stage"><canvas id="cropCanvas" width="640" height="640" tabindex="0" aria-describedby="cropInstructions cropKeyboardHelp" aria-label="Photo à déplacer pour choisir le cadrage"></canvas><div class="crop-circle" aria-hidden="true"></div></div><div class="crop-zoom-controls"><button id="cropZoomOut" type="button" aria-label="Réduire le zoom">−</button><label class="sr-only" for="cropZoom">Zoom de la photo</label><input id="cropZoom" type="range" min="1" max="4" step="0.01" value="1"><button id="cropZoomIn" type="button" aria-label="Agrandir la photo">+</button></div><p id="cropZoomLabel" class="small-note">Zoom · 100 %</p><p id="cropKeyboardHelp" class="sr-only">Au clavier : flèches pour déplacer, + et − pour zoomer, Début pour recentrer.</p></div><footer class="crop-footer"><p id="cropMessage" role="status" class="form-message"></p><div><button id="resetCrop" type="button">Recentrer</button><button id="confirmCrop" type="button" class="primary">Utiliser cette photo</button></div></footer></article>`;
   root.appendChild(crop);
@@ -206,6 +220,9 @@ export function createShell(experience, step) {
   el('profileResume').addEventListener('click', () => showPage('route'));
 
   function renderProfile(preview = null) {
+    profileSettings.setDetail('identity', (preview || state.profile).pseudo || 'Personnaliser');
+    profileSettings.setDetail('account', state.connected ? 'Connecté' : 'Invité');
+    profileSettings.setDetail('progress', state.profile.progress.visited.length + ' / 5');
     profileDropdown.update(state, preview || state.profile);
     for (const node of root.querySelectorAll('[data-profile-avatar]')) renderAvatar(node, preview || state.profile);
     el('greeting').textContent = 'Bonghjornu, ' + (state.profile.pseudo || 'à vous') + '.';
@@ -303,6 +320,7 @@ export function createShell(experience, step) {
     el('pseudoInput').focus();
   }
   function completeOnboarding() {
+    profileSettings.reset();
     message('onboardingStatus', '');
     settingUp = false; profileEditorLoaded = false; profileReturn = null; overlay.hidden = true; app.inert = false; el('homeView').inert = false; el('profileEditorHome').appendChild(form);
     applyLocation(readLocation(), true); renderProfile();

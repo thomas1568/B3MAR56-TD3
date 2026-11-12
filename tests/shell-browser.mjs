@@ -80,12 +80,12 @@ try {
     await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".atlas-sheet,.nav-active-pill")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))');
     await ev(`(()=>{const n=document.getElementById(${JSON.stringify(id)}),r=n.getBoundingClientRect();let clip=r.top<0||r.bottom>innerHeight||r.left<0||r.right>innerWidth;for(let p=n.parentElement;p;p=p.parentElement){const s=getComputedStyle(p);if(/auto|scroll|hidden|clip/.test(s.overflow+s.overflowY+s.overflowX)){const b=p.getBoundingClientRect();if(r.top<b.top||r.bottom>b.bottom||r.left<b.left||r.right>b.right)clip=true;}}if(clip)n.scrollIntoView({block:'center',behavior:'instant'});})()`);
     await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
-    await ev('Promise.all(document.getAnimations().filter(a=>a.id==="memoria-reveal").map(a=>a.finished.catch(()=>{})))');
+    await ev('Promise.all(document.getAnimations().filter(a=>["memoria-reveal","memoria-settings"].includes(a.id)).map(a=>a.finished.catch(()=>{})))');
     const point=await ev(`(()=>{const n=document.getElementById(${JSON.stringify(id)});if(n.disabled||!n.getClientRects().length||getComputedStyle(n).visibility!=='visible'||n.closest('[inert]'))throw Error('Unavailable '+n.id);const r=n.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,h=document.elementFromPoint(x,y);if(h!==n&&!n.contains(h))throw Error('Covered '+n.id+' by '+h?.outerHTML.slice(0,180));return{x,y};})()`);
     await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point]});await ev('new Promise(r=>requestAnimationFrame(r))');await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     await ev('new Promise(r=>setTimeout(r,70))');
   };
-  const shot = async name => { await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".nav-active-pill,.atlas-sheet")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))'); await ev('Promise.all(document.getAnimations().filter(a=>a.id==="memoria-reveal").map(a=>a.finished.catch(()=>{})))'); const result = await send('Page.captureScreenshot',{format:'png'}); const output=path.join(root,'artifacts','refonte'); fs.mkdirSync(output,{recursive:true}); const file = path.join(output,name+'.png'); fs.writeFileSync(file,Buffer.from(result.data,'base64')); console.log('Screenshot: '+file); };
+  const shot = async name => { await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))).then(()=>Promise.all([...document.querySelectorAll(".nav-active-pill,.atlas-sheet")].flatMap(n=>n.getAnimations()).map(a=>a.finished.catch(()=>{}))))'); await ev('Promise.all(document.getAnimations().filter(a=>["memoria-reveal","memoria-settings"].includes(a.id)).map(a=>a.finished.catch(()=>{})))'); const result = await send('Page.captureScreenshot',{format:'png'}); const output=path.join(root,'artifacts','refonte'); fs.mkdirSync(output,{recursive:true}); const file = path.join(output,name+'.png'); fs.writeFileSync(file,Buffer.from(result.data,'base64')); console.log('Screenshot: '+file); };
   let firstNavigation = true;
   const nav = async () => { const loaded = new Promise(resolve => { onLoad = resolve; }); await send('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/B3MAR56-TD3/?run=${Date.now()}`}); await loaded; await until('!!document.getElementById("guestButton")');
     if (firstNavigation) { firstNavigation = false; assert.equal(await ev('document.getElementById("appIntro").hidden'),false); assert.equal(await ev('document.getElementById("content").inert'),true); await shot('entry-animation'); }
@@ -125,11 +125,11 @@ try {
   await drag(heading,{x:heading.x-140,y:heading.y+3});
   await until('document.getElementById("tab-explore").getAttribute("aria-current")==="page"');
   await click('tab-home');
-  await click('tab-profile'); await shot('profile-mobile');
+  await click('tab-profile'); await shot('profile-mobile'); await click('profileSettings-identity');
   await ev('document.querySelector("[data-avatar=initiales]").click()'); await until('!document.getElementById("saveProfileButton").disabled');
   assert.equal(await ev('document.querySelector("#tab-profile .avatar").textContent'),'L');
   await input('pseudoInput','Lisandra Corti'); await click('saveProfileButton');
-  await until('document.getElementById("profileMessage").textContent.includes("enregistré")');
+  await until('document.getElementById("profileMessage").textContent==="Votre profil est enregistré."');
   assert.equal(await ev('document.querySelector("#tab-profile .avatar").textContent'),'LC');
   await ev(`(()=>{const dt=new DataTransfer();dt.items.add(new File(['<svg/>'],'test.svg',{type:'image/svg+xml'}));const n=document.getElementById('photoInput');n.files=dt.files;n.dispatchEvent(new Event('change'));})()`);
   assert.match(await ev('document.getElementById("profileMessage").textContent'),/JPEG/);
@@ -376,12 +376,32 @@ try {
     assert.equal(await ev('document.querySelectorAll("#explorePlaces article").length'),2);
     assert.equal(await ev('document.querySelectorAll("#homePlaces .stack-card").length'),2);
     for(const page of ['explore','listen','profile']){await click('tab-'+page);assert.equal(await ev('document.getElementById("appView").scrollWidth>innerWidth'),false);await shot(page+'-'+width);}
+
+    await click('profileSettings-account');
+    assert.equal(await ev('document.getElementById("profileSettings").dataset.stackPage'),'account');
+    assert.equal(await ev('document.getElementById("profileEditorHome").closest(".settings-stack-page").inert'),true);
+    await shot('profile-settings-account-'+width);
+    await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+    assert.equal(await ev('document.activeElement.id'),'profileSettings-account');
+    await click('profileSettings-progress');
+    const settingsPoint = await ev('(()=>{const r=document.querySelector("#profileSettings h2").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
+    await drag(settingsPoint,{x:settingsPoint.x+75,y:settingsPoint.y});
+    assert.equal(await ev('document.getElementById("profileSettings").dataset.stackPage'),'settings');
+    assert.equal(await ev('document.getElementById("tab-profile").getAttribute("aria-current")'),'page');
+    await click('profileSettings-identity');
+    await input('pseudoInput','Brouillon panneau');
+    await click('profileSettingsBack');
+    await click('profileSettings-identity');
+    assert.equal(await ev('document.getElementById("pseudoInput").value'),'Brouillon panneau');
+    await input('pseudoInput','Lisandra Corti');
+    await click('profileSettingsBack');
+    await shot('profile-settings-'+width);
     await click('tab-route');await ev('document.querySelector(".sheet-positions [data-position=compact]").click()');await click('map-reset');await shot('map-'+width);
     assert.ok(await ev('(()=>{const n=document.querySelector(".leaflet-control-attribution a"),r=n.getBoundingClientRect(),h=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return h===n||n.contains(h);})()'),'Cartographic attribution must remain visible and clickable');
     assert.equal(await ev('document.querySelector(".sheet-handle").getClientRects().length>0'),width<900);
   }
   await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
-  await click('tab-profile');await input('pseudoInput','Brouillon local');await click('tab-home');await click('tab-profile');
+  await click('tab-profile');await click('profileSettings-identity');await input('pseudoInput','Brouillon local');await click('tab-home');await click('tab-profile');
   assert.equal(await ev('document.getElementById("pseudoInput").value'),'Brouillon local');await input('pseudoInput','Lisandra Corti');await click('saveProfileButton');
   // A separate configured run exercises actual auth/REST/Storage HTTP boundaries.
   withAuth = true; await ev('localStorage.clear()'); await nav();
@@ -395,18 +415,18 @@ try {
   await ev('document.querySelector("[data-avatar=riviere]").click()'); await click('saveProfileButton');
   await until('document.getElementById("onboarding").hidden');
   assert.equal(await ev('document.getElementById("sessionBadge").textContent'),'Profil connecté');
-  await click('tab-profile'); await importPhoto(); await until('!!document.querySelector("#tab-profile img")');
+  await click('tab-profile'); await click('profileSettings-identity'); await importPhoto(); await until('!!document.querySelector("#tab-profile img")');
   assert.ok(storedProfile.photo_path.startsWith(user.id+'/'));
   await click('tab-route'); await ev('document.querySelector(".sheet-positions [data-position=list]").click()'); await click('routeStartButton'); await ev('document.querySelector("#pointList button").click()');
   await until('!document.getElementById("poiModal").hidden'); await click('closePointButton'); await click('backToApp'); await click('tab-home');
-  await click('tab-profile'); await click('logoutButton'); await until('!document.getElementById("onboardingWelcome").hidden');
+  await click('tab-profile'); await click('profileSettingsBack'); await click('profileSettings-account'); await click('logoutButton'); await until('!document.getElementById("onboardingWelcome").hidden');
   await click('signinButton'); await input('emailInput','lisandra@example.com'); await input('passwordInput','password-fixture'); await click('authSubmit');
   await until('document.getElementById("onboarding").hidden');
   assert.match(await ev('document.getElementById("greeting").textContent'),/Mattea/);
   assert.ok(await ev('!!document.querySelector("#tab-profile img")'));
   assert.match(await ev('document.getElementById("resumeDescription").textContent'),/1 repère/);
   assert.ok(calls.includes('/auth/v1/signup') && calls.includes('/rest/v1/memoria_progress'));
-  await click('tab-profile'); await ev('document.querySelector("[data-avatar=montagne]").click()'); await until('!document.querySelector("#tab-profile img")');
+  await click('tab-profile'); await click('profileSettings-identity'); await ev('document.querySelector("[data-avatar=montagne]").click()'); await until('!document.querySelector("#tab-profile img")');
   await until('!document.getElementById("saveProfileButton").disabled');
   assert.equal(storedProfile.avatar,'montagne'); assert.equal(storedProfile.photo_path,null);
   await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
@@ -422,7 +442,7 @@ try {
   assert.equal(await ev('document.getElementById("content").inert'),false);
   assert.equal(await ev('document.querySelector(".intro-emblem").getAnimations().length'),0);
   await ev('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
-  assert.equal(await ev('document.getAnimations().filter(a=>a.id==="memoria-reveal").length'),0);
+  assert.equal(await ev('document.getAnimations().filter(a=>["memoria-reveal","memoria-settings"].includes(a.id)).length'),0);
   // These checks emulate platform selection; native viewers still need real phones.
   await send('Network.setUserAgentOverride',{userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1',platform:'iPhone'});
   failNative=true;await nav();await click('heroAction');if(await ev('!document.getElementById("poiModal").hidden'))await click('closePointButton');
