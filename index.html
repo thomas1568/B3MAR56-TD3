@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#273B31">
 <meta name="description" content="Découvrez les lieux et les mémoires de Corte : carte interactive, parcours culturel, récits et expériences immersives.">
 <link rel="stylesheet" href="main.css?v=33">
-<link rel="stylesheet" href="memoria/shell.css?v=33">
+<link rel="stylesheet" href="memoria/shell.css?v=34">
 <link rel="stylesheet" href="memoria/experience.css?v=33">
 <link rel="stylesheet" href="memoria/city.css?v=33">
 <link rel="stylesheet" href="memoria/ar.css?v=33">
@@ -127,7 +127,7 @@
   var deadline = setTimeout(function () { if (!document.getElementById('appView')) recover(false); }, 5000);
   document.addEventListener('memoria:intro-end', function () { if (!document.getElementById('appView')) recover(false); });
   document.getElementById('startupRetry').addEventListener('click', function () { location.reload(); });
-  import('./main.js?v=33').then(function () {
+  import('./main.js?v=34').then(function () {
     clearTimeout(deadline);
     fallback.hidden = true;
   }).catch(function (error) {

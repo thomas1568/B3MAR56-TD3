@@ -296,6 +296,22 @@ try {
     await click('tab-home');await ev('document.getElementById("appView").scrollTop=0');await shot('home-'+width);
     assert.equal(await ev('document.getElementById("appView").scrollWidth>innerWidth'),false,await ev('JSON.stringify({width:innerWidth,scroll:document.getElementById("appView").scrollWidth,wide:[...document.querySelectorAll("#appView *")].filter(n=>n.getBoundingClientRect().right>innerWidth+.5).slice(0,30).map(n=>({tag:n.tagName,id:n.id,class:n.className,right:n.getBoundingClientRect().right,width:n.getBoundingClientRect().width}))})'));
     assert.ok(await ev('[...document.querySelectorAll("#appDock button")].every(b=>{const r=b.getBoundingClientRect();return r.width>=44&&r.height>=44&&r.left>=0&&r.right<=innerWidth;})'));
+
+    await click('headerProfile');
+    assert.equal(await ev('document.getElementById("headerProfile").getAttribute("aria-expanded")'),'true');
+    assert.equal(await ev('document.activeElement.id'),'profileMenuProfile');
+    assert.ok(await ev('(()=>{const r=document.getElementById("profileDropdownMenu").getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight;})()'));
+    await shot('profile-dropdown-'+width);
+    await send('Input.dispatchKeyEvent',{type:'keyDown',key:'End',code:'End',windowsVirtualKeyCode:35});
+    assert.equal(await ev('document.activeElement.id'),'profileMenuLogout');
+    await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+    assert.equal(await ev('document.getElementById("profileDropdownMenu").hidden'),true);
+    assert.equal(await ev('document.activeElement.id'),'headerProfile');
+    await click('headerProfile'); await click('profileMenuProfile');
+    assert.equal(await ev('document.getElementById("page-profile").hidden'),false);
+    assert.equal(await ev('document.getElementById("profileDropdownMenu").hidden'),true);
+    await click('headerProfile'); await click('tab-home');
+    assert.equal(await ev('document.getElementById("profileDropdownMenu").hidden'),true);
     for(const page of ['explore','listen','profile']){await click('tab-'+page);assert.equal(await ev('document.getElementById("appView").scrollWidth>innerWidth'),false);await shot(page+'-'+width);}
     await click('tab-route');await ev('document.querySelector(".sheet-positions [data-position=compact]").click()');await click('map-reset');await shot('map-'+width);
     assert.ok(await ev('(()=>{const n=document.querySelector(".leaflet-control-attribution a"),r=n.getBoundingClientRect(),h=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return h===n||n.contains(h);})()'),'Cartographic attribution must remain visible and clickable');

@@ -1,3 +1,4 @@
+import { createProfileDropdown } from './profile-dropdown.js?v=1';
 import { createAccount, validatePhoto, validatePseudo } from './account.js?v=33';
 import { AVATARS, renderAvatar } from './avatars.js?v=33';
 import { createTabNavigation } from './navigation.js?v=33';
@@ -41,6 +42,12 @@ export function createShell(experience, step) {
     <section id="page-profile" class="app-page" hidden aria-labelledby="profileTitle"><p class="eyebrow">VOTRE DÉCOUVERTE, À VOTRE IMAGE</p><h1 id="profileTitle">Mon profil.</h1><div class="profile-layout"><div><div class="profile-identity"><span class="avatar avatar-large" data-profile-avatar></span><div><h2 id="profileName"></h2><p id="profileConnection" class="small-note"></p></div></div><div id="profileEditorHome"></div></div><aside class="profile-aside"><p class="eyebrow">VOTRE PARCOURS</p><h2 id="profileProgressTitle">Le premier pas vous attend.</h2><p id="profileProgressText"></p><button id="profileResume" type="button">Retrouver mon parcours ${icon('arrow')}</button><div class="profile-account"><p id="profileStorageNote" class="small-note"></p><button id="connectFromProfile" type="button">Créer un compte ou se connecter</button><button id="logoutButton" type="button">Se déconnecter ${icon('exit')}</button></div></aside></div></section>
     <footer class="site-footer"><span>Memoria Corti · La mémoire en mouvement</span><span>Corte, des lieux à rencontrer</span></footer>`;
   root.prepend(app);
+  const profileDropdown = createProfileDropdown(el('headerProfile'), {
+    onProfile: () => showPage('profile'),
+    onRoute: () => showPage('route'),
+    onConnect: () => el('connectFromProfile').click(),
+    onSignOut: () => el('logoutButton').click(),
+  });
 
   const dock = document.createElement('div'); dock.id = 'appDock'; dock.className = 'journey-dock'; dock.dataset.ui = '';
   dock.innerHTML = `<nav class="journey-nav app-nav" aria-label="Navigation principale">${[['home','Accueil','home'],['explore','Explorer','discover'],['route','Parcours','route'],['listen','Écouter','listen'],['profile','Profil','']].map(([id,label,symbol]) => `<button id="tab-${id}" class="journey-item" data-page="${id}" type="button">${symbol ? icon(symbol) : '<span data-profile-avatar class="avatar nav-avatar"></span>'}<span>${label}</span></button>`).join('')}</nav>`;
@@ -150,6 +157,7 @@ export function createShell(experience, step) {
   addEventListener('popstate',restoreLocation); addEventListener('hashchange',restoreLocation);
   function showPage(next, { focus = true, history = true } = {}) {
     if (experience.getState().activeAR || !pages.includes(next)) return;
+    profileDropdown.close();
     const previousPage = page, wasInStep = inStep;
     if (previousPage !== next) experience.collapsePlayer();
     if (!inStep && !app.hidden) scrollPositions.set(page, app.scrollTop);
@@ -195,6 +203,7 @@ export function createShell(experience, step) {
   el('profileResume').addEventListener('click', () => showPage('route'));
 
   function renderProfile(preview = null) {
+    profileDropdown.update(state, preview || state.profile);
     for (const node of root.querySelectorAll('[data-profile-avatar]')) renderAvatar(node, preview || state.profile);
     el('greeting').textContent = 'Bonghjornu, ' + (state.profile.pseudo || 'à vous') + '.';
     el('profileName').textContent = state.profile.pseudo;
