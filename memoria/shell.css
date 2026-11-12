@@ -148,3 +148,30 @@
 #homePlaces .card-stack-count { margin:0; color:var(--green); font-size:13px; font-variant-numeric:tabular-nums; }
 #homePlaces .card-stack-hint { margin:14px 12px 0; color:var(--muted); text-align:center; font-size:12px; }
 @media(prefers-reduced-motion:reduce) { #homePlaces .stack-card { transition:none; } }
+
+/* Explorer-only adaptation of Kokonut UI CarouselCards / Momentum Rail. */
+#explorePlaces.places-carousel { display:block; min-width:0; container-type:inline-size; --carousel-width:min(82cqw,380px); }
+#explorePlaces[hidden] { display:none; }
+#explorePlaces .carousel-controls { display:flex; justify-content:flex-end; align-items:center; gap:12px; padding:0 3px 8px; }
+#explorePlaces .carousel-controls[hidden] { display:none; }
+#explorePlaces .carousel-counter { margin:0 auto 0 0; color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums; }
+#explorePlaces .carousel-controls button { display:grid; place-items:center; width:46px; height:46px; min-height:46px; padding:0; border:1px solid #b7c1ad; border-radius:50%; color:var(--green); background:var(--paper); }
+#explorePlaces .carousel-controls button[aria-disabled=true] { opacity:.4; cursor:default; }
+#explorePlaces .carousel-controls .icon { width:20px; height:20px; }
+#explorePlaces .carousel-prev .icon { transform:rotate(180deg); }
+#explorePlaces .carousel-viewport { position:relative; overflow-x:auto; overscroll-behavior-x:contain; scroll-snap-type:x mandatory; scrollbar-width:thin; scrollbar-color:#b7c1ad transparent; padding-block:14px 22px; cursor:grab; }
+#explorePlaces .carousel-viewport:focus-visible { outline:2px solid var(--green); outline-offset:-2px; border-radius:20px; }
+#explorePlaces .carousel-viewport.is-dragging { scroll-snap-type:none; cursor:grabbing; user-select:none; }
+#explorePlaces .carousel-track { position:relative; display:flex; align-items:stretch; gap:22px; width:max-content; padding-inline:calc((100cqw - var(--carousel-width)) / 2); }
+#explorePlaces .carousel-card { flex:0 0 var(--carousel-width); width:var(--carousel-width); scroll-snap-align:center; border:1px solid var(--line); border-radius:26px; background:var(--paper); box-shadow:0 8px 18px #273b310c; padding:9px; }
+#explorePlaces .card-visual { height:clamp(230px,36cqw,340px); border-radius:19px; }
+#explorePlaces .card-visual>img { user-select:none; }
+#explorePlaces .editorial-card-body { padding:18px 10px 8px; }
+#explorePlaces .editorial-card h3 { font-size:clamp(25px,4cqw,31px); }
+@keyframes memoria-rail-depth { 0% { transform:perspective(900px) rotateY(-12deg) scale(.94); } 50% { transform:perspective(900px) rotateY(0) scale(1); } 100% { transform:perspective(900px) rotateY(12deg) scale(.94); } }
+@supports(animation-timeline:view()) {
+  @media(prefers-reduced-motion:no-preference) {
+    #explorePlaces .carousel-card { view-timeline:--place-rail inline; }
+    #explorePlaces .card-visual { animation:memoria-rail-depth linear both; animation-timeline:--place-rail; }
+  }
+}

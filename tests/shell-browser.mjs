@@ -332,6 +332,49 @@ try {
     await ev('document.getElementById("homeStackPrevious").scrollIntoView({block:"center",behavior:"instant"})');
     await click('homeStackPrevious');
     await until('document.getElementById("homePlaces").dataset.activePlace==="iut"');
+
+    await click('tab-explore');
+    await ev('document.querySelector("#explorePlaces .carousel-next").id="exploreNext";document.querySelector("#explorePlaces .carousel-prev").id="explorePrevious"');
+    await until('document.getElementById("explorePlaces").dataset.activePlace==="iut"');
+    await click('exploreNext');
+    await until('document.getElementById("explorePlaces").dataset.activePlace==="palazzu"');
+    assert.equal(await ev('document.querySelector("#explorePlaces .carousel-next").getAttribute("aria-disabled")'),'true');
+    await ev('document.querySelector("#explorePlaces .carousel-viewport").focus({preventScroll:true})');
+    await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Home',code:'Home',windowsVirtualKeyCode:36});
+    await until('document.getElementById("explorePlaces").dataset.activePlace==="iut"');
+    await ev('document.querySelector("#explorePlaces .carousel-viewport").scrollLeft=0');
+    await ev('document.querySelector("#explorePlaces .is-current .card-visual").scrollIntoView({block:"center",inline:"center",behavior:"instant"})');
+    const railPoint = await ev('(()=>{const r=document.querySelector("#explorePlaces .is-current .card-visual").getBoundingClientRect();return {x:r.x+r.width*.8,y:r.y+r.height*.5};})()');
+    await drag(railPoint,{x:railPoint.x-220,y:railPoint.y});
+    await until('document.getElementById("explorePlaces").dataset.activePlace==="palazzu"');
+    assert.equal(await ev('document.getElementById("tab-explore").getAttribute("aria-current")'),'page');
+    await shot('explore-carousel-'+width);
+    if (width === 1440) {
+      await ev('document.querySelector("#explorePlaces .carousel-viewport").scrollTo({left:99999,behavior:"instant"})');
+      await ev('document.querySelector("#explorePlaces [data-place=palazzu] .card-visual").scrollIntoView({block:"center",inline:"center",behavior:"instant"})');
+      const mouseStart = await ev('(()=>{const r=document.querySelector("#explorePlaces [data-place=palazzu] .card-visual").getBoundingClientRect();return {x:r.x+r.width*.25,y:r.y+r.height*.5};})()');
+      await send('Input.dispatchMouseEvent',{type:'mousePressed',...mouseStart,button:'left',clickCount:1});
+      for(let n=1;n<=10;n++) {
+        await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:mouseStart.x+n*28,y:mouseStart.y,button:'left',buttons:1});
+        await ev('new Promise(r=>setTimeout(r,16))');
+      }
+      await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:mouseStart.x+280,y:mouseStart.y,button:'left',clickCount:1});
+      await until('document.getElementById("explorePlaces").dataset.activePlace==="iut"');
+      assert.equal(await ev('document.getElementById("tab-explore").getAttribute("aria-current")'),'page');
+    }
+
+    await click('filterAvailable');
+    assert.equal(await ev('document.querySelectorAll("#explorePlaces article").length'),1);
+    assert.equal(await ev('document.querySelector("#explorePlaces .carousel-controls").hidden'),true);
+    await click('filterComing');
+    assert.equal(await ev('document.querySelector("#explorePlaces article").dataset.place'),'palazzu');
+    await click('filterAll');
+    await input('exploreSearch','zzzzzz');
+    assert.equal(await ev('document.getElementById("explorePlaces").hidden'),true);
+    assert.equal(await ev('document.getElementById("exploreEmpty").hidden'),false);
+    await input('exploreSearch','');
+    assert.equal(await ev('document.querySelectorAll("#explorePlaces article").length'),2);
+    assert.equal(await ev('document.querySelectorAll("#homePlaces .stack-card").length'),2);
     for(const page of ['explore','listen','profile']){await click('tab-'+page);assert.equal(await ev('document.getElementById("appView").scrollWidth>innerWidth'),false);await shot(page+'-'+width);}
     await click('tab-route');await ev('document.querySelector(".sheet-positions [data-position=compact]").click()');await click('map-reset');await shot('map-'+width);
     assert.ok(await ev('(()=>{const n=document.querySelector(".leaflet-control-attribution a"),r=n.getBoundingClientRect(),h=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return h===n||n.contains(h);})()'),'Cartographic attribution must remain visible and clickable');

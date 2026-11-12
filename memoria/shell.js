@@ -1,3 +1,4 @@
+import { createCarouselCards } from './carousel-cards.js?v=1';
 import { createCardStack } from './card-stack.js?v=1';
 import { createProfileDropdown } from './profile-dropdown.js?v=2';
 import { createAccount, validatePhoto, validatePseudo } from './account.js?v=33';
@@ -7,7 +8,7 @@ import { cropGeometry, zoomCrop } from './photo-crop.js?v=33';
 import { CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=33';
 import { createImmersiveMap } from './immersive-map.js?v=33';
 
-import { createPageMotion } from './motion.js?v=36';
+import { createPageMotion } from './motion.js?v=37';
 
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 export function createShell(experience, step) {
@@ -37,7 +38,7 @@ export function createShell(experience, step) {
     </section>
     <section id="page-explore" class="app-page" hidden aria-labelledby="exploreTitle"><p class="eyebrow">LES MÉMOIRES DU TERRITOIRE</p><h1 id="exploreTitle">Explorer Corte.</h1><p class="page-subtitle">Un lieu, une histoire. Choisissez votre prochaine découverte.</p>
       <div class="place-search">${icon('search')}<label class="sr-only" for="exploreSearch">Rechercher parmi les lieux de Corte</label><input id="exploreSearch" type="search" placeholder="Un lieu à découvrir…" autocomplete="off"></div>
-      <div class="filter-row" role="group" aria-label="Filtrer les lieux"><button id="filterAll" aria-pressed="true">Tous les lieux</button><button id="filterAvailable" aria-pressed="false">Disponibles</button><button id="filterComing" aria-pressed="false">À venir</button></div><div id="explorePlaces" class="editorial-grid"></div><p id="exploreEmpty" role="status" hidden>Aucun lieu ne correspond à votre recherche.</p><p class="small-note">Photographies du territoire et évocations du parcours : les crédits accompagnent les images.</p></section>
+      <div class="filter-row" role="group" aria-label="Filtrer les lieux"><button id="filterAll" aria-pressed="true">Tous les lieux</button><button id="filterAvailable" aria-pressed="false">Disponibles</button><button id="filterComing" aria-pressed="false">À venir</button></div><div id="explorePlaces"></div><p id="exploreEmpty" role="status" hidden>Aucun lieu ne correspond à votre recherche.</p><p class="small-note">Photographies du territoire et évocations du parcours : les crédits accompagnent les images.</p></section>
     <section id="page-route" class="app-page map-page" hidden aria-labelledby="routeTitle"><div id="cityMap"></div></section>
     <section id="page-listen" class="app-page" hidden aria-labelledby="listenTitle"><p class="eyebrow">LAISSEZ LES LIEUX SE RACONTER</p><h1 id="listenTitle">Écouter Corte.</h1><p class="page-subtitle">Lancez un récit et poursuivez votre découverte. Le lecteur vous accompagne d’un onglet à l’autre.</p><div class="listen-intro">${icon('listen')}<p>Ces narrations utilisent une voix générée par IA. Les textes sont disponibles sous chaque récit ; les témoignages et les ambiances de terrain restent à documenter.</p></div><div id="listenStories" class="story-grid"></div></section>
     <section id="page-profile" class="app-page" hidden aria-labelledby="profileTitle"><p class="eyebrow">VOTRE DÉCOUVERTE, À VOTRE IMAGE</p><h1 id="profileTitle">Mon profil.</h1><div class="profile-layout"><div><div class="profile-identity"><span class="avatar avatar-large" data-profile-avatar></span><div><h2 id="profileName"></h2><p id="profileConnection" class="small-note"></p></div></div><div id="profileEditorHome"></div></div><aside class="profile-aside"><p class="eyebrow">VOTRE PARCOURS</p><h2 id="profileProgressTitle">Le premier pas vous attend.</h2><p id="profileProgressText"></p><button id="profileResume" type="button">Retrouver mon parcours ${icon('arrow')}</button><div class="profile-account"><p id="profileStorageNote" class="small-note"></p><button id="connectFromProfile" type="button">Créer un compte ou se connecter</button><button id="logoutButton" type="button">Se déconnecter ${icon('exit')}</button></div></aside></div></section>
@@ -100,11 +101,12 @@ export function createShell(experience, step) {
     const button = article.querySelector('button'); button.textContent = item.action; button.addEventListener('click', () => item.available ? startStep() : openComing(item.title));
     const mapButton = document.createElement('button'); mapButton.type = 'button'; mapButton.className = 'text-button map-link'; mapButton.innerHTML = '<span>Sur le plan</span><span class="action-arrow" aria-hidden="true">'+icon('arrow')+'</span>'; mapButton.addEventListener('click', () => showPlace(item.id)); article.querySelector('.editorial-card-body').append(mapButton); return article;
   }
+  const exploreCarousel = createCarouselCards(el('explorePlaces'));
   function renderPlaces(filter = exploreFilter) {
     exploreFilter = filter;
     const text = el('exploreSearch').value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
     const matches = places.filter(item => (filter === 'all' || item.available === (filter === 'available')) && (item.title+' '+item.description).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(text));
-    el('explorePlaces').replaceChildren(...matches.map(placeCard)); el('exploreEmpty').hidden = matches.length > 0; pageMotion?.refresh();
+    exploreCarousel.setCards(matches.map(placeCard)); el('exploreEmpty').hidden = matches.length > 0; pageMotion?.refresh();
   }
   el('exploreSearch').addEventListener('input', () => renderPlaces());
   createCardStack(el('homePlaces'), places.map(placeCard)); renderPlaces();
