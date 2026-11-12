@@ -1,4 +1,4 @@
-import { createWalkingGuidance } from './walking-guidance.js?v=42';
+import { createWalkingGuidance } from './walking-guidance.js?v=43';
 import { CORTE_STOPS, CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=33';
 import { MAP_CONFIG } from './config.js?v=33';
 import { loadLeaflet } from './leaflet-loader.js?v=33';

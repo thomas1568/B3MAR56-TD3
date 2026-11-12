@@ -1,3 +1,4 @@
+import { createLocationSession } from './location-session.js?v=43';
 import { createRouteProgress, GUIDANCE_CONFIG, locationSample, nextPhysicalStop } from './guidance.js?v=41';
 import { validCoordinate, distanceBetween } from './routing.js?v=41';
 
@@ -22,9 +23,9 @@ export function createWalkingGuidance({
         <p id="guidanceAccuracy" class="small-note" aria-live="off"></p>
         <p id="guidanceNotice" role="status"></p>
         <div id="guidancePermissionHelp" class="small-note" hidden tabindex="-1">
-          <strong>Activez votre géolocalisation pour être guidé</strong>
-          <p>Ouvrez les autorisations de ce site dans le menu de votre navigateur, puis autorisez la localisation. Vérifiez aussi que la localisation est activée pour votre navigateur dans les réglages du téléphone.</p>
-          <p>Revenez ici et touchez « Réessayer la géolocalisation ». Si aucune demande ne s’affiche, l’autorisation est peut-être encore bloquée dans les réglages. Vous pouvez aussi toucher « Arrêter » pour consulter le plan.</p>
+          <strong>Vérifiez l’accès à la position pour ce site</strong>
+          <p>L’accès de Safari à la localisation et l’autorisation de ce site sont deux réglages distincts. Dans le menu de la page Safari, ouvrez les réglages de ce site et autorisez sa localisation.</p>
+          <p>Si vous avez déjà autorisé ce site, touchez « Réessayer la géolocalisation » pour demander une nouvelle position. Si Safari renvoie encore un refus, actualisez la page puis relancez le guidage. Votre profil est conservé.</p>
         </div>
         <div class="guidance-actions">
           <button id="guidanceRecenter" type="button" aria-label="Recentrer sur moi">Recentrer</button>
@@ -34,6 +35,7 @@ export function createWalkingGuidance({
         <div class="guidance-secondary">
           <button id="guidanceChange" class="text-button" type="button">Changer le point</button>
           <button id="guidanceResume" type="button" hidden>Reprendre le guidage</button>
+          <button id="guidanceReload" type="button" hidden>Actualiser la page</button>
           <button id="guidanceRecalculate" type="button" hidden>Recalculer le trajet</button>
           <button id="guidanceOpenStep" class="primary" type="button" hidden>Ouvrir l’étape</button>
         </div>
@@ -42,7 +44,7 @@ export function createWalkingGuidance({
     </section>`);
   const panel = q('#guidancePanel'), reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let destination = null, tracker = null, wanted = false, following = false, suspended = false;
-  let watch = null, generation = 0, watchdog = null, pending = false, needsRoute = false, lastRecalculation = -Infinity;
+  let gpsSession = null, generation = 0, watchdog = null, pending = false, needsRoute = false, lastRecalculation = -Infinity;
   let fix = null, marker = null, circle = null, frame = 0, drawn = null, lastSnapshot = null, announced = '';
   let mapBound = null, nearStart = [];
   const metric = value => value >= 1000 ? (value / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' km' : Math.round(value / 5) * 5 + ' m';
@@ -59,8 +61,7 @@ export function createWalkingGuidance({
     }
   }
   function stopWatch() {
-    if (watch !== null) navigator.geolocation?.clearWatch(watch);
-    watch = null; clearInterval(watchdog); watchdog = null; cancelAnimationFrame(frame); frame = 0;
+    gpsSession?.stop(); gpsSession = null; clearInterval(watchdog); watchdog = null; cancelAnimationFrame(frame); frame = 0;
     container.dataset.tracking = 'false';
   }
   function bindMap() {
@@ -185,28 +186,54 @@ export function createWalkingGuidance({
   }
   function startWatch() {
     stopWatch();
-    q("#guidancePermissionHelp").hidden = true;
-    q("#guidanceResume").textContent = "Reprendre le guidage";
-    if (!navigator.geolocation) { say('Géolocalisation indisponible. Le plan et le choix manuel du départ restent accessibles.'); return; }
+    q('#guidancePermissionHelp').hidden = true;
+    q('#guidanceResume').hidden = true;
+    q('#guidanceResume').textContent = 'Reprendre le guidage';
+    q('#guidanceReload').hidden = true;
+    const policy = document.permissionsPolicy || document.featurePolicy;
+    const blocked = policy?.allowsFeature && !policy.allowsFeature('geolocation');
+    if (!window.isSecureContext || blocked || !navigator.geolocation) {
+      suspended = true; q('#guidanceResume').hidden = false;
+      say(!window.isSecureContext ? 'La localisation nécessite une connexion HTTPS. Ouvrez le site avec son adresse sécurisée.' :
+        blocked ? 'La localisation est bloquée dans cette fenêtre. Ouvrez le site directement dans Safari.' :
+        'Géolocalisation indisponible dans ce navigateur. Le plan reste accessible.');
+      return;
+    }
     suspended = false; wanted = true; const own = ++generation;
     bindMap(); container.dataset.tracking = 'true'; container.dataset.following = String(following);
     q('#startGuidance').hidden = true; q('#stopGuidance').hidden = false;
-    say('Autorisez la géolocalisation si votre navigateur vous le demande. En attente de votre position…');
-    watch = navigator.geolocation.watchPosition(position => accept(position, own), error => {
-      if (own !== generation || !wanted) return;
-      if (error.code === 1) {
+    say('Recherche de votre position…');
+    gpsSession = createLocationSession({
+      geolocation: navigator.geolocation,
+      onPosition(position) {
+        if (own !== generation) return;
+        q('#guidancePermissionHelp').hidden = true;
+        q('#guidanceReload').hidden = true;
+        accept(position, own);
+      },
+      onError(error) {
+        if (own !== generation || !wanted) return;
         stopWatch(); generation++; router.cancel(); pending = false; suspended = true;
         if (!tracker) needsRoute = true;
         q('#guidanceResume').hidden = false;
         q('#guidanceResume').textContent = 'Réessayer la géolocalisation';
-        q('#guidancePermissionHelp').hidden = false;
-        say('Autorisation GPS refusée. Activez la localisation pour démarrer le guidage.');
-        q('#guidancePermissionHelp').focus({ preventScroll: true });
-        q('#guidancePermissionHelp').scrollIntoView({ block: 'nearest', behavior: 'instant' });
-      } else say('Position momentanément indisponible. En attente d’une mesure récente.');
-    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+        if (error?.code === 1) {
+          q('#guidancePermissionHelp').hidden = false;
+          q('#guidanceReload').hidden = false;
+          say('Accès à la position refusé par le navigateur pour ce site.');
+          q('#guidancePermissionHelp').focus({ preventScroll: true });
+          q('#guidancePermissionHelp').scrollIntoView({ block: 'nearest', behavior: 'instant' });
+        } else {
+          say(error?.code === 3 ? 'Le délai de recherche de position est dépassé. Réessayez, si possible à l’extérieur.' :
+            'Votre position est momentanément indisponible. Réessayez dans un endroit où le signal est meilleur.');
+        }
+      },
+    });
+    // Start in the click handler, without awaiting a permission query or a network request.
+    gpsSession.start();
+    if (!gpsSession?.active) return;
     watchdog = setInterval(() => {
-      if (wanted && !suspended && (!fix || Date.now() - fix.timestamp > GUIDANCE_CONFIG.maxAge)) {
+      if (wanted && !suspended && fix && Date.now() - fix.timestamp > GUIDANCE_CONFIG.maxAge) {
         cancelAnimationFrame(frame);
         say('Position ancienne. La progression est en pause jusqu’à une mesure récente.');
       }
@@ -259,6 +286,7 @@ export function createWalkingGuidance({
   q('#cancelGuidanceSetup').addEventListener('click', () => { stop(''); q('#guideNextPoint').focus(); });
   q('#guidanceChange').addEventListener('click', prepare);
   q('#guidanceStop').addEventListener('click', () => { stop(); q('#guideNextPoint').focus(); });
+  q('#guidanceReload').addEventListener('click', () => { stop(''); location.reload(); });
   q('#guidanceResume').addEventListener('click', () => { if (document.hidden || !isActive()) return; fix = null; startWatch(); });
   q('#guidanceRecenter').addEventListener('click', () => {
     if (!fix || Date.now() - fix.timestamp > GUIDANCE_CONFIG.maxAge) { say('En attente d’une position récente pour vous recentrer.'); return; }
@@ -290,7 +318,7 @@ export function createWalkingGuidance({
       start({ existing: true });
       if (!destination?.available) q('#guidanceTarget').textContent += ' · étape en préparation';
     },
-    getState: () => ({ tracking: watch !== null, wanted, suspended, following, destination: destination?.id, snapshot: lastSnapshot }),
+    getState: () => ({ tracking: Boolean(gpsSession?.active), wanted, suspended, following, destination: destination?.id, snapshot: lastSnapshot }),
     activate() { bindMap(); if (wanted && suspended) say('Guidage en pause. Touchez « Reprendre le guidage » pour obtenir une position récente.'); },
   };
 }

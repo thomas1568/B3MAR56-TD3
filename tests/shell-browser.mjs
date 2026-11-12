@@ -257,7 +257,7 @@ try {
   // Headless Chrome exposes one-shot geolocation. Continuous fixes are explicit
   // test callbacks; the production watchPosition implementation is unchanged.
 
-  await ev(`window.__gpsFixture={success:null,error:null,cleared:false,starts:0};navigator.geolocation.watchPosition=(success,error)=>{window.__gpsFixture.success=success;window.__gpsFixture.error=error;window.__gpsFixture.starts++;queueMicrotask(()=>success({coords:window.__gpsFixture.initial||{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()}));return 73;};navigator.geolocation.clearWatch=id=>{window.__gpsFixture.cleared=id===73;window.__gpsFixture.success=null;};`);
+  await ev(`window.__gpsFixture={success:null,error:null,cleared:false,starts:0,acquire:true};window.__originalGetPosition=navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);navigator.geolocation.getCurrentPosition=(success,error,options)=>{if(!window.__gpsFixture.acquire)return window.__originalGetPosition(success,error,options);window.__gpsFixture.initialSuccess=success;queueMicrotask(()=>success({coords:window.__gpsFixture.initial||{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()}));};navigator.geolocation.watchPosition=(success,error)=>{window.__gpsFixture.success=success;window.__gpsFixture.error=error;window.__gpsFixture.starts++;queueMicrotask(()=>success({coords:window.__gpsFixture.initial||{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()}));return 73;};navigator.geolocation.clearWatch=id=>{window.__gpsFixture.cleared=id===73;window.__gpsFixture.success=null;};`);
   await click('startGuidance');await until('document.getElementById("cityMap").dataset.tracking==="true"');
   await until('document.getElementById("guidanceStatus").textContent.includes("restant")');
   await ev(`window.__realNow=Date.now;window.__guidanceNow=Date.now();Date.now=()=>window.__guidanceNow;`);
@@ -285,7 +285,7 @@ try {
   assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');assert.equal(await ev('window.__gpsFixture.cleared'),true);
   await ev('Date.now=window.__realNow');
   // A callback delivered after stop cannot restart or advance guidance.
-  await ev('document.getElementById("startGuidance").click();window.__lateGPS=window.__gpsFixture.success;document.getElementById("clearWalking").click();window.__lateGPS({coords:{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()});');
+  await ev('document.getElementById("startGuidance").click();window.__lateGPS=window.__gpsFixture.initialSuccess;document.getElementById("clearWalking").click();window.__lateGPS({coords:{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()});');
   assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');
   assert.equal(await ev('window.__gpsFixture.success'),null);
   await ev('document.querySelector(".sheet-positions [data-position=detail]").click();document.getElementById("planWalking").click();');
@@ -298,9 +298,11 @@ try {
   assert.match(await ev('document.getElementById("walkingStatus").textContent'),/annul/);
   routingMode='ok';
   await send('Browser.setPermission',{permission:{name:'geolocation'},setting:'denied',origin:'http://127.0.0.1:'+server.address().port});
+  await ev('window.__gpsFixture.acquire=false');
   await click('useWalkingLocation');await until('document.getElementById("walkingStatus").textContent.includes("refus")');
   assert.equal(await ev('document.getElementById("walkingResult").hidden'),true);
   await click('closeWalking');
+  await ev('window.__gpsFixture.acquire=true');
   // The primary flow chooses an available physical stop and asks for GPS only on Start.
   const startsBefore=await ev('window.__gpsFixture.starts'), callsBefore=routingCalls;
   await ev('document.getElementById("guideNextPoint").click()');
@@ -314,10 +316,11 @@ try {
   assert.equal(routingCalls,callsBefore+1);
   await ev('window.__gpsFixture.error({code:1})');
   assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');
-  assert.match(await ev('document.getElementById("guidanceNotice").textContent'),/refusée/);
+  assert.match(await ev('document.getElementById("guidanceNotice").textContent'),/refusé/);
   assert.equal(await ev('document.getElementById("guidancePermissionHelp").hidden'),false);
   assert.equal(await ev('document.getElementById("guidanceResume").textContent'),'Réessayer la géolocalisation');
   assert.equal(await ev('document.activeElement.id'),'guidancePermissionHelp');
+  assert.equal(await ev('document.getElementById("guidanceReload").hidden'),false);
   await click('guidanceResume');
   await until('document.getElementById("cityMap").dataset.tracking==="true"');
   assert.equal(await ev('document.getElementById("guidancePermissionHelp").hidden'),true);

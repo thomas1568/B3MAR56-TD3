@@ -127,7 +127,7 @@
   var deadline = setTimeout(function () { if (!document.getElementById('appView')) recover(false); }, 5000);
   document.addEventListener('memoria:intro-end', function () { if (!document.getElementById('appView')) recover(false); });
   document.getElementById('startupRetry').addEventListener('click', function () { location.reload(); });
-  import('./main.js?v=42').then(function () {
+  import('./main.js?v=43').then(function () {
     clearTimeout(deadline);
     fallback.hidden = true;
   }).catch(function (error) {
