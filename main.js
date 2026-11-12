@@ -1,6 +1,6 @@
 import { IUT_STEP } from './content/iut.js?v=33';
 import { createExperience } from './memoria/experience.js?v=33';
-import { createShell } from './memoria/shell.js?v=39';
+import { createShell } from './memoria/shell.js?v=40';
 import { createSystemARAccess } from './memoria/system-ar.js?v=33';
 
 // Three.js and the XR engine are fetched when the visitor opens an experience.

@@ -106,7 +106,7 @@ try {
   await ev('[...document.querySelectorAll("#avatarChoices button")].find(button=>button.tabIndex===0).focus()');
   await send('Input.dispatchKeyEvent',{type:'keyDown',key:'End',code:'End',windowsVirtualKeyCode:35});
   assert.equal(await ev('document.activeElement.dataset.avatar'),'initiales');
-  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
   await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
   assert.equal(await ev('document.querySelector("#avatarChoices [aria-pressed=true]").dataset.avatar'),'initiales');
   assert.equal(await ev('document.getElementById("profilePreview").getAttribute("aria-label")'),'Mes initiales');
@@ -119,6 +119,14 @@ try {
   assert.equal(await ev('document.getElementById("sessionBadge").textContent'),'Mode invité');
   await until('document.querySelector(".feature-card > img").complete && document.querySelector(".feature-card > img").naturalWidth>100');
   assert.match(await ev('document.querySelector(".feature-card > img").getAttribute("src")'),/photos\/corte-citadelle/);
+
+  const titleHeight = await ev('document.getElementById("homeTitle").offsetHeight');
+  await until('document.getElementById("homeTitle").dataset.typing==="complete"');
+  assert.equal(await ev('document.querySelector("#homeTitle .typewriter-current").textContent'),'Corte.\nLa mémoire\nà chaque pas.');
+  assert.equal(await ev('document.getElementById("homeTitle").offsetHeight'),titleHeight);
+  assert.equal(await ev('document.querySelector("#homeTitle .typewriter-visual").getAttribute("aria-hidden")'),'true');
+  assert.equal(await ev('document.querySelector("#homeTitle .sr-only").textContent'),'Corte.\nLa mémoire\nà chaque pas.');
+  assert.equal(await ev('document.querySelector("#homeTitle .typewriter-caret").hidden'),true);
   // Real pointer drags select an arbitrary tab without generating a second click.
   async function drag(from, to, cancel = false) {
     await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[from]});
@@ -442,6 +450,8 @@ try {
   await until('!document.getElementById("saveProfileButton").disabled');
   assert.equal(storedProfile.avatar,'montagne'); assert.equal(storedProfile.photo_path,null);
   await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+  assert.equal(await ev(`import(new URL('memoria/type-writer.js?v=1',document.baseURI)).then(({createTypewriter})=>{const title=document.createElement('h2');document.body.append(title);const effect=createTypewriter(title,{text:'Texte fixe'});const ok=title.dataset.typing==='complete'&&title.querySelector('.typewriter-current').textContent==='Texte fixe';effect.destroy();title.remove();return ok;})`),true);
+
   assert.equal(await ev('getComputedStyle(document.getElementById("appView")).scrollBehavior'),'auto');
   assert.equal(await ev('getComputedStyle(document.querySelector(".nav-active-pill")).transitionDuration'),'0s');
   await ev('document.getElementById("tab-profile").focus()');

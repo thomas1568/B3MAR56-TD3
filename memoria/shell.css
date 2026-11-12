@@ -229,3 +229,12 @@
 .profile-avatar-picker .upload-button { display:flex; justify-content:center; gap:8px; text-align:center; }
 .profile-avatar-picker .photo-import p { font-size:12px; text-align:center; }
 @media(max-width:359px) { .profile-avatar-picker { padding:12px; }.profile-avatar-picker .avatar-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+
+/* Home title: reserve the complete three-line layout while typing. */
+#homeTitle .typewriter-visual { display:grid; position:relative; }
+#homeTitle .typewriter-reserve,#homeTitle .typewriter-current { grid-area:1/1; white-space:pre-line; min-width:0; }
+#homeTitle .typewriter-reserve { visibility:hidden; }
+#homeTitle .typewriter-caret { display:inline-block; position:relative; width:0; height:.85em; vertical-align:-.04em; }
+#homeTitle .typewriter-caret::after { content:''; position:absolute; left:.05em; bottom:0; width:2px; height:100%; background:currentColor; }
+#homeTitle .typewriter-caret[hidden] { display:none; }
+@media(prefers-reduced-motion:reduce) { #homeTitle .typewriter-caret { display:none; } }
