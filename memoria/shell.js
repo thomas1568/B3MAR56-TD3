@@ -9,7 +9,7 @@ import { AVATARS, renderAvatar } from './avatars.js?v=33';
 import { createTabNavigation } from './navigation.js?v=33';
 import { cropGeometry, zoomCrop } from './photo-crop.js?v=33';
 import { CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=33';
-import { createImmersiveMap } from './immersive-map.js?v=41';
+import { createImmersiveMap } from './immersive-map.js?v=42';
 
 import { createPageMotion } from './motion.js?v=37';
 

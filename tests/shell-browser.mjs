@@ -315,8 +315,12 @@ try {
   await ev('window.__gpsFixture.error({code:1})');
   assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');
   assert.match(await ev('document.getElementById("guidanceNotice").textContent'),/refusée/);
+  assert.equal(await ev('document.getElementById("guidancePermissionHelp").hidden'),false);
+  assert.equal(await ev('document.getElementById("guidanceResume").textContent'),'Réessayer la géolocalisation');
+  assert.equal(await ev('document.activeElement.id'),'guidancePermissionHelp');
   await click('guidanceResume');
   await until('document.getElementById("cityMap").dataset.tracking==="true"');
+  assert.equal(await ev('document.getElementById("guidancePermissionHelp").hidden'),true);
   const storedBeforeArrival=await ev('JSON.stringify(localStorage)');
   await ev('window.__guidanceNow=Date.now();Date.now=()=>window.__guidanceNow;window.__geometry=window.__guidanceMath.routeGeometry(window.__geometry.coordinates.slice().reverse());for(let distance=5;distance<window.__geometry.total&&window.__gpsFixture.success;distance+=5)window.__sendFix(distance);if(window.__gpsFixture.success)window.__sendFix(window.__geometry.total);if(window.__gpsFixture.success)window.__sendFix(window.__geometry.total)');
   await until('!document.getElementById("guidanceOpenStep").hidden');

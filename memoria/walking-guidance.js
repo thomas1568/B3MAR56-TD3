@@ -12,6 +12,7 @@ export function createWalkingGuidance({
       <h2 id="guidanceHeading" tabindex="-1">Guidage piéton</h2>
       <div id="guidanceSetup">
         <p id="guidanceChoiceNote"></p><label for="guidanceDestination">Point visé</label><select id="guidanceDestination"></select>
+        <p class="small-note">Pour vous guider, Memoria Corti a besoin de votre position. Au démarrage, choisissez « Autoriser » si votre navigateur vous le demande.</p>
         <p class="small-note">Votre position sera envoyée à l’IGN pour calculer ce trajet, sans historique enregistré.</p>
         <button id="beginGuidance" class="primary" type="button">Démarrer le guidage</button>
         <button id="cancelGuidanceSetup" type="button">Annuler</button>
@@ -20,6 +21,11 @@ export function createWalkingGuidance({
         <p id="guidanceTarget"></p><p id="guidanceEstimate" class="guidance-estimate" aria-live="off">En attente d’une position récente…</p>
         <p id="guidanceAccuracy" class="small-note" aria-live="off"></p>
         <p id="guidanceNotice" role="status"></p>
+        <div id="guidancePermissionHelp" class="small-note" hidden tabindex="-1">
+          <strong>Activez votre géolocalisation pour être guidé</strong>
+          <p>Ouvrez les autorisations de ce site dans le menu de votre navigateur, puis autorisez la localisation. Vérifiez aussi que la localisation est activée pour votre navigateur dans les réglages du téléphone.</p>
+          <p>Revenez ici et touchez « Réessayer la géolocalisation ». Si aucune demande ne s’affiche, l’autorisation est peut-être encore bloquée dans les réglages. Vous pouvez aussi toucher « Arrêter » pour consulter le plan.</p>
+        </div>
         <div class="guidance-actions">
           <button id="guidanceRecenter" type="button" aria-label="Recentrer sur moi">Recentrer</button>
           <button id="guidanceOverview" type="button">Vue d’ensemble</button>
@@ -179,16 +185,24 @@ export function createWalkingGuidance({
   }
   function startWatch() {
     stopWatch();
+    q("#guidancePermissionHelp").hidden = true;
+    q("#guidanceResume").textContent = "Reprendre le guidage";
     if (!navigator.geolocation) { say('Géolocalisation indisponible. Le plan et le choix manuel du départ restent accessibles.'); return; }
     suspended = false; wanted = true; const own = ++generation;
     bindMap(); container.dataset.tracking = 'true'; container.dataset.following = String(following);
     q('#startGuidance').hidden = true; q('#stopGuidance').hidden = false;
-    say('En attente d’une position GPS récente…');
+    say('Autorisez la géolocalisation si votre navigateur vous le demande. En attente de votre position…');
     watch = navigator.geolocation.watchPosition(position => accept(position, own), error => {
       if (own !== generation || !wanted) return;
       if (error.code === 1) {
-        stopWatch(); generation++; suspended = true; q('#guidanceResume').hidden = false;
-        say('Autorisation GPS refusée. Autorisez la localisation dans le navigateur ou utilisez un départ manuel.');
+        stopWatch(); generation++; router.cancel(); pending = false; suspended = true;
+        if (!tracker) needsRoute = true;
+        q('#guidanceResume').hidden = false;
+        q('#guidanceResume').textContent = 'Réessayer la géolocalisation';
+        q('#guidancePermissionHelp').hidden = false;
+        say('Autorisation GPS refusée. Activez la localisation pour démarrer le guidage.');
+        q('#guidancePermissionHelp').focus({ preventScroll: true });
+        q('#guidancePermissionHelp').scrollIntoView({ block: 'nearest', behavior: 'instant' });
       } else say('Position momentanément indisponible. En attente d’une mesure récente.');
     }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
     watchdog = setInterval(() => {

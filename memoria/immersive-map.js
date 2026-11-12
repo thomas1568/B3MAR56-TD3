@@ -1,4 +1,4 @@
-import { createWalkingGuidance } from './walking-guidance.js?v=41';
+import { createWalkingGuidance } from './walking-guidance.js?v=42';
 import { CORTE_STOPS, CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=33';
 import { MAP_CONFIG } from './config.js?v=33';
 import { loadLeaflet } from './leaflet-loader.js?v=33';
@@ -172,7 +172,7 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
     if(sample.coordinates)lastLocation=sample;
     return sample;
   }
-  function locate(){if(!navigator.geolocation)return Promise.reject(Error('La géolocalisation est indisponible. Choisissez un départ manuellement.'));return new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(p=>{const sample=updateLocation(p);if(sample.state==='stale'||sample.state==='invalid'||sample.state==='imprecise'){reject(Error('Position ancienne ou trop imprécise. Attendez une mesure récente.'));return;}resolve(sample.coordinates);},e=>reject(Error(e.code===1?'Position refusée. Choisissez un lieu ou des coordonnées de départ.':'Position indisponible. Choisissez un départ manuellement.')),{enableHighAccuracy:true,timeout:12000,maximumAge:15000}));}
+  function locate(){if(!navigator.geolocation)return Promise.reject(Error('La géolocalisation est indisponible. Choisissez un départ manuellement.'));return new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(p=>{const sample=updateLocation(p);if(sample.state==='stale'||sample.state==='invalid'||sample.state==='imprecise'){reject(Error('Position ancienne ou trop imprécise. Attendez une mesure récente.'));return;}resolve(sample.coordinates);},e=>reject(Error(e.code===1?'Position refusée. Autorisez la localisation dans les autorisations de ce site et les réglages du navigateur sur votre téléphone, puis touchez à nouveau le bouton de localisation. Vous pouvez aussi choisir un départ manuel.':'Position indisponible. Choisissez un départ manuellement.')),{enableHighAccuracy:true,timeout:12000,maximumAge:15000}));}
   q('#map-locate').addEventListener('click',async()=>{q('#mapStatus').textContent='Recherche de votre position…';try{const p=await locate();map?.setView(latlng(p),17,{animate:false});q('#mapStatus').textContent='Votre position est affichée.';}catch(e){q('#mapStatus').textContent=e.message;}});
   function openPlanner(){if(!selected)select('iut',{open:false});planner=true;q('#walkingDestination').textContent='Arrivée · '+selected.title;q('#walkingStart').value=MAP_PLACES.find(p=>p.id!==selected.id&&p.kind==='step')?.id||'custom';q('#customStartFields').hidden=true;setPosition('detail',{focus:true});q('.sheet-content').scrollTop=0;}
   q('#planWalking').addEventListener('click',openPlanner);
