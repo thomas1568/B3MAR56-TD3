@@ -1,31 +1,29 @@
 import { createLocationSession } from './location-session.js?v=43';
-import { createRouteProgress, GUIDANCE_CONFIG, locationSample, nextPhysicalStop } from './guidance.js?v=41';
+import { createRouteProgress, GUIDANCE_CONFIG, locationSample } from './guidance.js?v=41';
 import { validCoordinate, distanceBetween } from './routing.js?v=41';
 
 export function createWalkingGuidance({
   container, places, router, getMap, getLeaflet, getRoute, installRoute, drawProgress,
-  getCompleted = () => [], onStep, onOverview, onCompact, isActive,
+  onStep, onOverview, onCompact, onChoosePlace, onManual, isActive,
 }) {
   const q = selector => container.querySelector(selector);
   const sheet = q('.atlas-sheet'), header = q('.atlas-header');
   container.insertAdjacentHTML('beforeend', `
     <section id="guidancePanel" class="guidance-panel" hidden aria-labelledby="guidanceHeading" data-no-swipe>
       <h2 id="guidanceHeading" tabindex="-1">Guidage piéton</h2>
-      <div id="guidanceSetup">
-        <p id="guidanceChoiceNote"></p><label for="guidanceDestination">Point visé</label><select id="guidanceDestination"></select>
-        <p class="small-note">Pour vous guider, Memoria Corti a besoin de votre position. Au démarrage, choisissez « Autoriser » si votre navigateur vous le demande.</p>
-        <p class="small-note">Votre position sera envoyée à l’IGN pour calculer ce trajet, sans historique enregistré.</p>
-        <button id="beginGuidance" class="primary" type="button">Démarrer le guidage</button>
-        <button id="cancelGuidanceSetup" type="button">Annuler</button>
-      </div>
       <div id="guidanceLive" hidden>
         <p id="guidanceTarget"></p><p id="guidanceEstimate" class="guidance-estimate" aria-live="off">En attente d’une position récente…</p>
         <p id="guidanceAccuracy" class="small-note" aria-live="off"></p>
         <p id="guidanceNotice" role="status"></p>
         <div id="guidancePermissionHelp" class="small-note" hidden tabindex="-1">
           <strong>Vérifiez l’accès à la position pour ce site</strong>
-          <p>L’accès de Safari à la localisation et l’autorisation de ce site sont deux réglages distincts. Dans le menu de la page Safari, ouvrez les réglages de ce site et autorisez sa localisation.</p>
-          <p>Si vous avez déjà autorisé ce site, touchez « Réessayer la géolocalisation » pour demander une nouvelle position. Si Safari renvoie encore un refus, actualisez la page puis relancez le guidage. Votre profil est conservé.</p>
+          <p>Dans les autorisations de ce site, autorisez la localisation. Vérifiez aussi que votre navigateur a accès à la localisation dans les réglages du téléphone.</p>
+          <p>Si vous avez déjà autorisé ce site, touchez « Réessayer la géolocalisation » pour demander une nouvelle position. Si le navigateur renvoie encore un refus, actualisez la page puis relancez le guidage. Votre profil est conservé.</p>
+        </div>
+        <div id="guidanceFallback" hidden>
+          <p>Vous pouvez aussi ouvrir le trajet dans Google Maps ou préparer un départ sans GPS.</p>
+          <a id="guidanceExternal" class="text-button" target="_blank" rel="noopener noreferrer">Continuer dans Google Maps ↗</a>
+          <button id="prepareWalking" class="text-button" type="button">Préparer sans GPS</button>
         </div>
         <div class="guidance-actions">
           <button id="guidanceRecenter" type="button" aria-label="Recentrer sur moi">Recentrer</button>
@@ -33,7 +31,7 @@ export function createWalkingGuidance({
           <button id="guidanceStop" type="button">Arrêter</button>
         </div>
         <div class="guidance-secondary">
-          <button id="guidanceChange" class="text-button" type="button">Changer le point</button>
+          <button id="guidanceChange" class="text-button" type="button">Changer de lieu</button>
           <button id="guidanceResume" type="button" hidden>Reprendre le guidage</button>
           <button id="guidanceReload" type="button" hidden>Actualiser la page</button>
           <button id="guidanceRecalculate" type="button" hidden>Recalculer le trajet</button>
@@ -190,10 +188,11 @@ export function createWalkingGuidance({
     q('#guidanceResume').hidden = true;
     q('#guidanceResume').textContent = 'Reprendre le guidage';
     q('#guidanceReload').hidden = true;
+    q('#guidanceFallback').hidden = true;
     const policy = document.permissionsPolicy || document.featurePolicy;
     const blocked = policy?.allowsFeature && !policy.allowsFeature('geolocation');
     if (!window.isSecureContext || blocked || !navigator.geolocation) {
-      suspended = true; q('#guidanceResume').hidden = false;
+      suspended = true; q('#guidanceResume').hidden = false; q('#guidanceFallback').hidden = false;
       say(!window.isSecureContext ? 'La localisation nécessite une connexion HTTPS. Ouvrez le site avec son adresse sécurisée.' :
         blocked ? 'La localisation est bloquée dans cette fenêtre. Ouvrez le site directement dans Safari.' :
         'Géolocalisation indisponible dans ce navigateur. Le plan reste accessible.');
@@ -216,6 +215,7 @@ export function createWalkingGuidance({
         stopWatch(); generation++; router.cancel(); pending = false; suspended = true;
         if (!tracker) needsRoute = true;
         q('#guidanceResume').hidden = false;
+        q('#guidanceFallback').hidden = false;
         q('#guidanceResume').textContent = 'Réessayer la géolocalisation';
         if (error?.code === 1) {
           q('#guidancePermissionHelp').hidden = false;
@@ -239,19 +239,18 @@ export function createWalkingGuidance({
       }
     }, 3000);
   }
-  function start({ existing = false } = {}) {
-    const selected = places.find(place => place.id === q('#guidanceDestination').value);
-    if (!existing) destination = selected;
+  function start({ existing = false, placeId } = {}) {
+    if (!existing) destination = places.find(place => place.id === placeId);
     if (!destination || !validCoordinate(destination.coordinates)) { say('Destination sans coordonnées vérifiées. Choisissez un autre lieu.'); return; }
-    if (!existing && !destination.available) { say('Cette étape est encore en préparation.'); return; }
     stopWatch(); generation++; router.cancel(); pending = false; fix = null; nearStart = [];
     wanted = true; suspended = false; following = true;
     tracker = existing && getRoute() ? createRouteProgress(getRoute()) : null;
     needsRoute = !tracker;
     if (tracker) renderProgress(tracker.getState());
     else { installRoute(null, destination); container.dataset.routeProgress = '0'; q('#guidanceEstimate').textContent = 'En attente d’une position récente…'; }
-    layout(true); q('#guidanceSetup').hidden = true; q('#guidanceLive').hidden = false;
-    q('#guidanceTarget').textContent = 'Prochain point : ' + destination.title;
+    layout(true); q('#guidanceLive').hidden = false;
+    q('#guidanceTarget').textContent = 'Vers ' + destination.title + (destination.available ? '' : ' · contenu de l’étape en préparation');
+    q('#guidanceExternal').href = 'https://www.google.com/maps/dir/?api=1&destination=' + destination.coordinates[1] + ',' + destination.coordinates[0] + '&travelmode=walking';
     q('#guidanceResume').hidden = true; q('#guidanceOpenStep').hidden = true;
     q('#guidanceRecalculate').hidden = true;
     q('#guidanceHeading').focus({ preventScroll: true });
@@ -263,18 +262,6 @@ export function createWalkingGuidance({
     q('#startGuidance').hidden = false; q('#stopGuidance').hidden = true;
     if (message) say(message);
   }
-  function prepare() {
-    stop('');
-    const choice = nextPhysicalStop(places, getCompleted());
-    const select = q('#guidanceDestination');
-    select.replaceChildren(...choice.alternatives.map(place => new Option(place.title, place.id)));
-    if (choice.destination) select.value = choice.destination.id;
-    q('#guidanceChoiceNote').textContent = choice.reason || 'La prochaine étape physique disponible est ' + choice.destination.title + '.';
-    if (!choice.destination && choice.alternatives.length) q('#guidanceChoiceNote').textContent += ' Vous pouvez rejoindre à nouveau un lieu disponible.';
-    q('#beginGuidance').disabled = !choice.alternatives.length;
-    q('#guidanceSetup').hidden = false; q('#guidanceLive').hidden = true;
-    layout(true); q('#guidanceHeading').focus({ preventScroll: true });
-  }
   function pause() {
     if (!wanted) return;
     suspended = true; generation++; router.cancel(); pending = false; stopWatch();
@@ -282,10 +269,10 @@ export function createWalkingGuidance({
     q('#guidanceResume').hidden = false;
     say('Guidage en pause. Le navigateur peut suspendre le GPS en arrière-plan ou écran verrouillé. Reprenez avec une position récente.');
   }
-  q('#beginGuidance').addEventListener('click', () => start());
-  q('#cancelGuidanceSetup').addEventListener('click', () => { stop(''); q('#guideNextPoint').focus(); });
-  q('#guidanceChange').addEventListener('click', prepare);
-  q('#guidanceStop').addEventListener('click', () => { stop(); q('#guideNextPoint').focus(); });
+  q('#guidanceChange').addEventListener('click', () => { stop(''); onChoosePlace(); });
+  q('#prepareWalking').addEventListener('click', () => { stop(''); onManual(); });
+  q('#guidanceStop').addEventListener('click', () => { stop(); onChoosePlace(); });
+  q('#guidanceExternal').addEventListener('click', pause);
   q('#guidanceReload').addEventListener('click', () => { stop(''); location.reload(); });
   q('#guidanceResume').addEventListener('click', () => { if (document.hidden || !isActive()) return; fix = null; startWatch(); });
   q('#guidanceRecenter').addEventListener('click', () => {
@@ -310,13 +297,13 @@ export function createWalkingGuidance({
   const resize = new ResizeObserver(() => { if (wanted && following && fix && !suspended) center(); });
   resize.observe(panel); resize.observe(container);
   return {
-    prepare, stop, pause, preview, recenter: center,
+    startTo: placeId => start({ placeId }), stop, pause, preview, recenter: center,
     startExisting() {
       const route = getRoute(); if (!route) return;
       destination = places.find(place => place.id === route.destinationId);
       // A manually prepared route may target a known but future location; state it honestly.
       start({ existing: true });
-      if (!destination?.available) q('#guidanceTarget').textContent += ' · étape en préparation';
+
     },
     getState: () => ({ tracking: Boolean(gpsSession?.active), wanted, suspended, following, destination: destination?.id, snapshot: lastSnapshot }),
     activate() { bindMap(); if (wanted && suspended) say('Guidage en pause. Touchez « Reprendre le guidage » pour obtenir une position récente.'); },

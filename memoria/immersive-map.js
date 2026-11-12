@@ -1,4 +1,4 @@
-import { createWalkingGuidance } from './walking-guidance.js?v=43';
+import { createWalkingGuidance } from './walking-guidance.js?v=44';
 import { CORTE_STOPS, CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=33';
 import { MAP_CONFIG } from './config.js?v=33';
 import { loadLeaflet } from './leaflet-loader.js?v=33';
@@ -11,7 +11,7 @@ export function filterMapPlaces(places,text='',filter='all'){const needle=normal
 const icon=n=>`<svg class="icon" aria-hidden="true"><use href="#icon-${n}"/></svg>`;
 const metric=m=>m>=1000?(m/1000).toLocaleString('fr-FR',{maximumFractionDigits:1})+' km':Math.round(m)+' m';
 const clock=s=>s<60?'Moins d’une minute':Math.ceil(s/60)+' min';
-export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{},getCompleted=()=>[]}) {
+export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}}) {
   container.dataset.map='';container.dataset.sheet='compact';
   container.innerHTML=`
     <div id="walkingMap" class="atlas-frame" role="region" aria-label="Carte de Corte et itinéraire piéton"></div>
@@ -23,16 +23,17 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
     <aside class="atlas-sheet" data-position="compact" aria-labelledby="sheetTitle" data-no-swipe>
       <button class="sheet-handle" type="button" aria-controls="sheetContent" aria-expanded="false" aria-label="Développer la liste des lieux"><span aria-hidden="true"></span></button>
       <div class="sheet-heading"><div><p class="eyebrow">2 ÉTAPES</p><h2 id="sheetTitle">Les lieux de Corte</h2><p id="mapResults" role="status">Une première étape disponible</p></div><button class="sheet-close" type="button" aria-label="Réduire le panneau" hidden>${icon('chevron')}</button></div>
-      <button id="guideNextPoint" class="guidance-entry primary" type="button">Me guider vers le prochain point</button><div class="sheet-positions" role="group" aria-label="Affichage du parcours"><button type="button" data-position="compact" aria-pressed="true">Aperçu</button><button type="button" data-position="list" aria-pressed="false">Les lieux</button><button type="button" data-position="detail" aria-pressed="false">La fiche</button></div>
+      <div class="sheet-positions" role="group" aria-label="Affichage du parcours"><button type="button" data-position="compact" aria-pressed="true">Aperçu</button><button type="button" data-position="list" aria-pressed="false">Les lieux</button><button type="button" data-position="detail" aria-pressed="false">La fiche</button></div>
       <div id="sheetContent" class="sheet-content">
         <div class="atlas-list-view"><ol class="atlas-list" aria-label="Lieux du parcours"></ol><div class="atlas-empty" hidden><h3>Aucun lieu trouvé</h3><p>Essayez « IUT » ou « Palazzu ».</p><button id="resetMapFilters" type="button">Afficher tous les lieux</button></div>
           <section class="route-progress-block" aria-labelledby="routeProgressTitle"><p class="eyebrow">VOTRE DÉCOUVERTE</p><h3 id="routeProgressTitle">Corte, une ville de savoir</h3><p><strong id="routeCount">0 / 5</strong> repères consultés à l’IUT</p><progress id="routeProgress" max="5" value="0" aria-label="Repères de l’IUT consultés"></progress><p id="routeDescription">Votre découverte commence sur le campus Grimaldi.</p><button id="routeStartButton" class="primary" type="button">Découvrir l’étape ${icon('arrow')}</button></section>
           <p class="small-note">Votre position apparaît uniquement après votre autorisation.</p>
         </div>
         <article class="atlas-detail" hidden aria-labelledby="mapPlaceTitle"><div class="atlas-detail-header"><button class="detail-back text-button" type="button">← Les lieux</button><button class="detail-close icon-button" type="button" aria-label="Fermer la fiche">${icon('close')}</button></div>
+          <span class="map-stop-status status-pill"></span><h3 id="mapPlaceTitle" tabindex="-1"></h3><button id="planWalking" class="primary" type="button">Y aller</button>
           <figure class="atlas-photo"><img class="atlas-photo-image" alt="" width="640" height="420" hidden><div class="atlas-photo-missing">${icon('camera')}<span>Photographie du lieu à fournir</span></div><figcaption class="atlas-photo-credit"></figcaption></figure>
-          <span class="map-stop-status status-pill"></span><h3 id="mapPlaceTitle" tabindex="-1"></h3><p class="map-place-description"></p><dl class="atlas-facts"></dl>
-          <button id="planWalking" class="primary" type="button">Y aller à pied ${icon('route')}</button><button class="atlas-start" type="button"></button><a class="atlas-directions text-button" target="_blank" rel="noopener noreferrer">Ouvrir un plan externe ↗</a>
+          <p class="map-place-description"></p><dl class="atlas-facts"></dl>
+          <p class="small-note">Le GPS démarre avec votre autorisation. Votre position est transmise à l’IGN pour calculer ce trajet, sans historique enregistré.</p><button class="atlas-start" type="button"></button><a class="atlas-directions text-button" target="_blank" rel="noopener noreferrer">Ouvrir un plan externe ↗</a>
         </article>
         <section class="walking-planner" hidden aria-labelledby="walkingTitle">
           <div class="atlas-detail-header"><button id="walkingBack" class="text-button" type="button">← Le lieu</button><button id="closeWalking" class="icon-button" type="button" aria-label="Fermer le panneau d’itinéraire">${icon('close')}</button></div>
@@ -58,7 +59,7 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
   const latlng=p=>[p[1],p[0]];
   const guidance=createWalkingGuidance({
     container,places:MAP_PLACES,router,getMap:()=>map,getLeaflet:()=>L,getRoute:()=>route,
-    getCompleted,onStep,onOverview:fit,onCompact:()=>setPosition('compact'),isActive:()=>active,
+    onStep,onOverview:fit,onCompact:()=>setPosition('compact'),onChoosePlace:()=>{planner=false;setPosition('list',{focus:true});},onManual:()=>openPlanner(),isActive:()=>active,
     installRoute(result,destination){
       if(routeLayer)map?.removeLayer(routeLayer);if(startLayer)map?.removeLayer(startLayer);
       routeLayer=null;traveledLayer=null;remainingLayer=null;route=null;
@@ -70,7 +71,6 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
       remainingLayer?.setLatLngs(snapshot.remaining.map(latlng));
     },
   });
-  q('#guideNextPoint').addEventListener('click',()=>guidance.prepare());
   function presentRoute(result) {
       q('#walkingDistance').textContent=metric(result.distance);q('#walkingDuration').textContent=clock(result.duration)+' estimées';q('#walkingSource').textContent=result.source+(result.version?' · données du '+result.version:'')+' · profil piéton';
       q('#walkingAccess').textContent='Le tracé rejoint le réseau connu. Vérifiez l’accès final au lieu sur place.';q('#walkingInstructions').replaceChildren(...result.steps.map(s=>{const li=document.createElement('li');const label=document.createElement('span'),length=document.createElement('small');label.textContent=s.label;length.textContent=metric(s.distance);li.append(label,length);return li;}));if(!result.steps.length){const li=document.createElement('li');li.textContent='Le service ne fournit pas d’instructions détaillées pour ce trajet.';q('#walkingInstructions').append(li);}
@@ -102,6 +102,7 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
   function closeDetail(){planner=false;setPosition('list');const target=items.get(selected?.id)||q('.atlas-list button');target?.focus({preventScroll:true});target?.scrollIntoView({block:'start',behavior:'instant'});}
   function fact(label,value){const wrap=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;wrap.append(dt,dd);return wrap;}
   function select(id,{open=true,notify=true}={}) {
+    if(guidance.getState().wanted)guidance.stop('');
     if(id==='fixed-gps')id='iut';
     const place=MAP_PLACES.find(p=>p.id===id);
     if(!place){requestId++;router.cancel();stopTracking('');selected=null;planner=false;pickMode=false;route=null;if(routeLayer)map?.removeLayer(routeLayer);if(startLayer)map?.removeLayer(startLayer);q('#walkingResult').hidden=true;q('#calculateWalking').disabled=false;q('#cancelWalkingRequest').hidden=true;status('');
@@ -175,7 +176,7 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
   function locate(){if(!navigator.geolocation)return Promise.reject(Error('La géolocalisation est indisponible. Choisissez un départ manuellement.'));return new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(p=>{const sample=updateLocation(p);if(sample.state==='stale'||sample.state==='invalid'||sample.state==='imprecise'){reject(Error('Position ancienne ou trop imprécise. Attendez une mesure récente.'));return;}resolve(sample.coordinates);},e=>reject(Error(e.code===1?'Position refusée. Autorisez la localisation dans les autorisations de ce site et les réglages du navigateur sur votre téléphone, puis touchez à nouveau le bouton de localisation. Vous pouvez aussi choisir un départ manuel.':'Position indisponible. Choisissez un départ manuellement.')),{enableHighAccuracy:true,timeout:12000,maximumAge:15000}));}
   q('#map-locate').addEventListener('click',async()=>{q('#mapStatus').textContent='Recherche de votre position…';try{const p=await locate();map?.setView(latlng(p),17,{animate:false});q('#mapStatus').textContent='Votre position est affichée.';}catch(e){q('#mapStatus').textContent=e.message;}});
   function openPlanner(){if(!selected)select('iut',{open:false});planner=true;q('#walkingDestination').textContent='Arrivée · '+selected.title;q('#walkingStart').value=MAP_PLACES.find(p=>p.id!==selected.id&&p.kind==='step')?.id||'custom';q('#customStartFields').hidden=true;setPosition('detail',{focus:true});q('.sheet-content').scrollTop=0;}
-  q('#planWalking').addEventListener('click',openPlanner);
+  q('#planWalking').addEventListener('click',()=>{if(!selected)return;requestId++;pickMode=false;guidance.startTo(selected.id);});
   q('#walkingBack').addEventListener('click',()=>{planner=false;setPosition('detail',{focus:true});});q('#closeWalking').addEventListener('click',closeDetail);
   q('#walkingStart').addEventListener('change',()=>q('#customStartFields').hidden=q('#walkingStart').value!=='custom');
   q('#pickStart').addEventListener('click',()=>{if(!map){status('Le plan est indisponible. Saisissez les coordonnées du départ.',true);q('#walkingStart').value='custom';q('#customStartFields').hidden=false;return;}pickMode=true;setPosition('compact');q('#mapStatus').textContent='Touchez le plan pour choisir votre départ, ou annulez avec Échap.';q('.atlas-frame').focus();});

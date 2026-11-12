@@ -2,23 +2,29 @@
 
 ## Utilisation
 
-Dans Parcours, choisir « Me guider vers le prochain point », vérifier le lieu puis
-« Démarrer le guidage ». Le suivi GPS continu commence uniquement après cette
-action et l’autorisation du navigateur. Le départ précis est envoyé à l’IGN pour
-calculer un trajet piéton. Aucun historique de positions n’est enregistré.
+Dans Parcours, toucher le lieu sur la carte ou dans la liste, puis « Y aller ».
+Il n’y a plus de sélection « Point visé » ni d’écran de confirmation intermédiaire.
+Le clic demande une position récente, puis démarre le suivi GPS avec l’autorisation
+du navigateur. Le départ précis est envoyé à l’IGN pour calculer un trajet piéton.
+Aucun historique de positions n’est enregistré.
 
-Le panneau affiche le point visé, la précision reçue, le temps et la distance
+Le panneau affiche la destination, la précision reçue, le temps et la distance
 restants. Recentrer réactive le suivi de la carte ; un déplacement manuel ou Vue
-d’ensemble le désactive. Arrêter libère le suivi GPS et annule les calculs.
+d’ensemble le désactive. Arrêter et Changer de lieu ramènent à la liste.
 Quitter Parcours ou passer en arrière-plan met le guidage en pause. Au retour,
 Reprendre le guidage demande une mesure récente.
 
-L’IUT est actuellement la seule étape physique disponible. Ses cinq contenus AR
-ne possèdent pas de coordonnées propres : ils ne deviennent pas des destinations
-GPS. Lorsque tous ces contenus ont été consultés, le prochain lieu, Palazzu, est
-signalé en préparation ; l’utilisateur peut choisir de rejoindre à nouveau l’IUT.
-Le planificateur manuel conserve la possibilité de préparer un trajet vers
-Palazzu, avec cette indisponibilité indiquée et sans bouton d’ouverture d’étape.
+Les lieux physiques IUT et Palazzu peuvent être choisis comme destinations.
+Les contenus du Palazzu sont toujours signalés en préparation : aucune ouverture
+d’étape indisponible ni validation de visite n’est proposée. Les cinq objets AR
+sans coordonnées propres ne deviennent pas des destinations GPS.
+
+En cas de refus réel du navigateur, le site ne peut pas accorder lui-même une
+permission. Réessayer effectue une nouvelle demande, Actualiser recharge la page,
+et « Continuer dans Google Maps » ouvre explicitement un trajet piéton vers le
+lieu sélectionné (sans transmettre une position utilisateur). Google Maps gère
+ensuite ses propres autorisations. « Préparer sans GPS » conserve le départ manuel.
+Le même secours est accessible si la géolocalisation est absente ou indisponible.
 
 ## Progression
 
@@ -89,7 +95,7 @@ Le test Chrome utilise de vrais composants Leaflet et des réponses HTTP/GPS
 simulées sous `/B3MAR56-TD3/`. Il vérifie le suivi sans recalcul permanent, le
 marqueur au-dessus du panneau, le déplacement manuel/recentrage, l’arrêt et la
 reprise entre onglets, les callbacks tardifs, le refus GPS, les erreurs IGN,
-le démarrage vers l’étape disponible et l’arrivée sans validation de visite.
+le démarrage direct vers le lieu choisi et l’arrivée sans validation de visite.
 Le trajet inverse utilisé pour cette dernière simulation est une fixture de
 test, jamais un itinéraire injecté en production. Le même scénario contrôle les
 autres onglets, l’audio, les profils, les fiches et la préparation AR, avec des

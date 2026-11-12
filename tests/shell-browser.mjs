@@ -242,7 +242,11 @@ try {
   await until('!document.querySelector(".atlas-photo-image").hidden');
   await shot('palazzu-place-mobile');
   // Route responses are recorded real IGN data; no fixture is used in production.
+  await send('Browser.setPermission',{permission:{name:'geolocation'},setting:'denied',origin:'http://127.0.0.1:'+server.address().port});
   await click('planWalking');
+  await until('!document.getElementById("guidanceFallback").hidden');
+  assert.match(await ev('document.getElementById("guidanceExternal").href'),/destination=42.305007,9.14919/);
+  await click('prepareWalking');
   assert.equal(await ev('document.getElementById("walkingStart").value'),'iut');
   await click('calculateWalking');await until('!document.getElementById("walkingResult").hidden');
   assert.match(await ev('document.getElementById("walkingDistance").textContent'),/1,2 km/);
@@ -288,7 +292,7 @@ try {
   await ev('document.getElementById("startGuidance").click();window.__lateGPS=window.__gpsFixture.initialSuccess;document.getElementById("clearWalking").click();window.__lateGPS({coords:{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()});');
   assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');
   assert.equal(await ev('window.__gpsFixture.success'),null);
-  await ev('document.querySelector(".sheet-positions [data-position=detail]").click();document.getElementById("planWalking").click();');
+  await ev('document.querySelector(".sheet-positions [data-position=detail]").click();document.getElementById("prepareWalking").click();');
   // Failed calls clear the previous successful result instead of pretending a route exists.
   routingMode='error';await ev('document.getElementById("walkingStart").value="custom";document.getElementById("walkingStart").dispatchEvent(new Event("change"));document.getElementById("startLatitude").value="42.2974";document.getElementById("startLongitude").value="9.1543"');
   await click('calculateWalking');await until('document.getElementById("walkingStatus").classList.contains("is-error")');
@@ -303,15 +307,15 @@ try {
   assert.equal(await ev('document.getElementById("walkingResult").hidden'),true);
   await click('closeWalking');
   await ev('window.__gpsFixture.acquire=true');
-  // The primary flow chooses an available physical stop and asks for GPS only on Start.
+  // Choose a place then Y aller: no second destination form, GPS only on click.
   const startsBefore=await ev('window.__gpsFixture.starts'), callsBefore=routingCalls;
-  await ev('document.getElementById("guideNextPoint").click()');
-  assert.equal(await ev('document.getElementById("guidanceDestination").value'),'iut');
-  assert.equal(await ev('document.getElementById("guidanceDestination").options.length'),1);
+  await ev('document.querySelector(".atlas-list [data-place=iut]").click()');
+  assert.equal(await ev('document.getElementById("guidanceDestination")'),null);
+  assert.equal(await ev('document.getElementById("planWalking").textContent'),'Y aller');
   assert.equal(await ev('window.__gpsFixture.starts'),startsBefore);
   assert.equal(routingCalls,callsBefore);
   await ev('window.__gpsFixture.initial={longitude:9.149190,latitude:42.305007,accuracy:8}');
-  await click('beginGuidance');
+  await click('planWalking');
   await until('document.getElementById("guidanceNotice").textContent.includes("distance restante")');
   assert.equal(routingCalls,callsBefore+1);
   await ev('window.__gpsFixture.error({code:1})');
@@ -337,8 +341,8 @@ try {
   // Starting already at the destination confirms proximity without a zero-length route.
   const callsAtDestination=routingCalls;
   await click('tab-route');
-  await ev('window.__gpsFixture.initial={longitude:9.154278,latitude:42.297500,accuracy:8};document.getElementById("guideNextPoint").click()');
-  await click('beginGuidance');
+  await ev('window.__gpsFixture.initial={longitude:9.154278,latitude:42.297500,accuracy:8};document.querySelector(".atlas-list [data-place=iut]").click()');
+  await click('planWalking');
   await until('document.getElementById("guidanceNotice").textContent.includes("confirmation GPS")');
   await ev('window.__guidanceNow=Date.now()+5000;Date.now=()=>window.__guidanceNow;window.__gpsFixture.success({coords:window.__gpsFixture.initial,timestamp:Date.now()})');
   assert.equal(await ev('document.getElementById("guidanceOpenStep").hidden'),false);
