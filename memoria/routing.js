@@ -47,7 +47,7 @@ export function createWalkingRouter({fetcher=globalThis.fetch,config=MAP_CONFIG,
       const key=start.map(n=>n.toFixed(5)).join(',')+'>'+end.map(n=>n.toFixed(5)).join(',');
       const previous=cache.get(key);if(previous&&now()-previous.time<300000)return previous.route;
       controller?.abort();controller=new AbortController();const own=controller,request=++sequence;
-      const delay=Math.max(0,1000-(now()-lastRequest));if(delay)await new Promise(r=>setTimeout(r,delay));
+      const delay=Math.max(0,1000-(now()-lastRequest));if(delay)await new Promise((resolve,reject)=>{const abort=()=>{clearTimeout(wait);reject(new DOMException('Calcul annulé','AbortError'));};const wait=setTimeout(()=>{own.signal.removeEventListener('abort',abort);resolve();},delay);own.signal.addEventListener('abort',abort,{once:true});});
       if(request!==sequence)throw new DOMException('Calcul annulé','AbortError');
       lastRequest=now();
       const url=new URL(config.routingURL);

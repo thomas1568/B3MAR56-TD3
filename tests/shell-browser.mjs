@@ -53,7 +53,9 @@ const server = http.createServer(async (req, res) => {
     if(routingMode==='error'){json({error:'fixture unavailable'},503);return;}
     if(routingMode==='malformed'){json({distance:123});return;}
     if(routingMode==='slow'){setTimeout(()=>json(walkingFixture),600);return;}
-    json(walkingFixture);return;
+    const response=structuredClone(walkingFixture);
+    if(url.searchParams.get('end')?.startsWith('9.154278,')){response.geometry.coordinates.reverse();response.portions=[];}
+    json(response);return;
   }
   if(url.pathname==='/assets/ar/iut-scene-v1.usdz'&&failNative){res.writeHead(503);res.end();return;}
   const file = path.resolve(root, '.' + (url.pathname === '/' ? '/index.html' : decodeURIComponent(url.pathname)));
@@ -221,8 +223,8 @@ try {
   assert.equal(await ev('document.querySelector(".atlas-sheet").dataset.position'),'detail');
   await ev('document.querySelector(".sheet-positions [data-position=compact]").click()');await settleSheet();
   const markerBefore=await ev('document.getElementById("map-stop-palazzu").getBoundingClientRect().x');
-  const panY=await ev('document.querySelector(".atlas-sheet").getBoundingClientRect().top-60');
-  await drag({x:45,y:panY},{x:85,y:panY+20});
+  const panY=await ev('document.querySelector(".atlas-sheet").getBoundingClientRect().top-35');
+  await drag({x:100,y:panY},{x:150,y:panY+10});
   assert.notEqual(await ev('document.getElementById("map-stop-palazzu").getBoundingClientRect().x'),markerBefore);
   await click('map-reset');
   // Expand the sheet and choose a fixed destination from the keyboard-accessible list.
@@ -254,20 +256,39 @@ try {
   await send('Emulation.setGeolocationOverride',{latitude:42.297383,longitude:9.154338,accuracy:8});
   // Headless Chrome exposes one-shot geolocation. Continuous fixes are explicit
   // test callbacks; the production watchPosition implementation is unchanged.
-  await ev(`window.__gpsFixture={success:null,error:null,cleared:false};navigator.geolocation.watchPosition=(success,error)=>{window.__gpsFixture.success=success;window.__gpsFixture.error=error;queueMicrotask(()=>success({coords:{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()}));return 73;};navigator.geolocation.clearWatch=id=>{window.__gpsFixture.cleared=id===73;window.__gpsFixture.success=null;};`);
+
+  await ev(`window.__gpsFixture={success:null,error:null,cleared:false,starts:0};navigator.geolocation.watchPosition=(success,error)=>{window.__gpsFixture.success=success;window.__gpsFixture.error=error;window.__gpsFixture.starts++;queueMicrotask(()=>success({coords:window.__gpsFixture.initial||{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()}));return 73;};navigator.geolocation.clearWatch=id=>{window.__gpsFixture.cleared=id===73;window.__gpsFixture.success=null;};`);
   await click('startGuidance');await until('document.getElementById("cityMap").dataset.tracking==="true"');
   await until('document.getElementById("guidanceStatus").textContent.includes("restant")');
-  const mid=walkingFixture.geometry.coordinates[Math.floor(walkingFixture.geometry.coordinates.length/2)];
-  await send('Emulation.setGeolocationOverride',{latitude:mid[1],longitude:mid[0],accuracy:8});
-  await ev(`window.__gpsFixture.error({code:2});window.__gpsFixture.success({coords:{latitude:${mid[1]},longitude:${mid[0]},accuracy:8},timestamp:Date.now()});`);
+  await ev(`window.__realNow=Date.now;window.__guidanceNow=Date.now();Date.now=()=>window.__guidanceNow;`);
+  await ev(`import(new URL('memoria/guidance.js?v=41',document.baseURI)).then(m=>{window.__guidanceMath=m;window.__geometry=m.routeGeometry(${JSON.stringify(walkingFixture.geometry.coordinates)});window.__sendFix=(distance,accuracy=8)=>{window.__guidanceNow+=5000;const p=m.splitRoute(window.__geometry,distance).point;window.__gpsFixture.success({coords:{longitude:p[0],latitude:p[1],accuracy},timestamp:Date.now()});};for(let m=5;m<=80;m+=5)window.__sendFix(m);})`);
   await until('Number(document.getElementById("walkingProgress").value)>5');
-  assert.equal(routingCalls,count);await click('stopGuidance');
+  assert.ok(await ev('document.querySelector(".guidance-route-traveled").getAttribute("d").length>8'));
+  assert.equal(routingCalls,count);
+  const beforeImprecise=await ev('document.getElementById("walkingProgress").value');
+  await ev('window.__sendFix(150,180)');
+  assert.equal(await ev('document.getElementById("walkingProgress").value'),beforeImprecise);
+  assert.match(await ev('document.getElementById("guidanceNotice").textContent'),/Précision/);
+  await ev('window.__sendFix(85)');
+  const mapPoint=await ev('(()=>{const r=document.getElementById("walkingMap").getBoundingClientRect(),p=document.getElementById("guidancePanel").getBoundingClientRect();return {x:r.width*.55,y:(p.top-r.top)*.5};})()');
+  await drag(mapPoint,{x:mapPoint.x-60,y:mapPoint.y});
+  assert.equal(await ev('document.getElementById("cityMap").dataset.following'),'false');
+  await click('guidanceRecenter');
+  assert.equal(await ev('document.getElementById("cityMap").dataset.following'),'true');
+  await ev('new Promise(r=>setTimeout(r,450))');
+  assert.ok(await ev('(()=>{const m=document.querySelector(".guidance-user").getBoundingClientRect(),p=document.getElementById("guidancePanel").getBoundingClientRect();return m.bottom<p.top&&m.top>40;})()'),'User marker must be above the sheet');
+  await shot('live-guidance');
+  await click('tab-listen');assert.equal(await ev('window.__gpsFixture.cleared'),true);
+  await click('tab-route');assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');
+  await click('guidanceResume');await until('document.getElementById("cityMap").dataset.tracking==="true"');
+  await click('guidanceStop');
   assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');assert.equal(await ev('window.__gpsFixture.cleared'),true);
-  // A delayed location permission must not restart a route that was cleared.
-  await ev('window.__originalLocate=navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);navigator.geolocation.getCurrentPosition=success=>{window.__lateLocate=success;};document.getElementById("startGuidance").click();document.getElementById("clearWalking").click();window.__lateLocate({coords:{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()});navigator.geolocation.getCurrentPosition=window.__originalLocate;');
-  await ev('new Promise(r=>requestAnimationFrame(r))');
+  await ev('Date.now=window.__realNow');
+  // A callback delivered after stop cannot restart or advance guidance.
+  await ev('document.getElementById("startGuidance").click();window.__lateGPS=window.__gpsFixture.success;document.getElementById("clearWalking").click();window.__lateGPS({coords:{latitude:42.297383,longitude:9.154338,accuracy:8},timestamp:Date.now()});');
   assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');
   assert.equal(await ev('window.__gpsFixture.success'),null);
+  await ev('document.querySelector(".sheet-positions [data-position=detail]").click();document.getElementById("planWalking").click();');
   // Failed calls clear the previous successful result instead of pretending a route exists.
   routingMode='error';await ev('document.getElementById("walkingStart").value="custom";document.getElementById("walkingStart").dispatchEvent(new Event("change"));document.getElementById("startLatitude").value="42.2974";document.getElementById("startLongitude").value="9.1543"');
   await click('calculateWalking');await until('document.getElementById("walkingStatus").classList.contains("is-error")');
@@ -280,6 +301,42 @@ try {
   await click('useWalkingLocation');await until('document.getElementById("walkingStatus").textContent.includes("refus")');
   assert.equal(await ev('document.getElementById("walkingResult").hidden'),true);
   await click('closeWalking');
+  // The primary flow chooses an available physical stop and asks for GPS only on Start.
+  const startsBefore=await ev('window.__gpsFixture.starts'), callsBefore=routingCalls;
+  await ev('document.getElementById("guideNextPoint").click()');
+  assert.equal(await ev('document.getElementById("guidanceDestination").value'),'iut');
+  assert.equal(await ev('document.getElementById("guidanceDestination").options.length'),1);
+  assert.equal(await ev('window.__gpsFixture.starts'),startsBefore);
+  assert.equal(routingCalls,callsBefore);
+  await ev('window.__gpsFixture.initial={longitude:9.149190,latitude:42.305007,accuracy:8}');
+  await click('beginGuidance');
+  await until('document.getElementById("guidanceNotice").textContent.includes("distance restante")');
+  assert.equal(routingCalls,callsBefore+1);
+  await ev('window.__gpsFixture.error({code:1})');
+  assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');
+  assert.match(await ev('document.getElementById("guidanceNotice").textContent'),/refusée/);
+  await click('guidanceResume');
+  await until('document.getElementById("cityMap").dataset.tracking==="true"');
+  const storedBeforeArrival=await ev('JSON.stringify(localStorage)');
+  await ev('window.__guidanceNow=Date.now();Date.now=()=>window.__guidanceNow;window.__geometry=window.__guidanceMath.routeGeometry(window.__geometry.coordinates.slice().reverse());for(let distance=5;distance<window.__geometry.total&&window.__gpsFixture.success;distance+=5)window.__sendFix(distance);if(window.__gpsFixture.success)window.__sendFix(window.__geometry.total);if(window.__gpsFixture.success)window.__sendFix(window.__geometry.total)');
+  await until('!document.getElementById("guidanceOpenStep").hidden');
+  assert.equal(await ev('document.getElementById("cityMap").dataset.tracking'),'false');
+  assert.equal(await ev('JSON.stringify(localStorage)'),storedBeforeArrival,'Arrival never marks content visited');
+  assert.equal(await ev('document.getElementById("stepSection").hidden'),true);
+  await click('guidanceOpenStep');
+  await until('!document.getElementById("stepSection").hidden');
+  await ev('Date.now=window.__realNow');
+  await click('backToApp');
+  // Starting already at the destination confirms proximity without a zero-length route.
+  const callsAtDestination=routingCalls;
+  await click('tab-route');
+  await ev('window.__gpsFixture.initial={longitude:9.154278,latitude:42.297500,accuracy:8};document.getElementById("guideNextPoint").click()');
+  await click('beginGuidance');
+  await until('document.getElementById("guidanceNotice").textContent.includes("confirmation GPS")');
+  await ev('window.__guidanceNow=Date.now()+5000;Date.now=()=>window.__guidanceNow;window.__gpsFixture.success({coords:window.__gpsFixture.initial,timestamp:Date.now()})');
+  assert.equal(await ev('document.getElementById("guidanceOpenStep").hidden'),false);
+  assert.equal(routingCalls,callsAtDestination);
+  await click('guidanceStop');await ev('Date.now=window.__realNow');
   // A direct hash survives a reload under the GitHub Pages path.
   await click('tab-home');
   await ev('location.hash="#parcours?lieu=fixed-gps"');await until('document.getElementById("mapPlaceTitle").textContent==="IUT de Corse"');

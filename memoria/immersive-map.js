@@ -1,7 +1,8 @@
+import { createWalkingGuidance } from './walking-guidance.js?v=41';
 import { CORTE_STOPS, CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=33';
 import { MAP_CONFIG } from './config.js?v=33';
 import { loadLeaflet } from './leaflet-loader.js?v=33';
-import { createWalkingRouter, validCoordinate, distanceBetween, nearestOnRoute } from './routing.js?v=33';
+import { createWalkingRouter, validCoordinate, distanceBetween } from './routing.js?v=41';
 
 export const MAP_PLACES = CORTE_STOPS.map(stop=>({...stop,kind:'step',photo:stop.id==='iut'?IUT_PHOTO:CORTE_PHOTOS.find(p=>p.id===stop.id)||null}));
 export const directionsURL = place => `https://www.google.com/maps/dir/?api=1&destination=${place.coordinates[1]},${place.coordinates[0]}&travelmode=walking`;
@@ -10,7 +11,7 @@ export function filterMapPlaces(places,text='',filter='all'){const needle=normal
 const icon=n=>`<svg class="icon" aria-hidden="true"><use href="#icon-${n}"/></svg>`;
 const metric=m=>m>=1000?(m/1000).toLocaleString('fr-FR',{maximumFractionDigits:1})+' km':Math.round(m)+' m';
 const clock=s=>s<60?'Moins d’une minute':Math.ceil(s/60)+' min';
-export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}}) {
+export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{},getCompleted=()=>[]}) {
   container.dataset.map='';container.dataset.sheet='compact';
   container.innerHTML=`
     <div id="walkingMap" class="atlas-frame" role="region" aria-label="Carte de Corte et itinéraire piéton"></div>
@@ -22,7 +23,7 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
     <aside class="atlas-sheet" data-position="compact" aria-labelledby="sheetTitle" data-no-swipe>
       <button class="sheet-handle" type="button" aria-controls="sheetContent" aria-expanded="false" aria-label="Développer la liste des lieux"><span aria-hidden="true"></span></button>
       <div class="sheet-heading"><div><p class="eyebrow">2 ÉTAPES</p><h2 id="sheetTitle">Les lieux de Corte</h2><p id="mapResults" role="status">Une première étape disponible</p></div><button class="sheet-close" type="button" aria-label="Réduire le panneau" hidden>${icon('chevron')}</button></div>
-      <div class="sheet-positions" role="group" aria-label="Affichage du parcours"><button type="button" data-position="compact" aria-pressed="true">Aperçu</button><button type="button" data-position="list" aria-pressed="false">Les lieux</button><button type="button" data-position="detail" aria-pressed="false">La fiche</button></div>
+      <button id="guideNextPoint" class="guidance-entry primary" type="button">Me guider vers le prochain point</button><div class="sheet-positions" role="group" aria-label="Affichage du parcours"><button type="button" data-position="compact" aria-pressed="true">Aperçu</button><button type="button" data-position="list" aria-pressed="false">Les lieux</button><button type="button" data-position="detail" aria-pressed="false">La fiche</button></div>
       <div id="sheetContent" class="sheet-content">
         <div class="atlas-list-view"><ol class="atlas-list" aria-label="Lieux du parcours"></ol><div class="atlas-empty" hidden><h3>Aucun lieu trouvé</h3><p>Essayez « IUT » ou « Palazzu ».</p><button id="resetMapFilters" type="button">Afficher tous les lieux</button></div>
           <section class="route-progress-block" aria-labelledby="routeProgressTitle"><p class="eyebrow">VOTRE DÉCOUVERTE</p><h3 id="routeProgressTitle">Corte, une ville de savoir</h3><p><strong id="routeCount">0 / 5</strong> repères consultés à l’IUT</p><progress id="routeProgress" max="5" value="0" aria-label="Repères de l’IUT consultés"></progress><p id="routeDescription">Votre découverte commence sur le campus Grimaldi.</p><button id="routeStartButton" class="primary" type="button">Découvrir l’étape ${icon('arrow')}</button></section>
@@ -43,7 +44,7 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
           </form><p id="walkingStatus" class="form-message" role="status" aria-live="polite"></p>
           <div id="walkingResult" hidden><div class="walking-summary"><strong id="walkingDistance"></strong><span id="walkingDuration"></span></div><p id="walkingSource" class="small-note"></p><p id="walkingAccess" class="small-note"></p>
             <details open><summary>Les indications du trajet</summary><ol id="walkingInstructions" class="walking-instructions"></ol></details>
-            <button id="startGuidance" class="primary" type="button">Suivre ma position</button><button id="stopGuidance" type="button" hidden>Arrêter le suivi</button><button id="recalculateWalking" type="button" hidden>Recalculer depuis ma position</button>
+            <button id="startGuidance" class="primary" type="button">Démarrer le guidage</button><button id="stopGuidance" type="button" hidden>Arrêter le suivi</button><button id="recalculateWalking" type="button" hidden>Recalculer depuis ma position</button>
             <progress id="walkingProgress" max="100" value="0" aria-label="Avancement le long du trajet" hidden></progress><p id="guidanceStatus" role="status"></p><button id="clearWalking" class="text-button" type="button">Effacer cet itinéraire</button>
           </div>
         </section>
@@ -51,9 +52,39 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
     </aside>`;
   const q=s=>container.querySelector(s),sheet=q('.atlas-sheet'),desktop=matchMedia('(min-width:900px)');
   const router=createWalkingRouter();let L=null,map=null,tileLayer=null,loaded=false,loading=null,active=false,selected=null,position='compact',planner=false,pickMode=false;
-  let route=null,routeLayer=null,startLayer=null,userLayer=null,accuracyLayer=null,fallback=null,lastLocation=null,watchId=null,maxProgress=0,requestId=0,tileErrors=0;
+  let route=null,routeLayer=null,startLayer=null,fallback=null,lastLocation=null,requestId=0,tileErrors=0;
+  let traveledLayer=null,remainingLayer=null;
   const markers=new Map(),items=new Map();let origin=null,drag=null,suppressClick=false;
   const latlng=p=>[p[1],p[0]];
+  const guidance=createWalkingGuidance({
+    container,places:MAP_PLACES,router,getMap:()=>map,getLeaflet:()=>L,getRoute:()=>route,
+    getCompleted,onStep,onOverview:fit,onCompact:()=>setPosition('compact'),isActive:()=>active,
+    installRoute(result,destination){
+      if(routeLayer)map?.removeLayer(routeLayer);if(startLayer)map?.removeLayer(startLayer);
+      routeLayer=null;traveledLayer=null;remainingLayer=null;route=null;
+      q('#walkingResult').hidden=true;
+      if(result){route={...result,destinationId:destination.id};selected=destination;q('#walkingDestination').textContent='Arrivée · '+destination.title;drawRoute(result);presentRoute(result);q('#walkingResult').hidden=false;}
+    },
+    drawProgress(snapshot){
+      traveledLayer?.setLatLngs(snapshot.traveled.map(latlng));
+      remainingLayer?.setLatLngs(snapshot.remaining.map(latlng));
+    },
+  });
+  q('#guideNextPoint').addEventListener('click',()=>guidance.prepare());
+  function presentRoute(result) {
+      q('#walkingDistance').textContent=metric(result.distance);q('#walkingDuration').textContent=clock(result.duration)+' estimées';q('#walkingSource').textContent=result.source+(result.version?' · données du '+result.version:'')+' · profil piéton';
+      q('#walkingAccess').textContent='Le tracé rejoint le réseau connu. Vérifiez l’accès final au lieu sur place.';q('#walkingInstructions').replaceChildren(...result.steps.map(s=>{const li=document.createElement('li');const label=document.createElement('span'),length=document.createElement('small');label.textContent=s.label;length.textContent=metric(s.distance);li.append(label,length);return li;}));if(!result.steps.length){const li=document.createElement('li');li.textContent='Le service ne fournit pas d’instructions détaillées pour ce trajet.';q('#walkingInstructions').append(li);}
+  }
+  function drawRoute(result) {
+    if(!map)return;
+    if(routeLayer)map.removeLayer(routeLayer);
+    routeLayer=L.layerGroup().addTo(map);
+    L.polyline(result.coordinates.map(latlng),{color:'#F4F0E8',weight:10,opacity:1,interactive:false,className:'guidance-route-outline'}).addTo(routeLayer);
+    traveledLayer=L.polyline([],{color:'#858d85',weight:6,opacity:1,interactive:false,className:'guidance-route-traveled'}).addTo(routeLayer);
+    remainingLayer=L.polyline(result.coordinates.map(latlng),{color:'#273B31',weight:6,opacity:1,interactive:false,className:'guidance-route-remaining'}).addTo(routeLayer);
+    if(startLayer)map.removeLayer(startLayer);
+    startLayer=L.circleMarker(latlng(result.coordinates[0]),{radius:7,color:'#273B31',weight:3,fillColor:'#F4F0E8',fillOpacity:1}).bindTooltip('Départ').addTo(map);
+  }
   function status(text,error=false){q('#walkingStatus').textContent=text;q('#walkingStatus').classList.toggle('is-error',error);}
   function setPosition(next,{focus=false}={}) {
     if(desktop.matches&&next==='compact')next='list';
@@ -133,18 +164,15 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
       loaded=true;fit();q('#mapStatus').textContent='';setPosition(position);
     }catch(error){q('#mapStatus').textContent=error.message;q('#retryMap').hidden=false;setPosition('list');}finally{loading=null;}})();return loading;
   }
-  q('#map-in').addEventListener('click',()=>map?.zoomIn());q('#map-out').addEventListener('click',()=>map?.zoomOut());q('#map-reset').addEventListener('click',fit);
+  q('#map-in').addEventListener('click',()=>map?.zoomIn());q('#map-out').addEventListener('click',()=>map?.zoomOut());q('#map-reset').addEventListener('click',()=>{if(guidance.getState().wanted)q('#guidanceOverview').click();else fit();});
   q('#retryMap').addEventListener('click',()=>{if(map){tileErrors=0;tileLayer?.redraw();q('#retryMap').hidden=true;q('#mapStatus').textContent='Rechargement du fond…';}else load();});
-  function stopTracking(message='Suivi arrêté. Le trajet reste consultable.'){if(watchId!==null)navigator.geolocation?.clearWatch(watchId);watchId=null;q('#startGuidance').hidden=false;q('#stopGuidance').hidden=true;q('#guidanceStatus').textContent=message;container.dataset.tracking='false';}
-  function updateLocation(position){const p=[position.coords.longitude,position.coords.latitude];if(!validCoordinate(p))return;lastLocation={coordinates:p,accuracy:position.coords.accuracy};if(map){if(!userLayer)userLayer=L.circleMarker(latlng(p),{radius:7,color:'#fff',weight:3,fillColor:'#205e83',fillOpacity:1}).addTo(map);else userLayer.setLatLng(latlng(p));if(accuracyLayer)map.removeLayer(accuracyLayer);accuracyLayer=L.circle(latlng(p),{radius:Math.min(position.coords.accuracy,1000),color:'#205e83',weight:1,fillOpacity:.08,interactive:false}).addTo(map);}
-    if(watchId===null||!route)return;
-    if(position.coords.accuracy>100){q('#guidanceStatus').textContent='Position imprécise. Le trajet reste visible, sans mise à jour de la progression.';return;}
-    const n=nearestOnRoute(p,route.coordinates);if(!n)return;
-    if(n.distance>Math.max(50,position.coords.accuracy*1.5)){q('#guidanceStatus').textContent='Vous semblez vous écarter du trajet. Vous pouvez demander un nouveau calcul.';q('#recalculateWalking').hidden=false;return;}
-    maxProgress=Math.max(maxProgress,n.progress);const fraction=Math.min(1,maxProgress/n.total);q('#walkingProgress').value=fraction*100;q('#guidanceStatus').textContent='Environ '+metric(Math.max(0,route.distance*(1-fraction)))+' restant sur le tracé.';q('#recalculateWalking').hidden=true;
-    if(distanceBetween(p,route.end)<25){stopTracking('Vous êtes à proximité de la destination. Vérifiez son accès sur place.');q('#walkingProgress').value=100;}
+  function stopTracking(message='Suivi arrêté. Le trajet reste consultable.'){guidance.stop(message);}
+  function updateLocation(position){
+    const sample=guidance.preview(position);
+    if(sample.coordinates)lastLocation=sample;
+    return sample;
   }
-  function locate(){if(!navigator.geolocation)return Promise.reject(Error('La géolocalisation est indisponible. Choisissez un départ manuellement.'));return new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(p=>{updateLocation(p);resolve([p.coords.longitude,p.coords.latitude]);},e=>reject(Error(e.code===1?'Position refusée. Choisissez un lieu ou des coordonnées de départ.':'Position indisponible. Choisissez un départ manuellement.')),{enableHighAccuracy:true,timeout:12000,maximumAge:15000}));}
+  function locate(){if(!navigator.geolocation)return Promise.reject(Error('La géolocalisation est indisponible. Choisissez un départ manuellement.'));return new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(p=>{const sample=updateLocation(p);if(sample.state==='stale'||sample.state==='invalid'||sample.state==='imprecise'){reject(Error('Position ancienne ou trop imprécise. Attendez une mesure récente.'));return;}resolve(sample.coordinates);},e=>reject(Error(e.code===1?'Position refusée. Choisissez un lieu ou des coordonnées de départ.':'Position indisponible. Choisissez un départ manuellement.')),{enableHighAccuracy:true,timeout:12000,maximumAge:15000}));}
   q('#map-locate').addEventListener('click',async()=>{q('#mapStatus').textContent='Recherche de votre position…';try{const p=await locate();map?.setView(latlng(p),17,{animate:false});q('#mapStatus').textContent='Votre position est affichée.';}catch(e){q('#mapStatus').textContent=e.message;}});
   function openPlanner(){if(!selected)select('iut',{open:false});planner=true;q('#walkingDestination').textContent='Arrivée · '+selected.title;q('#walkingStart').value=MAP_PLACES.find(p=>p.id!==selected.id&&p.kind==='step')?.id||'custom';q('#customStartFields').hidden=true;setPosition('detail',{focus:true});q('.sheet-content').scrollTop=0;}
   q('#planWalking').addEventListener('click',openPlanner);
@@ -153,22 +181,21 @@ export function createImmersiveMap(container,{onStep,onComing,onSelection=()=>{}
   q('#pickStart').addEventListener('click',()=>{if(!map){status('Le plan est indisponible. Saisissez les coordonnées du départ.',true);q('#walkingStart').value='custom';q('#customStartFields').hidden=false;return;}pickMode=true;setPosition('compact');q('#mapStatus').textContent='Touchez le plan pour choisir votre départ, ou annulez avec Échap.';q('.atlas-frame').focus();});
   q('#useWalkingLocation').addEventListener('click',async()=>{status('Recherche de votre position…');try{await locate();q('#walkingStart').value='gps';q('#customStartFields').hidden=true;status('Position prête. Vous pouvez calculer le trajet.');}catch(e){status(e.message,true);}});
   async function calculate(event){event?.preventDefault();const id=++requestId;router.cancel();stopTracking('');q('#walkingResult').hidden=true;q('#calculateWalking').disabled=true;q('#cancelWalkingRequest').hidden=false;status('Calcul du trajet piéton…');if(routeLayer)map?.removeLayer(routeLayer);route=null;
-    try{const mode=q('#walkingStart').value;let start;if(mode==='gps')start=lastLocation?.coordinates||await locate();else if(mode==='custom'){const a=q('#startLatitude').value,b=q('#startLongitude').value;if(!a.trim()||!b.trim())throw Error('Renseignez la latitude et la longitude du départ.');start=[Number(b),Number(a)];}else start=MAP_PLACES.find(p=>p.id===mode)?.coordinates;
+    try{const mode=q('#walkingStart').value;let start;if(mode==='gps')start=lastLocation&&Date.now()-lastLocation.timestamp<15000?lastLocation.coordinates:await locate();else if(mode==='custom'){const a=q('#startLatitude').value,b=q('#startLongitude').value;if(!a.trim()||!b.trim())throw Error('Renseignez la latitude et la longitude du départ.');start=[Number(b),Number(a)];}else start=MAP_PLACES.find(p=>p.id===mode)?.coordinates;
       if(id!==requestId)return;
-      const result=await router.calculate(start,selected.coordinates);if(id!==requestId)return;route={...result,destinationId:selected.id};maxProgress=0;
-      if(map){routeLayer=L.polyline(result.coordinates.map(latlng),{color:'#B86D4E',weight:5,opacity:1}).addTo(map);if(startLayer)map.removeLayer(startLayer);startLayer=L.circleMarker(latlng(result.coordinates[0]),{radius:7,color:'#273B31',weight:3,fillColor:'#F4F0E8',fillOpacity:1}).bindTooltip('Départ').addTo(map);fit();}
-      q('#walkingDistance').textContent=metric(result.distance);q('#walkingDuration').textContent=clock(result.duration)+' estimées';q('#walkingSource').textContent=result.source+(result.version?' · données du '+result.version:'')+' · profil piéton';
-      q('#walkingAccess').textContent='Le tracé rejoint le réseau connu. Vérifiez l’accès final au lieu sur place.';q('#walkingInstructions').replaceChildren(...result.steps.map(s=>{const li=document.createElement('li');const label=document.createElement('span'),length=document.createElement('small');label.textContent=s.label;length.textContent=metric(s.distance);li.append(label,length);return li;}));if(!result.steps.length){const li=document.createElement('li');li.textContent='Le service ne fournit pas d’instructions détaillées pour ce trajet.';q('#walkingInstructions').append(li);}
+      const result=await router.calculate(start,selected.coordinates);if(id!==requestId)return;route={...result,destinationId:selected.id};
+      drawRoute(result);fit();
+      presentRoute(result);
       q('#walkingResult').hidden=false;status('Itinéraire prêt. Vous pouvez le consulter ou suivre votre position.');q('#walkingProgress').hidden=true;q('#walkingResult').scrollIntoView({block:'start',behavior:'instant'});
     }catch(e){if(id===requestId&&e.name!=='AbortError')status(e.message||'Le trajet ne peut pas être calculé. Réessayez.',true);}finally{if(id===requestId){q('#calculateWalking').disabled=false;q('#cancelWalkingRequest').hidden=true;}}}
   q('#walkingForm').addEventListener('submit',calculate);
   q('#cancelWalkingRequest').addEventListener('click',()=>{requestId++;router.cancel();q('#calculateWalking').disabled=false;q('#cancelWalkingRequest').hidden=true;status('Calcul annulé.');});
-  q('#startGuidance').addEventListener('click',async()=>{if(!route)return;const following=route;q('#guidanceStatus').textContent='Autorisation de position…';try{await locate();if(route!==following||document.hidden)return;stopTracking('');container.dataset.tracking='true';q('#startGuidance').hidden=true;q('#stopGuidance').hidden=false;q('#walkingProgress').hidden=false;watchId=navigator.geolocation.watchPosition(updateLocation,e=>{if(e.code===1)stopTracking('Position refusée. Le trajet reste consultable.');else q('#guidanceStatus').textContent='Position momentanément indisponible. Le tracé reste visible ; le suivi reprendra à la prochaine mesure.';},{enableHighAccuracy:true,timeout:15000,maximumAge:8000});q('#guidanceStatus').textContent='Suivi actif · aucun recalcul automatique.';}catch(e){q('#guidanceStatus').textContent=e.message;}});
-  q('#stopGuidance').addEventListener('click',()=>stopTracking());q('#recalculateWalking').addEventListener('click',()=>{q('#walkingStart').value='gps';calculate();});
+  q('#startGuidance').addEventListener('click',()=>guidance.startExisting());
+  q('#stopGuidance').addEventListener('click',()=>stopTracking());
+  q('#recalculateWalking').addEventListener('click',()=>q('#guidanceRecalculate').click());
   q('#clearWalking').addEventListener('click',()=>{requestId++;router.cancel();stopTracking('');route=null;if(routeLayer)map?.removeLayer(routeLayer);if(startLayer)map?.removeLayer(startLayer);q('#walkingResult').hidden=true;status('Itinéraire effacé.');});
-  addEventListener('pagehide',()=>stopTracking('Suivi arrêté.'));document.addEventListener('visibilitychange',()=>{if(document.hidden&&watchId!==null)stopTracking('Suivi mis en pause. Relancez-le lorsque vous reprenez la marche.');});
   const observer=new ResizeObserver(()=>{if(active&&map){map.invalidateSize({pan:false});}});observer.observe(container);
   desktop.addEventListener('change',()=>{setPosition(position);if(active){map?.invalidateSize({pan:false});fit();}});
   setPosition('compact');
-  return {async activate(){active=true;await load();map?.invalidateSize({pan:false});},deactivate(){active=false;},select(id){if(id===null){selected=null;planner=false;setPosition('list');return;}q('#mapSearch').value='';applySearch();select(id,{notify:false});},plan(id){if(id&&select(id,{open:false,notify:false})===false)return;openPlanner();},getState:()=>({selected:selected?.id||null,position,route,tracking:watchId!==null,loaded})};
+  return {async activate(){active=true;await load();map?.invalidateSize({pan:false});guidance.activate();},deactivate(){active=false;guidance.pause();requestId++;router.cancel();q('#calculateWalking').disabled=false;q('#cancelWalkingRequest').hidden=true;},select(id){if(guidance.getState().wanted)guidance.stop('');if(id===null){selected=null;planner=false;setPosition('list');return;}q('#mapSearch').value='';applySearch();select(id,{notify:false});},plan(id){if(id&&select(id,{open:false,notify:false})===false)return;openPlanner();},getState:()=>({selected:selected?.id||null,position,route,tracking:guidance.getState().tracking,guidance:guidance.getState(),loaded})};
 }

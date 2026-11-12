@@ -9,7 +9,7 @@ import { AVATARS, renderAvatar } from './avatars.js?v=33';
 import { createTabNavigation } from './navigation.js?v=33';
 import { cropGeometry, zoomCrop } from './photo-crop.js?v=33';
 import { CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=33';
-import { createImmersiveMap } from './immersive-map.js?v=33';
+import { createImmersiveMap } from './immersive-map.js?v=41';
 
 import { createPageMotion } from './motion.js?v=37';
 
@@ -90,7 +90,7 @@ export function createShell(experience, step) {
   const upcoming = document.createElement('div'); upcoming.id = 'comingModal'; upcoming.className = 'modal-backdrop'; upcoming.dataset.ui = ''; upcoming.hidden = true;
   upcoming.innerHTML = `<article class="content-card" role="dialog" aria-modal="true" aria-labelledby="comingTitle"><header><div><p class="eyebrow">LE PARCOURS S’ÉTOFFE</p><h2 id="comingTitle"></h2></div><button id="closeComing">Fermer</button></header><div class="card-scroll"><img class="coming-visual" src="assets/corte-illustration.svg" alt="Illustration symbolique de Corte"><p>Cette étape est en préparation. Ses contenus, médias et repères AR ne sont pas encore disponibles.</p><button id="comingStart" class="primary">Découvrir la première étape : l’IUT</button></div></article>`;
   root.appendChild(upcoming);
-  cityMap = createImmersiveMap(el('cityMap'), { onStep: () => startStep(state.profile.progress.started), onComing: openComing, onSelection: id => { if (page === 'route' && !applyingLocation) writeLocation('route', { place: id }); } });
+  cityMap = createImmersiveMap(el('cityMap'), { getCompleted: () => step.points.every(point => state.profile.progress.visited.includes(point.id)) ? ['iut'] : [], onStep: () => startStep(state.profile.progress.started), onComing: openComing, onSelection: id => { if (page === 'route' && !applyingLocation) writeLocation('route', { place: id }); } });
   el('page-explore').querySelector(':scope > .small-note').textContent = 'Photographies de Corte et illustrations du parcours : les crédits et les licences accompagnent chaque cliché.';
   function photoCredit(photo) {
     const credit = document.createElement('div'); credit.className = 'photo-credit';

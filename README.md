@@ -150,3 +150,5 @@ Ce scénario conserve une vraie ancienne version du module Corte dans le cache H
 de Chrome, puis ouvre l’adresse normale avec le profil invité enregistré. Il vérifie
 aussi une erreur de chargement du module principal, le message de récupération et
 une nouvelle tentative réussie sans paramètre d’URL.
+
+Le guidage temps réel dans Parcours est décrit dans [le guide piéton](docs/guidage-pieton.md).

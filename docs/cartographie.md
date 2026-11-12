@@ -60,3 +60,5 @@ Aucun segment droit n’est présenté comme un trajet praticable.
 marqueur de l’IUT de Corse. L’ancien marqueur voisin a été supprimé. Le lien historique
 `#parcours?lieu=fixed-gps` ouvre la fiche IUT. La position de l’utilisateur reste
 indépendante et n’apparaît qu’après autorisation.
+
+Voir [le guidage piéton](guidage-pieton.md) pour la progression gris/vert, les seuils GPS et les tests.

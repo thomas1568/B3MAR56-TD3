@@ -69,3 +69,32 @@
 @media(max-width:359px) { .atlas-header h1 { font-size:27px; }.atlas-header { padding:11px 14px; }.atlas-search input { font-size:16px !important; }.sheet-heading h2 { font-size:24px; }.atlas-sheet { left:10px; right:10px; }.atlas-list-copy strong { font-size:15px; } }
 @media(max-height:700px) { .crop-stage { width:min(100%,33dvh); }.crop-editor>.small-note { font-size:12px; margin-bottom:10px; }.crop-editor { padding-top:12px; }.crop-footer { padding-top:12px; } }
 @media(prefers-reduced-transparency:reduce),(prefers-contrast:more) { .atlas-sheet,.atlas-header,.atlas-controls { background:var(--surface); } }
+
+/* Live pedestrian guidance shares the existing Leaflet map and route planner. */
+.guidance-entry { margin:0 18px 12px; min-height:44px; font-size:13px; flex-shrink:0; }
+.guidance-panel { position:absolute; z-index:5; left:24px; bottom:var(--dock-clearance); width:360px; max-height:calc(100dvh - var(--dock-clearance) - 70px); overflow:auto; padding:18px; border:1px solid #fff; border-radius:24px; background:#F4F0E8; color:#202823; box-shadow:0 8px 28px #273b3120; overscroll-behavior:contain; }
+.guidance-panel h2 { font:26px/1.1 Georgia,serif; color:#273B31; margin:0 0 12px; }
+.guidance-panel p { font-size:13px; line-height:1.45; margin:8px 0; }
+.guidance-panel .guidance-estimate { font-size:22px; font-weight:600; color:#273B31; }
+.guidance-panel #guidanceNotice { color:#7c4934; }
+.guidance-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; margin-top:10px; }
+.guidance-actions button { min-height:44px; font-size:12px; padding:6px; }
+.guidance-secondary { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.guidance-secondary button { min-height:44px; padding:8px; font-size:12px; }
+.guidance-panel .guidance-legend { font-size:10px; margin-bottom:0; }
+#guidanceSetup>button { width:100%; margin-top:10px; }
+#guidanceSetup label { font-size:14px; }
+#guidanceDestination { width:100%; }
+#cityMap.is-guiding .atlas-controls { visibility:visible; top:max(64px,env(safe-area-inset-top,0px)); }
+#cityMap.is-guiding .map-feedback { top:18px; right:90px; width:auto; font-size:11px; }
+#cityMap.is-guiding .atlas-frame .leaflet-bottom.leaflet-right { top:max(12px,env(safe-area-inset-top,0px)); left:14px; bottom:auto; right:auto; }
+#cityMap.is-guiding .leaflet-control-attribution { visibility:visible; }
+#cityMap.is-guiding .map-retry { top:65px; }
+@media(max-width:899px) {
+  .atlas-sheet[data-position=compact] { height:250px; }
+  .guidance-panel { left:max(12px,env(safe-area-inset-left,0px)); right:max(12px,env(safe-area-inset-right,0px)); width:auto; bottom:calc(var(--dock-clearance) - 12px); padding:14px; }
+  .guidance-panel h2 { font-size:22px; margin-bottom:8px; }
+  .guidance-panel .guidance-estimate { font-size:20px; }
+}
+@media(max-height:650px) { .guidance-panel { max-height:45dvh; }.guidance-panel .guidance-legend { display:none; } }
+@media(prefers-reduced-motion:reduce) { .atlas-sheet { transition:none; } }
