@@ -1,4 +1,4 @@
-import { createProfileDropdown } from './profile-dropdown.js?v=1';
+import { createProfileDropdown } from './profile-dropdown.js?v=2';
 import { createAccount, validatePhoto, validatePseudo } from './account.js?v=33';
 import { AVATARS, renderAvatar } from './avatars.js?v=33';
 import { createTabNavigation } from './navigation.js?v=33';

@@ -13,7 +13,7 @@ propose de créer un projet React au lieu d'ajouter directement le composant. Le
 ## Utilisation dans ce projet
 
 ```js
-import { createProfileDropdown } from './profile-dropdown.js?v=1';
+import { createProfileDropdown } from './profile-dropdown.js?v=2';
 
 const menu = createProfileDropdown(document.getElementById('headerProfile'), {
   onProfile: () => showPage('profile'),
