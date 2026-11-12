@@ -2,7 +2,7 @@
 export function createPageMotion({ view, header, canAnimate = () => true }) {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const seen = new WeakSet(), running = new Set();
-  const targets = '.welcome-line,.hero-copy h2,.hero-copy>p,.hero-actions,.section-heading,.editorial-card,.story-card,.resume-card,.corte-photo-card,.quiet-note,.listen-intro,.profile-identity,.profile-aside';
+  const targets = '.welcome-line,.hero-copy h2,.hero-copy>p,.hero-actions,.section-heading,.editorial-card:not(.stack-card),.story-card,.resume-card,.corte-photo-card,.quiet-note,.listen-intro,.profile-identity,.profile-aside';
   let lastY = Math.max(0, view.scrollTop), distance = 0, frame = 0;
   function conceal(hidden) {
     if (header.contains(document.activeElement)) hidden = false;

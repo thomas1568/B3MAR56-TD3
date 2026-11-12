@@ -1,3 +1,4 @@
+import { createCardStack } from './card-stack.js?v=1';
 import { createProfileDropdown } from './profile-dropdown.js?v=2';
 import { createAccount, validatePhoto, validatePseudo } from './account.js?v=33';
 import { AVATARS, renderAvatar } from './avatars.js?v=33';
@@ -6,7 +7,7 @@ import { cropGeometry, zoomCrop } from './photo-crop.js?v=33';
 import { CORTE_PHOTOS, IUT_PHOTO, photoVariants } from '../content/corte.js?v=33';
 import { createImmersiveMap } from './immersive-map.js?v=33';
 
-import { createPageMotion } from './motion.js?v=33';
+import { createPageMotion } from './motion.js?v=36';
 
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 export function createShell(experience, step) {
@@ -30,7 +31,7 @@ export function createShell(experience, step) {
         <a class="hero-credit" href="https://commons.wikimedia.org/wiki/File:Citadelle_de_Corte,_Corte,_Corsica,_France.jpg" target="_blank" rel="noopener noreferrer">Corte · Bj.schoenmakers · CC0 ↗</a>
       </div></article>
       <div class="home-content"><article id="resumeCard" class="resume-card" hidden><span class="resume-thumbnail" aria-hidden="true">${icon('route')}</span><div><p class="eyebrow">VOTRE DÉCOUVERTE EN COURS</p><h2>Le fil de votre visite.</h2><p id="resumeDescription"></p><progress id="resumeProgress" max="5" value="0" aria-label="Repères consultés à l’IUT"></progress></div><button id="resumeButton" class="primary" type="button">Reprendre ${icon('arrow')}</button></article>
-      <div class="section-heading"><div><p class="eyebrow">À DÉCOUVRIR</p><h2>Les lieux, autrement.</h2></div><button class="text-button" data-page="explore" type="button">Tout explorer ${icon('arrow')}</button></div><div id="homePlaces" class="editorial-grid visual-row"></div>
+      <div class="section-heading"><div><p class="eyebrow">À DÉCOUVRIR</p><h2>Les lieux, autrement.</h2></div><button class="text-button" data-page="explore" type="button">Tout explorer ${icon('arrow')}</button></div><div id="homePlaces"></div>
       <div class="section-heading"><div><p class="eyebrow">PRENEZ LE TEMPS</p><h2>Écouter Corte.</h2></div><button class="text-button" data-page="listen" type="button">Les récits ${icon('arrow')}</button></div><div id="homeStories" class="story-grid"></div>
       <div class="section-heading"><div><p class="eyebrow">LE TERRITOIRE EN IMAGES</p><h2>Au détour d’un regard.</h2></div></div><div id="corteGallery" class="corte-gallery"></div><div class="quiet-note">${icon('route')}<div><p>L’IUT ouvre la visite. Retrouvez les autres lieux de Corte et les étapes en préparation.</p><button class="text-button" data-page="route" type="button">Préparer mon parcours ${icon('arrow')}</button></div></div></div>
     </section>
@@ -106,7 +107,7 @@ export function createShell(experience, step) {
     el('explorePlaces').replaceChildren(...matches.map(placeCard)); el('exploreEmpty').hidden = matches.length > 0; pageMotion?.refresh();
   }
   el('exploreSearch').addEventListener('input', () => renderPlaces());
-  el('homePlaces').replaceChildren(...places.map(placeCard)); renderPlaces();
+  createCardStack(el('homePlaces'), places.map(placeCard)); renderPlaces();
   const stories = [
     { id: 'welcome', track: step.narrations.welcome, title: step.narrations.welcome.title, description: 'Le campus Grimaldi ouvre les portes de votre découverte.', action: 'Lire ou écouter l’accueil' },
     { id: 'main', track: step.narrations.main, title: step.narrations.main.title, description: '1765, 1981, 1983 : trois repères pour comprendre et transmettre.', action: 'Lire ou écouter le récit' }

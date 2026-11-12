@@ -129,3 +129,22 @@
 .profile-dropdown-panel .profile-dropdown-logout { color:var(--copper-ink); }
 @keyframes profile-dropdown-in { from { opacity:0; transform:translateY(-6px) scale(.96); } to { opacity:1; transform:none; } }
 @media(prefers-reduced-motion:reduce) { .profile-dropdown-panel { animation:none; } }
+
+/* Home-only native adaptation of Kokonut UI CardStack. */
+#homePlaces.place-card-stack { display:block; margin:0; padding:16px 0 0; overflow:clip; }
+#homePlaces .card-stack-stage { display:grid; isolation:isolate; width:min(100% - 32px,560px); margin:0 auto; padding:0 0 36px; }
+#homePlaces .stack-card { grid-area:1/1; align-self:stretch; padding:10px; background:var(--paper); border:1px solid #cbd1c3; border-radius:28px; box-shadow:0 10px 24px #273b3117; transform:translateY(calc(var(--stack-depth) * 12px)) rotate(var(--stack-angle)) scale(calc(1 - var(--stack-depth) * .025)); transform-origin:50% 80%; transition:transform .32s cubic-bezier(.2,.7,.2,1); }
+#homePlaces .stack-card:not(.is-top) { pointer-events:none; }
+#homePlaces .stack-card.is-dragging { transition:none; }
+#homePlaces .card-visual { height:clamp(210px,32vw,330px); border-radius:20px; touch-action:pan-y pinch-zoom; cursor:grab; user-select:none; }
+#homePlaces .is-dragging .card-visual { cursor:grabbing; }
+#homePlaces .editorial-card-body { padding:18px 12px 8px; }
+#homePlaces .editorial-card h3 { font-size:clamp(25px,3vw,32px); }
+#homePlaces .card-stack-controls { display:flex; align-items:center; justify-content:space-between; gap:18px; max-width:280px; margin:0 auto; padding:0 12px; }
+#homePlaces .card-stack-controls button { display:grid; place-items:center; width:46px; height:46px; min-height:46px; padding:0; border-radius:50%; background:var(--paper); color:var(--green); border:1px solid #b7c1ad; }
+#homePlaces .card-stack-controls button:hover { background:var(--beige); }
+#homePlaces .card-stack-controls .icon { width:20px; height:20px; }
+#homePlaces .card-stack-prev .icon { transform:rotate(180deg); }
+#homePlaces .card-stack-count { margin:0; color:var(--green); font-size:13px; font-variant-numeric:tabular-nums; }
+#homePlaces .card-stack-hint { margin:14px 12px 0; color:var(--muted); text-align:center; font-size:12px; }
+@media(prefers-reduced-motion:reduce) { #homePlaces .stack-card { transition:none; } }

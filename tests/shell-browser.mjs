@@ -312,6 +312,26 @@ try {
     assert.equal(await ev('document.getElementById("profileDropdownMenu").hidden'),true);
     await click('headerProfile'); await click('tab-home');
     assert.equal(await ev('document.getElementById("profileDropdownMenu").hidden'),true);
+
+    await ev('document.querySelector("#homePlaces .card-stack-next").id="homeStackNext"; document.querySelector("#homePlaces .card-stack-prev").id="homeStackPrevious"');
+    assert.equal(await ev('document.querySelector("#homePlaces .is-top").dataset.place'),'iut');
+    await click('homeStackNext');
+    await until('document.getElementById("homePlaces").dataset.activePlace==="palazzu"');
+    assert.equal(await ev('document.querySelector("#homePlaces [data-place=iut]").inert'),true);
+    assert.equal(await ev('document.querySelectorAll("#explorePlaces .stack-card").length'),0);
+    await send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowLeft',code:'ArrowLeft',windowsVirtualKeyCode:37});
+    await until('document.getElementById("homePlaces").dataset.activePlace==="iut"');
+    await ev('document.querySelector("#homePlaces .is-top .card-visual").scrollIntoView({block:"center",behavior:"instant"})');
+    await ev('Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{})))');
+    const stackPoint = await ev('(()=>{const r=document.querySelector("#homePlaces .is-top .card-visual").getBoundingClientRect();return {x:r.x+r.width*.75,y:r.y+r.height*.5};})()');
+    await drag(stackPoint,{x:stackPoint.x-110,y:stackPoint.y});
+    await until('document.getElementById("homePlaces").dataset.activePlace==="palazzu"');
+    assert.equal(await ev('document.getElementById("tab-home").getAttribute("aria-current")'),'page');
+    await ev('Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{})))');
+    await shot('home-card-stack-'+width);
+    await ev('document.getElementById("homeStackPrevious").scrollIntoView({block:"center",behavior:"instant"})');
+    await click('homeStackPrevious');
+    await until('document.getElementById("homePlaces").dataset.activePlace==="iut"');
     for(const page of ['explore','listen','profile']){await click('tab-'+page);assert.equal(await ev('document.getElementById("appView").scrollWidth>innerWidth'),false);await shot(page+'-'+width);}
     await click('tab-route');await ev('document.querySelector(".sheet-positions [data-position=compact]").click()');await click('map-reset');await shot('map-'+width);
     assert.ok(await ev('(()=>{const n=document.querySelector(".leaflet-control-attribution a"),r=n.getBoundingClientRect(),h=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return h===n||n.contains(h);})()'),'Cartographic attribution must remain visible and clickable');
